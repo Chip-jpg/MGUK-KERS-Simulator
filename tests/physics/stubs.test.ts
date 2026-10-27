@@ -5,7 +5,8 @@ import * as physics from '../../src/physics';
  * Contract guard for §4.2. Runtime part: every export exists and is a function.
  * Type part: `expectTypeOf` assertions fail `npm run typecheck` if a signature
  * (parameter types, optional parameters, return shape) drifts from the contract.
- * A1 keeps this file passing while replacing the stubs with implementations.
+ * Since A1 every function is implemented; this file also checks that no stub is
+ * left behind.
  */
 const API = [
   'fluxUniform',
@@ -35,6 +36,32 @@ describe('physics API contract (§4.2)', () => {
 
   it('exports the fixed physics step dt = 1/240 s', () => {
     expect(physics.PHYSICS_DT).toBe(1 / 240);
+  });
+
+  it('no §4.2 function is still a NotImplemented stub', () => {
+    const p = physics;
+    const calls: Array<() => unknown> = [
+      () => p.fluxUniform(1, 1, 0),
+      () => p.emfFaraday(1, 1),
+      () => p.emfMotional(1, 1, 1),
+      () => p.rotatingLoop(1, 1, 1, 1, 0),
+      () => p.inducedCurrent(1, 1),
+      () => p.lenzSign(1),
+      () => p.solenoidInductance(1, 1, 1),
+      () => p.emfSelf(1, 1),
+      () => p.rlCurrent(1, 1, 1, 1),
+      () => p.magneticEnergy(1, 1),
+      () => p.transformerSecondary(1, 1, 1),
+      () => p.transformerCurrent(1, 1, 1),
+      () => p.jouleLoss(1, 1),
+      () => p.lineLoss(1, 1, 1),
+      () => p.lorentzForce(1, 1, 1),
+      () => p.kineticEnergyDelta(1, 2, 1),
+      () => p.kersBrakingEvent({ m: 1, v1: 2, v2: 1, Pmax: 1, eta: 1, tBrake: 1 }),
+      () => p.rk4Step(() => [0], 0, [1], 0.1),
+    ];
+    expect(calls).toHaveLength(API.length);
+    for (const call of calls) expect(call).not.toThrow();
   });
 
   it('exports NotImplementedError', () => {
