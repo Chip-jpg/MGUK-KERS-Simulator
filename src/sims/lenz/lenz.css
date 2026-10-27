@@ -1,0 +1,57 @@
+/* Styles local to the lenz simulator (class prefix .lenz-). */
+.lenz-canvas {
+  touch-action: none;
+  cursor: default;
+}
+.lenz-canvas.is-over {
+  cursor: grab;
+}
+.lenz-canvas.is-dragging {
+  cursor: grabbing;
+}
+.lenz-canvas:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+.lenz-status {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  right: var(--space-3);
+  max-width: 34rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  color: var(--color-text);
+  pointer-events: none;
+}
+.lenz-status__main {
+  margin: 0;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-sm);
+}
+.lenz-status__sub {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+.lenz-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -0.7em 0 0 0.3em;
+  padding: 0 0.3em;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+}
+.lenz-label--soft {
+  opacity: 0.85;
+}
+.lenz-label--pole {
+  margin-left: -1.5em;
+  color: var(--color-text);
+}
