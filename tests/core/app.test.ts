@@ -64,7 +64,8 @@ describe('createApp (jsdom smoke)', () => {
 
     await go('#/interrogazione');
     expect(root.querySelector('main h1')?.textContent).toContain('Interrogazione');
-    expect(root.querySelector('main')?.textContent).toContain('In arrivo');
+    // src/quiz now exists, so the page mounts the quiz instead of "In arrivo".
+    expect(root.querySelector('main')?.textContent).toMatch(/In arrivo|Caricamento|Domanda/);
 
     await go('#/teoria/99-nope');
     expect(root.querySelector('main')?.textContent).toContain('Sezione di teoria non trovata.');
