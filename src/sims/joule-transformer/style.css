@@ -1,0 +1,190 @@
+/* joule-transformer — sim-local styles (tokens from src/styles/tokens.css). */
+.jt-sliders {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.jt-subtitle {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--fs-base);
+}
+
+.jt-results__list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.jt-results__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.jt-results__row dt {
+  color: var(--color-text-muted);
+}
+
+.jt-results__value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--q, var(--color-text));
+  font-weight: var(--fw-medium);
+}
+
+.jt-badge {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+}
+
+.jt-badge--ok {
+  border-color: var(--color-accent);
+}
+
+.jt-warning {
+  margin-top: var(--space-2);
+  font-size: var(--fs-sm);
+}
+
+.jt-label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.jt-label--line {
+  color: var(--q-i);
+  font-weight: var(--fw-medium);
+}
+
+.jt-chart {
+  grid-column: 1 / -1;
+}
+
+.jt-factor {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-lg);
+}
+
+.jt-factor__value {
+  color: var(--q-energy);
+  font-variant-numeric: tabular-nums;
+}
+
+.jt-chart__svg {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+}
+
+.jt-chart__grid line {
+  stroke: var(--color-grid);
+  stroke-width: 1;
+}
+
+.jt-chart__tick,
+.jt-chart__axis,
+.jt-chart__note {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.jt-chart__limit {
+  stroke: var(--color-text-muted);
+  stroke-dasharray: 5 4;
+}
+
+.jt-chart__curve {
+  stroke: var(--q-energy);
+  stroke-width: 2.5;
+}
+
+.jt-chart__pair {
+  stroke: var(--color-text);
+  stroke-dasharray: 4 3;
+}
+
+.jt-chart__label {
+  fill: var(--color-text);
+  font-size: 12px;
+}
+
+.jt-chart__factor {
+  fill: var(--q-energy);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.jt-chart__pt {
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+.jt-chart__pt--low {
+  fill: var(--q-i);
+}
+
+.jt-chart__pt--high {
+  fill: var(--q-energy);
+}
+
+.jt-chart__pt--now {
+  fill: var(--color-accent);
+}
+
+.jt-bars {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.jt-bar {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.2fr) 2fr minmax(9rem, auto);
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.jt-bar__track {
+  height: 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.jt-bar__fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--q-energy);
+}
+
+.jt-bar--low .jt-bar__fill {
+  background: var(--q-i);
+}
+
+.jt-bar--now .jt-bar__fill {
+  background: var(--color-accent);
+}
+
+.jt-bar__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.jt-label--below {
+  transform: translate(-50%, 0);
+}
