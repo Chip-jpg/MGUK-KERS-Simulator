@@ -101,7 +101,12 @@ export async function loadSimModules(
   target: SimRegistry = registry,
   loaders: ReadonlyMap<string, SimLoader> = DISCOVERED,
 ): Promise<SimModule[]> {
-  const ids = [...loaders.keys()];
+  // SIM_IDS order first; unknown ids last so loadSim still rejects them.
+  const rank = (id: string): number => {
+    const i = (SIM_IDS as readonly string[]).indexOf(id);
+    return i === -1 ? SIM_IDS.length : i;
+  };
+  const ids = [...loaders.keys()].sort((a, b) => rank(a) - rank(b));
   const mods = await Promise.all(ids.map((id) => loadSim(id, target, loaders)));
   return mods.filter((m): m is SimModule => m !== undefined);
 }
