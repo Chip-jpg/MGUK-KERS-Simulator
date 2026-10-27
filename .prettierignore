@@ -1,0 +1,9 @@
+dist/
+coverage/
+node_modules/
+test-results/
+playwright-report/
+package-lock.json
+# Keeps the verbatim §4.3 contract block byte-identical to docs/ARCHITECTURE.md
+src/core/types.ts
+docs/ARCHITECTURE.md
