@@ -252,10 +252,13 @@ with a fake clock (see `tests/core/loop.test.ts`).
    ```
 3. Export the typed parameter schema from the same folder:
    `export const params: ParamsSchema<FaradayParams> = { … }`.
-4. Nothing else: `loadSimModules()` (called by the shell) discovers every
-   `src/sims/*/index.ts` via `import.meta.glob` and registers it; the registry
-   rejects unknown or duplicate ids and lists modules in `SIM_IDS` order. No shared
-   file needs editing (DECISIONS D4).
+4. Nothing else: the registry discovers every `src/sims/*/index.ts` via a **lazy**
+   `import.meta.glob` (A3, as foreseen by DECISIONS D4): each sim is its own chunk
+   (with its Three.js / uPlot), loaded by `loadSim(id)` when the user opens it or
+   the Simulatori index. `availableSimIds()` lists the folders without loading them;
+   `loadSimModules()` (now `async`) loads all. The registry rejects unknown or
+   duplicate ids and lists modules in `SIM_IDS` order. No shared file needs
+   editing.
 
 `mount` must be idempotent and leak-free: `dispose()` stops the loop, removes every
 listener, disposes all Three.js geometries/materials/textures/renderers and uPlot
@@ -279,3 +282,132 @@ else falls back to `#/teoria`. Build links with `formatRoute(route)`; never use
 - E2E: `npm run e2e` (Playwright, Chromium). Set `PW_CHROMIUM_PATH` to a local
   Chromium executable when browsers cannot be downloaded.
 - Stack is pinned (DECISIONS D3); substitutions require approval.
+- E2E: `PW_PORT` (default 4173) changes the preview port when several checkouts
+  run Playwright at the same time. Specs: `e2e/shell.spec.ts` (navigation +
+  keyboard), `e2e/a11y.spec.ts` (axe-core, WCAG 2.1 A/AA, zero serious/critical),
+  `e2e/screenshots.spec.ts` (writes `e2e/screenshots/*.png`).
+
+## 9. UI kit (A3)
+
+Simulators import everything from the barrel **`src/ui/index.ts`**
+(`import { createSimLayout, createSlider, … } from '../../ui';`). The app shell
+never imports the barrel, so uPlot stays out of the initial bundle. Every
+component returns a handle with `dispose()`; call them all from the sim's own
+`dispose()`. All visible text comes from `src/core/i18n/it.ts` or the caller
+(`…IT` parameters are Italian).
+
+### 9.1 Page layout
+
+The shell renders the page header from the `SimModule` metadata (h1 `titleIT`,
+`summaryIT`, "Vai alla teoria" → `#/teoria/<theoryId>`, "Slide N" chips) and hands
+`mount()` an empty `host`. Inside `mount`:
+
+```ts
+createSimLayout(host: HTMLElement, o?: { modelNoteIT?: string }): SimLayout
+// SimLayout: { root, toolbar, scene, sceneOverlay, controls, formulas, plots, note,
+//              setModelNote(textIT), setFormulasOverlay(show), dispose() }
+```
+
+| Region | Use |
+|---|---|
+| `scene` | left column, `position: relative`, fills the height; append the Three.js canvas (CSS forces 100 % × 100 %). Size the renderer from `scene.clientWidth/clientHeight` + a `ResizeObserver`. |
+| `sceneOverlay` | absolutely positioned layer over the scene for HTML labels (`pointer-events: none`, `aria-hidden`). |
+| `toolbar` | above the scene; already contains the **"Mostra formule"** toggle (moves `formulas` over the scene, `aria-pressed`). |
+| `controls` | right column, inside the "Parametri" panel: sliders, toggles. |
+| `formulas` | right column, below the controls: put the `FormulaPanel` here. |
+| `plots` | full width under scene + side; auto-hidden while empty; responsive grid. |
+| `note` | "**Modello semplificato:** …" (§9 honesty rule) — pass `modelNoteIT`. |
+
+Below 1100 px width the side column stacks under the scene.
+
+### 9.2 Components
+
+```ts
+createSimToolbar(layout.toolbar, {
+  loop?: Pick<Loop,'pause'|'resume'|'stepOnce'|'isPaused'>,  // from createLoop
+  onReset: () => void, onPauseChange?: (paused) => void, onStep?: () => void,
+}): { element, refresh(), dispose() }        // Reimposta · Pausa/Riprendi · Passo
+
+createSlider({ spec: ParamSpec, value?, digits?, onInput?(v), id?, hintIT? }):
+  { element, value, set(v, emit = false), reset(), setDisabled(b), dispose() }
+// range input (arrows, PgUp/PgDn, Home/End) + numeric field ("0,5" or "0.5",
+// Enter/blur commits, ↑/↓ steps, Shift×10, Esc reverts); label = spec.labelIT,
+// unit always shown, aria-valuetext via formatIT, values clamped + snapped to step.
+
+createToggle({ labelIT, checked?, onChange?(b) }): { element, checked, set(b, emit?), dispose() }
+createSegmented({ labelIT, options: [{ value, labelIT }], value, onChange?(v) }):
+  { element, value, set(v, emit?), dispose() }     // radio group, e.g. Generatore / Motore
+createButton({ labelIT, onClick, variant?: 'primary'|'secondary'|'ghost', icon?, ariaLabel?, title? })
+
+createFormulaPanel(layout.formulas, items: FormulaItem[], o?: { titleIT? }):
+  { element, update(values: Record<string, number>), flush(), dispose() }
+// FormulaItem: { key, tex, labelIT?, unit?, digits? (2), scale? (×, e.g. 1000 A→mA),
+//                quantity?: 'b'|'emf'|'i'|'f'|'energy', slide?, symbolTex? }
+// KaTeX is rendered once; update() may be called every physics step — the DOM is
+// written at most once per animation frame, numbers via formatIT.
+
+createPlot(layout.plots, {
+  titleIT, series: [{ labelIT, unit?, quantity?, digits?, dash?, width?, fill? }],
+  xLabelIT?, xUnit?, yLabelIT?, capacity? (600), height? (220), xWindow?, yRange?, theme?,
+}): { element, chart, push(x, ...ys), setData(xs, ...ys), clear(), dispose() }
+// uPlot wrapper: ring buffer (RingBuffer), redraw ≤ 1 per frame, ResizeObserver,
+// axis + legend numbers via formatIT, quantity colours, follows the theme toggle.
+
+createSlideChips(refs: number[]): HTMLElement          // "Slide 7" chips
+renderTex(tex, displayMode?): { html, error? }         // KaTeX, trust:false, throwOnError:false
+el(tag, { class, text, attrs, dataset }, children)     // tiny DOM helper; listen(), uniqueId()
+```
+
+Also re-exported: `formatIT`, `createLoop`/`Loop`, `onThemeChange(cb) → off`,
+`currentTheme()`.
+
+### 9.3 Colours and theme
+
+Tokens live in `src/styles/tokens.css` (`--color-*`, `--space-*`, `--fs-*`,
+`--radius-*`, dark + light sets keyed on `html[data-theme]`). One accent colour
+(teal, `--color-accent`). Physical quantities have fixed colours in every sim:
+
+| Quantity | CSS | TS |
+|---|---|---|
+| B (campo magnetico) | `--q-b` (blue) | `quantityColor('b', theme)` |
+| E / f.e.m. | `--q-emf` (amber) | `'emf'` |
+| current i | `--q-i` (red) | `'i'` |
+| force F | `--q-f` (green) | `'f'` |
+| energy | `--q-energy` (purple) | `'energy'` |
+
+`src/ui/colors.ts` exports the same values resolved to hex for both themes
+(`PALETTES`, `getPalette(theme)`, `quantityColor()`, `quantityColorHex()` for
+`new THREE.Color(n)`). `tests/ui/colors.test.ts` fails if CSS and TS drift, and
+checks WCAG AA: every text colour (incl. quantity colours) ≥ 4.5:1 on `bg`,
+`surface`, `surface-2`; control outlines and accent ≥ 3:1. CSS helpers:
+`.q-b … .q-energy` (sets `--q`) and `.text-q-*`.
+
+`ctx.theme` and `ctx.reducedMotion` are **live getters**. To recolour Three.js
+materials on toggle, subscribe with `onThemeChange(theme => …)` and unsubscribe
+in `dispose()`. With `ctx.reducedMotion` a sim should start paused (or animate
+without camera motion).
+
+### 9.4 Theory renderer (`src/theory/`)
+
+- `content.ts`: `content/theory/*.md` bundled with `import.meta.glob(…, { query:
+  '?raw', eager: true })`; `getTheory() → { docs, errors }` (0 files → empty, invalid
+  files skipped and reported), `findTheoryDoc`, `neighbours` (prev/next by `order`).
+  When `content/theory/` is empty and the build sets `VITE_THEORY_FIXTURES=true`
+  (Playwright webServer only), `tests/fixtures/theory/*.md` are used.
+- `frontmatter.ts`: YAML subset (strings, quoted strings, ints, `[1, 2]`, `[]`,
+  block lists).
+- `markdown.ts`: `renderMarkdown(md) → { html, toc, mathErrors }` — marked 14 +
+  `$…$` / `$$…$$` KaTeX extension (errors shown inline as `.math-error`), heading
+  ids (accent-free slugs), TOC from `##`, `NN-slug.md` → `#/teoria/NN-slug`, raw
+  HTML escaped, images dropped, unsafe URLs removed, external links open in a new
+  tab. `tests/theory/content.test.ts` renders every real theory file and requires
+  zero KaTeX errors and the six §4.4 headings in order.
+- `page.ts`: index page and section page (TOC buttons + `scrollIntoView`, D5).
+
+### 9.5 Interrogazione extension point (A9)
+
+`src/core/extensions.ts`: if `src/quiz/index.ts` exists, its **default export**
+must be `{ mount(host: HTMLElement, ctx: AppContext): Disposable }` (type
+`QuizModule`). The shell lazy-loads it on `#/interrogazione`, mounts it into an
+empty `section.quiz-host` (the module renders its own `<h1 tabindex="-1">`) and
+disposes it on navigation. Without the file the page shows "In arrivo".

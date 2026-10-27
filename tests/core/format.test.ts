@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatIT, NOT_A_NUMBER, UNIT_SEPARATOR } from '../../src/core/format';
 
-const NBSP = ' ';
+const NBSP = '\u00A0';
 
 describe('formatIT', () => {
   it('uses the Italian decimal comma', () => {

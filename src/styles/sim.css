@@ -1,0 +1,244 @@
+/* Simulator page: scene left, controls + formulas right, plots below. */
+
+.sim-header {
+  margin-bottom: var(--space-4);
+}
+
+.sim-header .page-title {
+  font-size: var(--fs-2xl);
+}
+
+.sim-header .lead {
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-base);
+}
+
+.sim-header__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sim-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  grid-template-areas:
+    'main side'
+    'plots plots'
+    'note note';
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.sim-layout__main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sim-layout__side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.sim-toolbar,
+.toolbar__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sim-toolbar__formulas {
+  margin-left: auto;
+}
+
+.sim-stage {
+  position: relative;
+}
+
+.sim-scene {
+  position: relative;
+  min-height: 22rem;
+  height: clamp(22rem, calc(100vh - 17rem), 44rem);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.sim-scene > canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.sim-scene__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sim-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+}
+
+.sim-formula-overlay {
+  position: absolute;
+  inset: var(--space-3);
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  box-shadow: var(--shadow-2);
+}
+
+.sim-formula-overlay .katex {
+  font-size: 1.45em;
+}
+
+.sim-formulas:empty,
+.sim-formulas-slot:empty {
+  display: none;
+}
+
+.sim-plots {
+  grid-area: plots;
+}
+
+.sim-plots:has(.sim-plots__body:empty) {
+  display: none;
+}
+
+.sim-plots__body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  gap: var(--space-4);
+}
+
+.sim-note {
+  grid-area: note;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+
+.sim-note strong {
+  color: var(--color-text);
+}
+
+/* Formula panel */
+
+.formula-panel {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.sim-formula-overlay .formula-panel {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.formula-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.formula-row {
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--q, var(--color-border-strong));
+}
+
+.formula-row dt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.formula-row__tex {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.formula-row__label {
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+
+.formula-row__value {
+  margin: 0.15rem 0 0;
+  font-size: var(--fs-sm);
+}
+
+.formula-row__number {
+  color: var(--q, var(--color-text));
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Plot (uPlot) */
+
+.plot {
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  min-width: 0;
+}
+
+.plot__title {
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+
+.plot__chart {
+  width: 100%;
+  min-width: 0;
+}
+
+.plot .u-legend {
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.plot .u-legend th {
+  font-weight: var(--fw-medium);
+}
+
+.plot .u-select {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .sim-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'main'
+      'side'
+      'plots'
+      'note';
+  }
+}

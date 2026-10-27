@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createRegistry, loadSimModules, SIM_IDS } from '../../src/core/registry';
+import {
+  availableSimIds,
+  createRegistry,
+  loadSim,
+  loadSimModules,
+  SIM_IDS,
+  type SimLoader,
+} from '../../src/core/registry';
 import type { SimModule } from '../../src/core/types';
 
 const fake = (id: string): SimModule => ({
@@ -39,9 +46,25 @@ describe('registry', () => {
     expect(() => r.register(fake('warp-drive'))).toThrow(/Unknown simulator id/);
   });
 
-  it('loadSimModules discovers src/sims/*/index.ts (none yet in the scaffold)', () => {
+  it('loadSimModules discovers src/sims/*/index.ts lazily', async () => {
     const r = createRegistry();
-    const loaded = loadSimModules(r);
+    const loaded = await loadSimModules(r);
     expect(loaded.map((m) => m.id).every((id) => r.has(id))).toBe(true);
+    expect(availableSimIds()).toEqual(loaded.map((m) => m.id));
+  });
+
+  it('loadSim loads once, registers, and validates the folder id', async () => {
+    const r = createRegistry();
+    let calls = 0;
+    const loaders = new Map<string, SimLoader>([
+      ['lenz', async () => (calls++, { default: fake('lenz') })],
+      ['faraday', async () => ({ default: fake('lenz') })],
+    ]);
+    expect(availableSimIds(loaders)).toEqual(['faraday', 'lenz']);
+    expect((await loadSim('lenz', r, loaders))?.id).toBe('lenz');
+    await loadSim('lenz', r, loaders);
+    expect(calls).toBe(1);
+    expect(await loadSim('rl-energy', r, loaders)).toBeUndefined();
+    await expect(loadSim('faraday', r, loaders)).rejects.toThrow(/id 'faraday'/);
   });
 });

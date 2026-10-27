@@ -48,22 +48,60 @@ export function createRegistry(): SimRegistry {
 /** App-wide registry instance. */
 export const registry: SimRegistry = createRegistry();
 
+/** Lazy importer of one `src/sims/<id>/index.ts` (a separate chunk, with its Three.js). */
+export type SimLoader = () => Promise<{ default: SimModule }>;
+
 /**
- * Discover simulator modules at build time. Every `src/sims/<id>/index.ts` must
- * `export default` a {@link SimModule} whose `id` equals the folder name `<id>`.
+ * Discovered at build time (DECISIONS D4), **lazily** (A3): every
+ * `src/sims/<id>/index.ts` becomes its own chunk, so Three.js and uPlot are not part
+ * of the initial bundle. Keys are folder ids.
+ */
+const DISCOVERED: ReadonlyMap<string, SimLoader> = (() => {
+  const found = import.meta.glob<{ default: SimModule }>('../sims/*/index.ts');
+  const map = new Map<string, SimLoader>();
+  for (const [path, loader] of Object.entries(found)) {
+    const folder = /\/sims\/([^/]+)\/index\.ts$/.exec(path)?.[1];
+    if (folder) map.set(folder, loader);
+  }
+  return map;
+})();
+
+/** Ids (in {@link SIM_IDS} order) that have a `src/sims/<id>/index.ts`, without loading them. */
+export function availableSimIds(loaders: ReadonlyMap<string, SimLoader> = DISCOVERED): SimId[] {
+  return SIM_IDS.filter((id) => loaders.has(id));
+}
+
+/**
+ * Load (once) and register the simulator `id`. Resolves to `undefined` when no
+ * `src/sims/<id>/index.ts` exists. Rejects when the module does not
+ * default-export a {@link SimModule} whose `id` equals the folder name.
+ */
+export async function loadSim(
+  id: string,
+  target: SimRegistry = registry,
+  loaders: ReadonlyMap<string, SimLoader> = DISCOVERED,
+): Promise<SimModule | undefined> {
+  const existing = target.get(id);
+  if (existing) return existing;
+  const loader = loaders.get(id);
+  if (!loader) return undefined;
+  const sim = (await loader()).default;
+  if (!sim || sim.id !== id) {
+    throw new Error(`src/sims/${id}/index.ts must default-export a SimModule with id '${id}'`);
+  }
+  if (!target.has(sim.id)) target.register(sim);
+  return target.get(id);
+}
+
+/**
+ * Load and register every discovered simulator (e.g. for the index page or tests).
  * No shared file has to be edited to add a simulator.
  */
-export function loadSimModules(target: SimRegistry = registry): SimModule[] {
-  const found = import.meta.glob<{ default: SimModule }>('../sims/*/index.ts', { eager: true });
-  const loaded: SimModule[] = [];
-  for (const [path, mod] of Object.entries(found)) {
-    const folder = /\/sims\/([^/]+)\/index\.ts$/.exec(path)?.[1];
-    const sim = mod.default;
-    if (!sim || sim.id !== folder) {
-      throw new Error(`${path} must default-export a SimModule with id '${folder ?? '?'}'`);
-    }
-    if (!target.has(sim.id)) target.register(sim);
-    loaded.push(sim);
-  }
-  return loaded;
+export async function loadSimModules(
+  target: SimRegistry = registry,
+  loaders: ReadonlyMap<string, SimLoader> = DISCOVERED,
+): Promise<SimModule[]> {
+  const ids = [...loaders.keys()];
+  const mods = await Promise.all(ids.map((id) => loadSim(id, target, loaders)));
+  return mods.filter((m): m is SimModule => m !== undefined);
 }
