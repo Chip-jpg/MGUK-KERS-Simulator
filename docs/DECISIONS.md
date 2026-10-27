@@ -70,3 +70,31 @@ The §4.2 contract gives no slide number for `jouleLoss`, `lineLoss`,
 slide (16–17 energy balance, 20/22–23 transport) or state `@slide none` where the
 deck has no matching slide (Lorentz force, kinetic energy). A1 confirms or corrects
 these in `docs/PHYSICS.md`.
+
+## D8 — KERS braking model (2026-10-27, orchestrator, from A1)
+
+`kersBrakingEvent` assumes constant deceleration over `tBrake`. `Pmax` is the MGU-K
+**electrical** cap, so the mechanical power the MGU-K absorbs is
+`min(P_brake(t), Pmax/η)`. `recovered = η·recoverable` and
+`dissipated = dEk − recovered` (disc-brake heat + MGU-K/converter losses; split via
+`kersDissipationSplit`). `timeToRecoverAtPmax = η·dEk/Pmax`. For `v₁ < v₂` the
+function returns the negative `dEk` and zeros elsewhere. Full model in
+`docs/PHYSICS.md`.
+
+## D9 — Lazy simulator loading and e2e config (2026-10-27, orchestrator, from A3)
+
+- `loadSimModules()` is async; `loadSim(id)` and `availableSimIds()` load each
+  `src/sims/<id>/index.ts` lazily so Three.js stays out of the initial bundle (extends D4).
+- `playwright.config.ts` honours `PW_PORT` (parallel worktrees must not share port
+  4173) and sets `VITE_THEORY_FIXTURES=true` for the preview server (only used when
+  `content/theory/` is empty).
+- Accessibility gate: Lighthouse cannot run offline here; `@axe-core/playwright`
+  (WCAG 2.0/2.1 A+AA, zero violations) is the accepted proxy.
+- Quiz extension point: `src/quiz/index.ts` default export `{ mount(host, ctx) }`
+  is lazy-loaded on `#/interrogazione`.
+
+## D10 — Theory length (2026-10-27, orchestrator)
+
+Files 10–13 exceed the ≈450-word guideline (core KERS section with sourced
+regulation list, verbatim UN/Constitution quotations, the oral script). Accepted
+for now; A11 assesses whether any must be shortened.
