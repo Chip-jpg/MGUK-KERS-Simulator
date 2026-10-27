@@ -17,11 +17,15 @@ Energia cinetica da smaltire in una frenata da $v_1$ a $v_2$:
 
 $$\Delta E_k = \frac{1}{2}\,m\left(v_1^2 - v_2^2\right)$$
 
-Energia recuperabile dall'MGU-K con potenza massima $P_{\max}$ in una frenata di durata $t_f$, e frazione accumulata con rendimento $\eta$:
+$P_{\max}$ è il limite sulla potenza **elettrica** dell'MGU-K (quella che arriva alla batteria): con rendimento $\eta$, la potenza meccanica che l'MGU-K può assorbire dalla frenata è al massimo $P_{\max}/\eta$:
 
-$$E_{\text{rec}} \le P_{\max}\, t_f \qquad E_{\text{batt}} = \eta\, E_{\text{rec}} \qquad E_{\text{freni}} = \Delta E_k - E_{\text{rec}}$$
+$$P_{\text{MGU-K}}(t) = \min\!\left(P_{\text{frenata}}(t),\ \frac{P_{\max}}{\eta}\right)$$
 
-Potenza media richiesta dalla frenata: $\bar P = \Delta E_k / t_f$.
+Energia accumulata in batteria in una frenata di durata $t_f$, ed energia dissipata (calore nei freni a disco + perdite Joule dell'MGU-K e del convertitore):
+
+$$E_{\text{rec}} = \eta \int_0^{t_f} P_{\text{MGU-K}}\, dt \le P_{\max}\, t_f \qquad E_{\text{diss}} = \Delta E_k - E_{\text{rec}}$$
+
+Potenza media richiesta dalla frenata: $\bar P = \Delta E_k / t_f$. Tempo per recuperare tutta $\Delta E_k$ alla potenza massima: $t = \eta\, \Delta E_k / P_{\max}$.
 
 ## Spiegazione
 
@@ -29,7 +33,7 @@ Potenza media richiesta dalla frenata: $\bar P = \Delta E_k / t_f$.
 
 **Modello semplificato.** Fisicamente l'MGU-K è una macchina **trifase**, generalmente descritta come **sincrona a magneti permanenti** (PMSM), comandata da un inverter; la spira singola rotante delle slide è un **modello semplificato** dello stesso principio. Il tipo esatto di macchina scelto dai costruttori non è pubblico (Fonte: [Silicon Chip, "The 2024 Formula 1 Power Unit"](https://siliconchip.com.au/Issue/2024/May/The+2024+Formula+1+Power+Unit)) [DA VERIFICARE].
 
-**Perché il recupero è limitato dalla potenza.** Una frenata forte dura pochi secondi ma dissipa milioni di joule: servono centinaia di kilowatt. L'MGU-K non può assorbire più di $P_{\max}$ (limite di regolamento, ma anche di dimensioni della macchina, corrente nella batteria e calore Joule $R\,i^2$ negli avvolgimenti): la parte eccedente va ai **freni a disco**, che la trasformano in calore. Anche dell'energia recuperata una parte si perde in calore (rendimento $\eta < 1$).
+**Perché il recupero è limitato dalla potenza.** Una frenata forte dura pochi secondi ma dissipa milioni di joule: servono centinaia di kilowatt. L'MGU-K non può inviare alla batteria più di $P_{\max}$ di potenza elettrica (limite di regolamento, ma anche di dimensioni della macchina, corrente nella batteria e calore Joule $R\,i^2$ negli avvolgimenti), quindi assorbe meccanicamente al massimo $P_{\max}/\eta$: la parte eccedente va ai **freni a disco**, che la trasformano in calore. Anche della potenza assorbita una parte si perde in calore nell'MGU-K (rendimento $\eta < 1$).
 
 **Numeri del regolamento.**
 
@@ -46,11 +50,12 @@ $$\Delta E_k = \tfrac12 \cdot 800 \cdot \left(83{,}33^2 - 27{,}78^2\right) \appr
 
 $$\bar P = \frac{2{,}47\ \text{MJ}}{3\ \text{s}} \approx 820\ \text{kW}$$
 
-- Con $P_{\max} = 120\ \text{kW}$: $E_{\text{rec}} \le 120\ \text{kW}\cdot 3\ \text{s} = 0{,}36\ \text{MJ}$ (circa $15\%$); ai freni circa $2{,}1$ MJ.
-- Con $P_{\max} = 350\ \text{kW}$: $E_{\text{rec}} \le 1{,}05\ \text{MJ}$ (circa $43\%$).
-- Con un rendimento illustrativo $\eta = 0{,}9$, a 120 kW in batteria arrivano circa $0{,}32$ MJ.
+Con decelerazione costante la potenza di frenata scende da circa $1{,}23$ MW a $0{,}41$ MW, sempre sopra il tetto meccanico $P_{\max}/\eta$: l'MGU-K lavora a potenza massima per tutti i 3 s. Con un rendimento illustrativo $\eta = 0{,}9$:
 
-Per recuperare tutti i 2,47 MJ a 120 kW servirebbero circa 21 s di frenata. Il modello trascura resistenza aerodinamica e attriti, che nella realtà dissipano anch'essi una parte dell'energia.
+- Con $P_{\max} = 120\ \text{kW}$: assorbiti meccanicamente $\tfrac{120\ \text{kW}}{0{,}9}\cdot 3\ \text{s} \approx 0{,}40\ \text{MJ}$; in batteria $E_{\text{rec}} = 120\ \text{kW}\cdot 3\ \text{s} = 0{,}36\ \text{MJ}$ (circa $15\%$); perdite MGU-K circa $0{,}04$ MJ; ai freni circa $2{,}07$ MJ.
+- Con $P_{\max} = 350\ \text{kW}$: in batteria $E_{\text{rec}} = 1{,}05\ \text{MJ}$ (circa $43\%$); perdite MGU-K circa $0{,}12$ MJ; ai freni circa $1{,}30$ MJ.
+
+Per recuperare tutti i 2,47 MJ a 120 kW servirebbero $t = 0{,}9 \cdot 2{,}47\ \text{MJ} / 120\ \text{kW} \approx 18{,}5\ \text{s}$ di frenata. Il modello trascura resistenza aerodinamica e attriti, che nella realtà dissipano anch'essi una parte dell'energia.
 
 ## Collegamento con KERS / MGU-K
 
@@ -68,7 +73,7 @@ Catena: [flusso](01-flusso-campo-magnetico.md) che varia → f.e.m. → corrente
 
 **D:** Perché l'MGU-K non recupera tutta l'energia della frenata?
 
-**R:** Perché la frenata richiede centinaia di kW per pochi secondi, mentre l'MGU-K può assorbire al massimo $P_{\max}$ (120 kW fino al 2025): in 3 s solo 0,36 MJ. Il resto va in calore nei freni a disco; inoltre ci sono perdite Joule.
+**R:** Perché la frenata richiede centinaia di kW per pochi secondi, mentre l'MGU-K può inviare alla batteria al massimo $P_{\max}$ di potenza elettrica (120 kW fino al 2025): in 3 s solo 0,36 MJ in batteria (circa il 15 %). Il resto va in calore nei freni a disco (circa 2,07 MJ) e in perdite Joule dell'MGU-K (circa 0,04 MJ).
 
 **D:** La spira delle slide è un buon modello dell'MGU-K?
 
