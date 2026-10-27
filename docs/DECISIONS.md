@@ -85,8 +85,7 @@ function returns the negative `dEk` and zeros elsewhere. Full model in
 
 - `loadSimModules()` is async; `loadSim(id)` and `availableSimIds()` load each
   `src/sims/<id>/index.ts` lazily so Three.js stays out of the initial bundle (extends D4).
-- `playwright.config.ts` honours `PW_PORT` (parallel worktrees must not share port
-  4173) and sets `VITE_THEORY_FIXTURES=true` for the preview server (only used when
+- `playwright.config.ts` honours `PW_PORT` (parallel worktrees must not share port 4173) and sets `VITE_THEORY_FIXTURES=true` for the preview server (only used when
   `content/theory/` is empty).
 - Accessibility gate: Lighthouse cannot run offline here; `@axe-core/playwright`
   (WCAG 2.0/2.1 A+AA, zero violations) is the accepted proxy.
