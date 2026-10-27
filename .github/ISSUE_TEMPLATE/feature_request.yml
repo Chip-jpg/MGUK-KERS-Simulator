@@ -1,0 +1,41 @@
+name: Proposta / Feature request
+description: Nuovo simulatore, sezione di teoria, domanda di quiz o miglioramento. / New simulator, theory section, quiz question or improvement.
+title: 'feat: '
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Tipo di proposta / Kind
+      options:
+        - Simulatore / Simulator
+        - Teoria / Theory
+        - Interrogazione (quiz)
+        - Interfaccia / UI
+        - Strumenti, CI / Tooling
+        - Altro / Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Obiettivo / Goal
+      description: Che cosa vuoi capire, mostrare o migliorare? / What should it explain, show or improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta / Proposal
+      description: Come dovrebbe funzionare? Formule e slide coinvolte. / How should it work? Formulas and slides involved.
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Fase della roadmap / Roadmap phase
+      options:
+        - Non so / Not sure
+        - v0.1.x (Fasi 1–3)
+        - v0.2.0 (rifinitura, Pages)
+        - v0.3.x (Fase 4)

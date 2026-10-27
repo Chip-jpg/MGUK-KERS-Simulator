@@ -1,0 +1,59 @@
+name: Segnalazione bug / Bug report
+description: Qualcosa non funziona nell'app (UI, simulatori, quiz, build). / Something is broken.
+title: 'bug: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Grazie per la segnalazione! Per errori di **fisica o di contenuto** (formule, numeri, teoria) usa il modello "Errore di fisica / contenuto".
+        _Thanks! For physics or content errors use the "Physics / content error" template._
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Dove si verifica il problema? / Where does it happen?
+      options:
+        - Teoria / Theory
+        - Simulatore / Simulator
+        - Interrogazione (quiz)
+        - Interfaccia generale / General UI
+        - Build, CI, deploy
+        - Altro / Other
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Pagina o simulatore / Page or simulator
+      description: Es. `#/sim/faraday`, `#/teoria/04-lenz`.
+      placeholder: '#/sim/faraday'
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passi per riprodurre / Steps to reproduce
+      placeholder: |
+        1. Apri …
+        2. Sposta lo slider …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento atteso / Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento osservato / Actual behaviour
+      description: Allega screenshot o messaggi della console se possibile. / Attach screenshots or console output if possible.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente / Environment
+      description: Sistema operativo, browser e versione, versione dell'app (tag o commit). / OS, browser + version, app version.
+      placeholder: Windows 11, Chrome 130, v0.1.0

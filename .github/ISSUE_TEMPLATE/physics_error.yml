@@ -1,0 +1,54 @@
+name: Errore di fisica / contenuto (Physics / content error)
+description: Formula, numero, unità o affermazione sbagliata nella teoria, nei simulatori o nel quiz. / Wrong formula, number, unit or claim.
+title: 'physics: '
+labels: [physics, content]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        KERS Lab è un **modello semplificato** a scopo didattico: alcune approssimazioni sono volute (campo uniforme, macchina monofase, trasformatore ideale…). Segnala qui un errore vero o un'approssimazione non dichiarata.
+        _KERS Lab is a simplified educational model; some approximations are intentional. Report real errors or undeclared approximations here._
+  - type: dropdown
+    id: where
+    attributes:
+      label: Dove si trova l'errore? / Where is the error?
+      options:
+        - Teoria (content/theory) / Theory
+        - Simulatore / Simulator
+        - Interrogazione (quiz)
+        - Documentazione / Docs
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Sezione, simulatore o domanda / Section, simulator or question
+      placeholder: 03-faraday-neumann · Esempio numerico
+    validations:
+      required: true
+  - type: input
+    id: slide
+    attributes:
+      label: Slide di riferimento (se pertinente) / Reference slide
+      placeholder: s10
+  - type: textarea
+    id: wrong
+    attributes:
+      label: Cosa c'è scritto o mostrato / What is shown
+      description: Copia la formula o il valore (LaTeX va bene). / Copy the formula or value (LaTeX is fine).
+    validations:
+      required: true
+  - type: textarea
+    id: correct
+    attributes:
+      label: Versione corretta / Correct version
+      description: Formula o valore corretto, con passaggi e unità di misura. / Correct formula or value with steps and units.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Fonte / Source
+      description: Slide, libro di testo, regolamento FIA, pagina ufficiale… Link se possibile. / Slide, textbook, FIA regulations, official page; link if possible.
+    validations:
+      required: true

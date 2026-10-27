@@ -1,29 +1,101 @@
-# CI stub (A0). A10 extends it: Playwright smoke, commitlint, Pages deploy on tags.
+# Continuous integration for KERS Lab.
+# Quality gate (lint, format, typecheck, unit tests with coverage, build) plus a
+# Playwright smoke job on Chromium. Runs on every push and pull request.
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ['**'] # branch pushes only; release tags are handled by pages.yml
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   check:
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests with coverage
+        run: npm test -- --coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  e2e:
+    name: Playwright smoke (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # The Playwright webServer builds the app and serves it with `vite preview`.
+      # `--pass-with-no-tests` keeps the job green until the first e2e specs land.
+      - name: Run e2e smoke tests
+        run: npm run e2e -- --pass-with-no-tests --reporter=github,html
+        env:
+          PLAYWRIGHT_HTML_OPEN: never
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
