@@ -713,7 +713,7 @@ const kersRecovered = gen({
       },
       {
         textIT:
-          'P_max limita la potenza elettrica: dall’asse l’MGU-K può prelevare al massimo P_max/η di potenza meccanica.',
+          '$P_{\\max}$ limita la potenza elettrica: dall’asse l’MGU-K può assorbire al massimo $P_{\\max}/\\eta$ di potenza meccanica.',
         tex: `\\frac{P_{\\max}}{\\eta} = \\frac{${p.PmaxKW}\\ \\text{kW}}{${tex(p.eta)}} = ${texNumber(capMech / 1e3, 3)}\\ \\text{kW}`,
       },
       {
@@ -751,7 +751,7 @@ const kersTime = gen({
   promptIT: (p) =>
     `Un'auto di massa $${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}$ a $${p.v2}\\ \\text{km/h}$. ` +
     `L'MGU-K ha rendimento $\\eta = ${tex(p.eta)}$ e invia alla batteria al massimo $P_{\\max} = ${p.PmaxKW}\\ \\text{kW}$ (${pmaxNote(p.PmaxKW)}). ` +
-    `Lavorando sempre al limite, quanto tempo servirebbe per assorbire tutta l'energia cinetica della frenata (in s)?`,
+    `Quanto vale il tempo per assorbire tutta $\\Delta E_k$ alla potenza massima (in s)? In batteria arriva $\\eta\\,\\Delta E_k$.`,
   solve: (p) => kersEvent(p).timeToRecoverAtPmax,
   solution: (p, a) => {
     const ev = kersEvent(p);
@@ -761,7 +761,8 @@ const kersTime = gen({
         tex: `\\Delta E_k = \\tfrac12\\,m\\,(v_1^2 - v_2^2) = ${texNumber(ev.dEk * 1e-6, 3)}\\ \\text{MJ}`,
       },
       {
-        textIT: 'In batteria arriverebbe η·ΔE_k, con una potenza elettrica di al massimo P_max:',
+        textIT:
+          'Tempo per assorbire tutta $\\Delta E_k$ alla potenza massima: in batteria arriva $\\eta\\,\\Delta E_k$, con una potenza elettrica di al massimo $P_{\\max}$:',
         tex: `t = \\frac{\\eta\\,\\Delta E_k}{P_{\\max}} = \\frac{${tex(p.eta)} \\cdot ${texNumber(ev.dEk, 3)}\\ \\text{J}}{${texNumber(p.PmaxKW * 1e3, 3, true)}\\ \\text{W}} = ${res(a, 's')}`,
       },
       {

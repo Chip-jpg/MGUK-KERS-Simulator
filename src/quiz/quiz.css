@@ -8,7 +8,7 @@
 
 .quiz__grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--space-5);
   align-items: start;
   margin-top: var(--space-5);
@@ -23,6 +23,20 @@
 .quiz__side {
   display: grid;
   gap: var(--space-5);
+  min-width: 0;
+}
+
+/* QA-002: grid items must not grow past their track (no horizontal scroll at 1280×720). */
+.quiz__card,
+.quiz__side > * {
+  min-width: 0;
+}
+
+/* Let the segmented toggles ("Allenamento / Simulazione interrogazione") wrap
+   instead of forcing the side column wider than its track. */
+.quiz .segmented__options {
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .quiz__controls,

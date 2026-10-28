@@ -163,3 +163,61 @@ describe('Italian-only heuristic', () => {
     expect(txt).toMatch(/[àèéìòù]/);
   });
 });
+
+describe('no ASCII pseudo-notation outside KaTeX (QA-016)', () => {
+  const PSEUDO = /[A-Za-zΦΔητω]_[A-Za-z0-9{(]|\^/;
+
+  it('question prose uses KaTeX or Unicode for subscripts and powers', () => {
+    for (const q of allQuestions) {
+      for (const txt of texts(q)) {
+        for (const part of splitMath(txt).filter((p) => !p.math)) {
+          expect(PSEUDO.test(part.text), `${q.id}: "${part.text}"`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('UI strings use Unicode notation', () => {
+    const strings = Object.values(TEXT).flatMap((v) =>
+      typeof v === 'string'
+        ? [v]
+        : typeof v === 'function'
+          ? [(v as (...a: number[]) => string)(1, 2, 3, 4)]
+          : Object.values(v as Record<string, string>),
+    );
+    for (const s of strings) expect(PSEUDO.test(s), s).toBe(false);
+  });
+});
+
+describe('KERS wording consistent with D8 and theory 10', () => {
+  it('P_max is the electrical cap: never "absorbs at most P_max" (QA-011)', () => {
+    const wrong = /assorb\w*\s+(?:meccanicamente\s+)?al massimo (?:P_max|\$P_\{\\max\}\$)/;
+    for (const q of allQuestions) {
+      for (const txt of texts(q)) expect(wrong.test(txt), `${q.id}: "${txt}"`).toBe(false);
+    }
+    const limite = STATIC_QUESTIONS.find((q) => q.id === 'sm-mguk-limite');
+    expect(limite?.type === 'scelta-multipla' && limite.options[limite.answer]).toContain(
+      'inviare alla batteria al massimo $P_{\\max}$',
+    );
+  });
+
+  it('η·ΔE_k/P_max is "the time to absorb all ΔE_k at maximum power" (QA-012)', () => {
+    const q = allQuestions.find((x) => x.id === 'gen-kers-tempo-recupero');
+    expect(q?.promptIT).toContain('tempo per assorbire tutta $\\Delta E_k$ alla potenza massima');
+    for (const x of allQuestions) {
+      for (const txt of texts(x)) expect(txt, x.id).not.toMatch(/recuperare tutta/);
+    }
+  });
+
+  it('the MGU-K machine type is hedged, never stated as fact (QA-007, OPEN_FACTS #8)', () => {
+    const claim = /magneti permanenti|magneti sul rotore/;
+    const hedge = /generalmente descritt/;
+    for (const q of allQuestions) {
+      for (const txt of texts(q)) {
+        if (claim.test(txt) && /MGU-K|macchina reale/.test(txt)) {
+          expect(hedge.test(txt), `${q.id}: "${txt}"`).toBe(true);
+        }
+      }
+    }
+  });
+});

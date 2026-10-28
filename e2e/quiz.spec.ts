@@ -23,6 +23,19 @@ const MC = new Map(
 
 const card = (page: Page) => page.locator('.quiz__card');
 
+/** QA-002: the page must never scroll horizontally at 1280×720, in both themes. */
+async function expectNoHScroll(page: Page, label: string): Promise<void> {
+  for (const theme of ['dark', 'light'] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.evaluate((th) => (document.documentElement.dataset['theme'] = th), theme);
+    const { sw, iw } = await page.evaluate(() => ({
+      sw: document.documentElement.scrollWidth,
+      iw: window.innerWidth,
+    }));
+    expect(sw, `horizontal scroll (${label}, ${theme}): ${sw} > ${iw}`).toBeLessThanOrEqual(iw);
+  }
+}
+
 async function selectType(page: Page, name: string): Promise<void> {
   // Keyboard: focus the "Tipo di domanda" group, move with the arrow keys.
   const group = page.getByRole('group', { name: 'Tipo di domanda' });
@@ -68,6 +81,8 @@ test('interrogazione: keyboard-only MC + numeric, score, persistence, simulation
     page.getByText('Le domande numeriche sono generate con parametri casuali'),
   ).toBeVisible();
   await expect(card(page)).toHaveAttribute('data-question-id', /.+/);
+  expect(page.viewportSize()).toEqual({ width: 1280, height: 720 });
+  await expectNoHScroll(page, 'initial');
 
   // --- multiple choice: correct, then wrong ---------------------------------
   await selectType(page, 'Scelta multipla');
@@ -93,6 +108,7 @@ test('interrogazione: keyboard-only MC + numeric, score, persistence, simulation
   await expect(card(page).getByRole('heading', { name: 'Soluzione' })).toBeVisible();
   expect(await card(page).locator('.quiz__steps li').count()).toBeGreaterThanOrEqual(2);
   await expect(card(page).locator('.quiz__steps .math-error')).toHaveCount(0);
+  await expectNoHScroll(page, 'worked solution');
   await expect(page.getByRole('button', { name: 'Prossima domanda' })).toBeFocused();
   await page.keyboard.press('Enter');
 
@@ -147,6 +163,7 @@ test('interrogazione: keyboard-only MC + numeric, score, persistence, simulation
   await page.keyboard.press('ArrowRight');
   await expect(card(page).getByRole('heading', { level: 2 })).toHaveText('Domanda 1 di 10');
   await expect(page.getByRole('group', { name: 'Tipo di domanda' })).toBeHidden();
+  await expectNoHScroll(page, 'simulation mode');
 
   // Navigate away and back: no errors, fresh mount.
   await page.goto('./#/teoria');

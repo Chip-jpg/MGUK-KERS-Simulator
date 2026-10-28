@@ -20,7 +20,7 @@ export const TEXT = {
   of: 'di',
   noQuestions: 'Nessuna domanda con questi filtri.',
   yourAnswer: 'La tua risposta',
-  numericHint: 'Accetta virgola o punto e la notazione scientifica (es. 2,5e-4 oppure 2,5·10^-4).',
+  numericHint: 'Accetta virgola o punto e la notazione scientifica (es. 2,5e-4 oppure 2,5·10⁻⁴).',
   notNumber: 'Scrivi un numero (es. 62,5 oppure 2,5e-4).',
   chooseOption: 'Scegli una risposta.',
   options: 'Risposte possibili',

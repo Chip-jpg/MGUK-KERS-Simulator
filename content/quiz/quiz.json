@@ -498,13 +498,13 @@
       "difficulty": 2,
       "promptIT": "Perché l'MGU-K non recupera tutta l'energia cinetica di una frenata forte?",
       "options": [
-        "Perché la frenata richiede centinaia di kW per pochi secondi, ma l'MGU-K può assorbire al massimo P_max",
+        "Perché la frenata richiede centinaia di kW per pochi secondi, ma l'MGU-K può inviare alla batteria al massimo $P_{\\max}$ (assorbe meccanicamente al massimo $P_{\\max}/\\eta$)",
         "Perché la legge di Lenz impedisce il recupero",
         "Perché l'energia cinetica non si può trasformare in energia elettrica",
         "Perché la batteria è sempre carica"
       ],
       "answer": 0,
-      "explanationIT": "Esempio della sezione 10: $\\Delta E_k \\approx 2{,}47$ MJ in 3 s richiederebbero circa 820 kW, ma con $P_{\\max} = 120$ kW (limite fino al 2025) (limite sulla potenza elettrica) in batteria arrivano al massimo $0{,}36$ MJ. Il resto diventa calore, soprattutto nei freni a disco.",
+      "explanationIT": "Esempio della sezione 10: $\\Delta E_k \\approx 2{,}47$ MJ in 3 s richiederebbero circa 820 kW, ma con $P_{\\max} = 120$ kW (limite sulla potenza elettrica, valido fino al 2025) in batteria arrivano al massimo $0{,}36$ MJ: l'MGU-K assorbe meccanicamente al massimo $P_{\\max}/\\eta$. Il resto diventa calore, soprattutto nei freni a disco.",
       "slideRefs": [17]
     },
     {
@@ -520,7 +520,7 @@
         "Un trasformatore statico"
       ],
       "answer": 2,
-      "explanationIT": "La macchina reale è trifase, con magneti sul rotore e inverter; la spira singola delle slide ne illustra il principio (Faraday-Neumann, Lenz, Lorentz). Il tipo esatto scelto dai costruttori non è pubblico.",
+      "explanationIT": "La macchina reale è trifase, generalmente descritta come sincrona a magneti permanenti e comandata da un inverter; la spira singola delle slide ne illustra il principio (Faraday-Neumann, Lenz, Lorentz). Il tipo esatto scelto dai costruttori non è pubblico.",
       "slideRefs": [18, 19]
     },
     {
@@ -714,7 +714,7 @@
       "promptIT": "Che differenza c'è tra weber e tesla?",
       "options": [
         "Il tesla misura l'induttanza",
-        "Il tesla misura il campo magnetico B, il weber il flusso Φ_B; 1 Wb = 1 T·m²",
+        "Il tesla misura il campo magnetico B, il weber il flusso $\\Phi_B$; 1 Wb = 1 T·m²",
         "Il weber misura il campo magnetico, il tesla il flusso",
         "Sono due nomi della stessa unità"
       ],
@@ -751,7 +751,7 @@
         "La batteria della monoposto"
       ],
       "answer": 0,
-      "explanationIT": "PMSM è il modo in cui l'MGU-K viene generalmente descritto: trifase, magneti sul rotore, comandata da un inverter.",
+      "explanationIT": "PMSM è il modo in cui l'MGU-K viene generalmente descritto: trifase, magneti sul rotore, comandata da un inverter. Il tipo esatto scelto dai costruttori non è pubblico.",
       "slideRefs": []
     }
   ]
