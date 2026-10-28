@@ -117,13 +117,13 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
       simulatori, modalità Interrogazione.
 - [x] ✅ **v0.2.0 — Rifinitura** (completata): correzioni dalla revisione indipendente,
       accessibilità, guida alla pubblicazione su GitHub Pages.
-- [ ] **v0.3.x — Fase 4 (avanzata, facoltativa)**:
+- [x] ✅ **v0.3.x–v0.4.0 — Fase 4 (avanzata, facoltativa)** (completata):
   1. ✅ `field-biot-savart` — linee di campo animate sulla GPU per bobine reali (Biot-Savart)
      (v0.3.0);
   2. ✅ `pmsm-dq` — modello d-q della macchina sincrona a magneti permanenti, mappe
      coppia/potenza (v0.3.0);
   3. ✅ `car-dynamics` (v0.3.1) — dinamica del veicolo (pneumatici Pacejka, aerodinamica, frenata combinata MGU-K + freni);
-  4. app desktop Windows (`.exe`) con Tauri 2.
+  4. ✅ app desktop Windows (`.exe`) con Tauri 2 (v0.4.0).
 
 Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 

@@ -7,6 +7,18 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-28
+
+Fase 4 completata: app desktop per Windows e verifica indipendente dei moduli avanzati.
+
+### Aggiunto
+
+- App desktop Windows con Tauri 2: installer NSIS (`.exe`, per utente) e `.msi`, WebView2
+  incluso per l’installazione offline, CSP restrittiva, navigazione bloccata fuori dall’app;
+  workflow `desktop.yml` che costruisce gli installer su Windows a ogni tag `v*` e li allega alla
+  Release. Guida in `docs/DESKTOP.md` (eseguibile non firmato: avviso SmartScreen al primo
+  avvio).
+
 ### Corretto
 
 - Teoria 17: la formula della forza MGU-K e il bilancio energetico sono su due righe, senza
@@ -169,7 +181,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.1.0...v0.2.0
