@@ -17,6 +17,7 @@ export const SECTIONS = [
   { id: '12-art-32-costituzione', labelIT: '12 · Art. 32 della Costituzione' },
   { id: '13-filo-logico-interrogazione', labelIT: '13 · Filo logico' },
   { id: '14-glossario', labelIT: '14 · Glossario' },
+  { id: '16-pmsm-dq', labelIT: '16 · Modello d-q della PMSM' },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]['id'];

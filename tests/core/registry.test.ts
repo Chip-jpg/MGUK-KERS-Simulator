@@ -28,6 +28,7 @@ describe('registry', () => {
       'joule-transformer',
       'rl-energy',
       'field-biot-savart',
+      'pmsm-dq',
     ]);
   });
 

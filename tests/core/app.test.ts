@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp, createAppContext } from '../../src/core/app';
+import { SIM_IDS } from '../../src/core/registry';
 import { THEME_STORAGE_KEY, onThemeChange, toggleTheme } from '../../src/core/theme';
 import { loadTheory } from '../../src/theory/content';
 
@@ -38,7 +39,7 @@ describe('createApp (jsdom smoke)', () => {
     expect(nav.textContent).toContain('Teoria');
     expect(nav.textContent).toContain('Simulatori');
     expect(nav.textContent).toContain('Interrogazione');
-    expect(nav.querySelectorAll('.nav__item--soon')).toHaveLength(7);
+    expect(nav.querySelectorAll('.nav__item--soon')).toHaveLength(SIM_IDS.length);
     expect(root.querySelector('h1')?.textContent).toBe('Teoria');
     expect(root.querySelectorAll('.theory-index .card')).toHaveLength(2);
 
@@ -52,7 +53,7 @@ describe('createApp (jsdom smoke)', () => {
     expect(document.activeElement?.tagName).toBe('H1');
 
     await go('#/sim');
-    expect(root.querySelectorAll('.sim-index .card--soon')).toHaveLength(7);
+    expect(root.querySelectorAll('.sim-index .card--soon')).toHaveLength(SIM_IDS.length);
     expect(root.querySelector('.sim-index')?.textContent).toContain('In arrivo');
 
     await go('#/sim/faraday');

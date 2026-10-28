@@ -10,6 +10,7 @@ export const SIM_IDS = [
   'rl-energy',
   // Phase 4 (optional, advanced)
   'field-biot-savart',
+  'pmsm-dq',
 ] as const;
 
 export type SimId = (typeof SIM_IDS)[number];

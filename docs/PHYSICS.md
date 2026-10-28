@@ -245,3 +245,69 @@ stop 0,06 R from the wire and at the edge of the view box. The dashes move with 
 
 **Validity limits.** μ = μ₀ everywhere (no ferromagnetic material), DC magnetostatics, thin wire
 (no skin/proximity effect, no winding thickness); helix leads not modelled.
+
+## 8. PMSM d-q (Phase 4)
+
+`src/physics/pmsm.ts` — a **representative** three-phase permanent-magnet synchronous
+machine (PMSM) used by the `pmsm-dq` simulator and theory 16. It extends the single-phase
+rotating loop of slides 18–19: with zero current the peak phase voltage is $\omega_e\psi_m$,
+the three-phase analogue of $V_0 = NBS\omega$ with $\psi_m = NBS$ (tested). The real MGU-K
+type and data are not public (OPEN_FACTS #8): no parameter here is claimed to be the MGU-K's.
+
+**Conventions.**
+
+- **Amplitude-invariant** Clarke/Park transform: $\alpha = \tfrac23(a - \tfrac b2 - \tfrac c2)$,
+  $\beta = (b-c)/\sqrt3$, zero $= (a+b+c)/3$; $d = \alpha\cos\theta_e + \beta\sin\theta_e$,
+  $q = -\alpha\sin\theta_e + \beta\cos\theta_e$. A balanced set of amplitude $X$ gives a vector
+  of length $X$, hence powers and torque carry the factor 3/2.
+- **Motor (load) convention** $v = R_s i + d\psi/dt$. Positive torque/power = motoring.
+  Braking (generating) at positive speed: $i_q < 0$, $T < 0$, $P_\text{mech} < 0$ and
+  $P_\text{elec} < 0$ (power to the battery). With $i = 0$ the terminal voltage of phase a is
+  $-\varepsilon$ of slides 18–19 (the slides use the generator sign $\varepsilon = -d\psi/dt$).
+- $\theta_e = p\,\theta_\text{mech}$; d axis on the magnet flux, q leads by 90° electrical.
+- Inverter limit $V_\max = V_{DC}/\sqrt3$: peak phase voltage in the linear range of
+  space-vector PWM (or sine PWM with third-harmonic injection).
+
+| Function                                                                            | Formula                                                                                                             | Slide                                               | Units               | Notes                                                                     |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------- | ------------------------------------------------------------------------- |
+| `clarke(ia, ib, ic)` / `inverseClarke(alpha, beta, zero = 0)`                       | see conventions                                                                                                     | none (extension: d-q model)                         | A or V              | amplitude-invariant                                                       |
+| `park(alpha, beta, thetaE)` / `inversePark(d, q, thetaE)` / `dqToAbc(d, q, thetaE)` | see conventions                                                                                                     | none (extension)                                    | –, rad              | round trip tested                                                         |
+| `pmsmVoltages(id, iq, omegaE, m)`                                                   | $v_d = R_s i_d - \omega_e L_q i_q$, $v_q = R_s i_q + \omega_e L_d i_d + \omega_e\psi_m$                             | none (extension; $\omega_e\psi_m$ ↔ $V_0$ of 18–19) | A, rad/s → V        | steady state                                                              |
+| `pmsmTorque(id, iq, m)`                                                             | $T = \tfrac32 p[\psi_m i_q + (L_d - L_q) i_d i_q]$                                                                  | none (extension)                                    | A → N·m             | equals $\partial W'/\partial\theta_\text{mech}$ of the co-energy (tested) |
+| `pmsmCopperLoss(id, iq, Rs)`                                                        | $P_\text{Cu} = \tfrac32 R_s (i_d^2 + i_q^2)$                                                                        | 16                                                  | A, Ω → W            | Joule term, three phases                                                  |
+| `pmsmElectricalPower(vd, vq, id, iq)`                                               | $P_\text{elec} = \tfrac32 (v_d i_d + v_q i_q)$                                                                      | none (extension)                                    | V, A → W            |                                                                           |
+| `pmsmOperatingPoint(id, iq, omegaMech, m)`                                          | all of the above, $P_\text{mech} = T\omega_\text{mech}$                                                             | 16                                                  | → V, N·m, W         | $P_\text{elec} = P_\text{mech} + P_\text{Cu}$ exactly (tested to 1e-9)    |
+| `pmsmEfficiency(pElec, pMech)`                                                      | motor $P_m/P_e$, generator $P_e/P_m$                                                                                | 16                                                  | –                   | NaN if undefined                                                          |
+| `pmsmVoltageLimit(vdc)`                                                             | $V_\max = V_{DC}/\sqrt3$                                                                                            | none                                                | V                   |                                                                           |
+| `pmsmMtpa(I, m, mode)`                                                              | $i_d = -2(L_q-L_d)I^2 / [\psi_m + \sqrt{\psi_m^2 + 8(L_q-L_d)^2I^2}]$, $i_q = \pm\sqrt{I^2 - i_d^2}$                | none                                                | A                   | closed form; $i_d = 0$ if $L_d = L_q$                                     |
+| `pmsmBaseSpeed(m, Imax, Vmax)`                                                      | $\lvert v(i_\text{MTPA}(I_\max), p\omega_b)\rvert = V_\max$                                                         | none                                                | → rad/s             | bisection                                                                 |
+| `pmsmMaxTorque(omegaMech, m, Imax, Vmax, mode)`                                     | max/min of $T$ on circle ∩ voltage ellipse                                                                          | none                                                | → N·m, A, W, region | regions `mtpa`, `field-weakening`, `mtpv`, `infeasible`                   |
+| `pmsmTorqueSpeedEnvelope(m, Imax, Vmax, omegaMax, n)`                               | `pmsmMaxTorque` sampled for motor and generator                                                                     | none                                                | → N·m, W            | constant torque, then ≈ constant power                                    |
+| `pmsmCurrentDerivatives(id, iq, vd, vq, omegaE, m)`                                 | $L_d\dot i_d = v_d - R_s i_d + \omega_e L_q i_q$, $L_q\dot i_q = v_q - R_s i_q - \omega_e L_d i_d - \omega_e\psi_m$ | 15 (RL per axis)                                    | → A/s               |                                                                           |
+| `pmsmCurrentControllerGains(m, wc)`                                                 | $k_p = L\omega_c$, $k_i = R_s\omega_c$                                                                              | 15                                                  | → V/A, V/(A·s)      | first-order closed loop, $i(1/\omega_c) = 63{,}2\,\%$ (tested)            |
+| `pmsmControllerVoltages(s, inp, m, c)`                                              | PI + decoupling feed-forward, clamped to $\lvert v\rvert \le V_\max$                                                | none                                                | → V                 | ideal inverter otherwise                                                  |
+| `pmsmDynamicsStep(s, inp, m, c, dt)`                                                | RK4 (`rk4Step`) with sub-steps $h\lambda \le 0{,}25$                                                                | none                                                | s                   | deterministic; anti-windup while saturated                                |
+| `pmsmSteadyDynState(idRef, iqRef, m, c)`                                            | integrators $x = R_s i^*/k_i$                                                                                       | none                                                |                     | start without transient                                                   |
+
+**Voltage ellipse with $R_s$.** $v = A\,i + b$ with $A = [[R_s, -\omega_eL_q], [\omega_eL_d, R_s]]$
+and $b = (0, \omega_e\psi_m)$, so $\lvert v\rvert \le V_\max$ is an exact (slightly tilted) ellipse in
+the current plane; no $R_s = 0$ approximation is used. Since $T$ has no interior maximum, the
+constrained optimum lies on the boundary of circle ∩ ellipse: `pmsmMaxTorque` samples both
+boundary curves (720 points each) and refines the best feasible sample by bisection on the
+constraint crossing or by golden-section search. Tests compare it with a brute-force grid
+search of the feasible set. With $R_s = 0$ the braking envelope is the exact mirror of the
+motoring one; with $R_s > 0$ braking has slightly more voltage margin ($R_s i_q$ lowers $v_q$).
+
+**Envelope example** (illustrative machine of the sim, not the MGU-K: $R_s = 0{,}02\ \Omega$,
+$L_d = 0{,}20$ mH, $L_q = 0{,}35$ mH, $\psi_m = 0{,}08$ Wb, $p = 4$, $I_\max = 400$ A,
+$V_{DC} = 600$ V): MTPA torque 229 N·m up to the base speed ≈ 6130 giri/min (≈ 144 kW); in
+field weakening the power rises to ≈ 185–199 kW between 2 and 3,2 × base speed (within ±5 %
+of the value at 2,5 × base, tested). The characteristic current $\psi_m/L_d = 400$ A equals
+$I_\max$, which is why the power stays nearly constant; with $I_\max > \psi_m/L_d$ an MTPV
+region appears at high speed, with $I_\max < \psi_m/L_d$ the machine has a finite maximum
+speed (`infeasible` beyond it).
+
+**Validity limits.** Linear magnetics (constant $L_d$, $L_q$, $\psi_m$: no saturation, no
+cross-coupling), sinusoidal back-emf (no harmonics, no cogging), iron and mechanical losses
+neglected, ideal inverter (no switching ripple, dead time or losses), balanced three-wire
+machine (zero sequence ignored), shaft speed imposed from outside in the dynamic model.

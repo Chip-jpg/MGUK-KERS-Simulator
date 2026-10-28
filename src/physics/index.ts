@@ -77,3 +77,38 @@ export type {
   FieldLine,
   FieldFn,
 } from './biotSavart';
+// PMSM d-q model (Phase 4 extension)
+export {
+  clarke,
+  inverseClarke,
+  park,
+  inversePark,
+  dqToAbc,
+  pmsmVoltages,
+  pmsmTorque,
+  pmsmCopperLoss,
+  pmsmElectricalPower,
+  pmsmOperatingPoint,
+  pmsmEfficiency,
+  pmsmVoltageLimit,
+  pmsmMtpa,
+  pmsmBaseSpeed,
+  pmsmMaxTorque,
+  pmsmTorqueSpeedEnvelope,
+  pmsmCurrentDerivatives,
+  pmsmCurrentControllerGains,
+  pmsmControllerVoltages,
+  pmsmDynamicsStep,
+  pmsmSteadyDynState,
+} from './pmsm';
+export type {
+  PmsmParams,
+  PmsmMode,
+  PmsmRegion,
+  PmsmMaxTorquePoint,
+  PmsmEnvelopePoint,
+  PmsmOperatingPoint,
+  PmsmCurrentController,
+  PmsmDynState,
+  PmsmDynInputs,
+} from './pmsm';

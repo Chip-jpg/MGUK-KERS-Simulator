@@ -753,6 +753,52 @@
       "answer": 0,
       "explanationIT": "PMSM è il modo in cui l’MGU-K viene generalmente descritto: trifase, magneti sul rotore, comandata da un inverter. Il tipo esatto scelto dai costruttori non è pubblico.",
       "slideRefs": []
+    },
+    {
+      "id": "sm-pmsm-assi-dq",
+      "type": "scelta-multipla",
+      "section": "16-pmsm-dq",
+      "difficulty": 2,
+      "promptIT": "Nel modello d-q di una macchina sincrona a magneti permanenti, che cosa rappresentano le correnti sugli assi d e q?",
+      "options": [
+        "Le correnti di fase viste da assi solidali al rotore: a regime diventano due valori costanti",
+        "Le correnti nelle due spazzole del collettore",
+        "La corrente continua della batteria e quella alternata dell’inverter",
+        "Le correnti di due fasi su tre, perché la terza è sempre nulla"
+      ],
+      "answer": 0,
+      "explanationIT": "Gli assi d (lungo il flusso dei magneti) e q (a 90° elettrici) ruotano con il rotore: le tre correnti sinusoidali, viste da lì, diventano costanti e la macchina si studia come un circuito in continua. La coppia utile dipende soprattutto dalla corrente sull’asse q.",
+      "slideRefs": [18, 19]
+    },
+    {
+      "id": "sm-pmsm-deflussaggio",
+      "type": "scelta-multipla",
+      "section": "16-pmsm-dq",
+      "difficulty": 3,
+      "promptIT": "Perché sopra la velocità base la coppia massima di una macchina a magneti permanenti diminuisce?",
+      "options": [
+        "Perché la tensione indotta cresce con la velocità e l’inverter ha una tensione massima: serve una corrente negativa sull’asse d (deflussaggio) e resta meno corrente per la coppia",
+        "Perché i magneti si smagnetizzano sempre oltre la velocità base",
+        "Perché la resistenza degli avvolgimenti aumenta con la velocità",
+        "Perché la legge di Lenz smette di valere ad alta velocità"
+      ],
+      "answer": 0,
+      "explanationIT": "La f.e.m. ωₑψₘ (analoga a V₀ = NBSω delle slide 18–19) cresce con la velocità; con la tensione di fase limitata dall’inverter bisogna indebolire il flusso con una corrente d negativa. La corrente totale è limitata, quindi la coppia cala e la potenza resta circa costante.",
+      "slideRefs": [18, 19]
+    },
+    {
+      "id": "voce-pmsm-frenata",
+      "type": "a-voce",
+      "section": "16-pmsm-dq",
+      "difficulty": 3,
+      "promptIT": "Spiega a voce come il modello d-q descrive la frenata rigenerativa e perché il recupero è limitato in potenza.",
+      "answerIT": "In frenata la corrente sull’asse q diventa negativa: la coppia si oppone alla rotazione (Lenz) e la potenza meccanica è negativa, cioè entra nella macchina dall’albero. L’inverter manda alla batteria questa potenza meno le perdite Joule nel rame. La coppia frenante massima dipende dalla corrente massima e, oltre la velocità base, dalla tensione disponibile: per questo il recupero è limitato in potenza, oltre che dal regolamento. È un modello rappresentativo: il tipo e i dati reali dell’MGU-K non sono pubblici.",
+      "slideRefs": [18, 19],
+      "keyPointsIT": [
+        "corrente q negativa, coppia opposta al moto",
+        "potenza alla batteria meno perdite nel rame",
+        "limiti di corrente e di tensione"
+      ]
     }
   ]
 }

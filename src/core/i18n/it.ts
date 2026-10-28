@@ -97,6 +97,7 @@ export const it = {
       'joule-transformer': 'Trasformatore e perdite Joule',
       'rl-energy': 'Autoinduzione, circuito RL, energia',
       'field-biot-savart': 'Campo magnetico di bobine reali (Biot-Savart)',
+      'pmsm-dq': 'Macchina sincrona a magneti permanenti: modello d-q',
     },
   },
   quiz: {
