@@ -1,6 +1,6 @@
 {
   "name": "kers-lab",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "KERS Lab — Dall’induzione di Faraday all’MGU-K. Interactive electromagnetic-induction lab (Faraday-Neumann-Lenz to the F1 MGU-K).",
   "type": "module",

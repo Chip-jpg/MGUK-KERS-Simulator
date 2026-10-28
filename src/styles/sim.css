@@ -23,10 +23,13 @@
 .sim-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  /* Plots and note sit directly under the scene; the (taller) side panel spans all rows
+     and the last row absorbs its extra height, so nothing is pushed below it. */
+  grid-template-rows: auto auto 1fr;
   grid-template-areas:
     'main side'
-    'plots plots'
-    'note note';
+    'plots side'
+    'note side';
   gap: var(--space-4);
   align-items: start;
 }
@@ -65,8 +68,8 @@
 
 .sim-scene {
   position: relative;
-  min-height: 22rem;
-  height: clamp(22rem, calc(100vh - 17rem), 44rem);
+  min-height: 16rem;
+  height: clamp(16rem, calc(100vh - 32rem), 31rem);
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -126,7 +129,7 @@
 
 .sim-plots__body {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: var(--space-4);
 }
 
@@ -235,10 +238,11 @@
 @media (max-width: 1100px) {
   .sim-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
     grid-template-areas:
       'main'
-      'side'
       'plots'
+      'side'
       'note';
   }
 }

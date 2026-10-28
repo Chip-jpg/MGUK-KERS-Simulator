@@ -7,6 +7,15 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-28
+
+### Modificato
+
+- Simulatori: i grafici in tempo reale stanno subito sotto la scena 3D, nella colonna di
+  sinistra, invece che sotto il pannello dei parametri; scena un po' più bassa e grafici
+  affiancati, così scena, comandi e grafici entrano in un solo schermo (1920×1080). Su schermi
+  stretti l'ordine è scena → grafici → parametri.
+
 ## [0.5.0] - 2026-10-28
 
 Versione essenziale ("slim"): l'app si concentra sul filo logico Faraday → alternatore →
@@ -228,7 +237,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.1...v0.4.0
