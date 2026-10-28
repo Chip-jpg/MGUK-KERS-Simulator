@@ -11,6 +11,11 @@
   font-weight: var(--fw-medium);
 }
 
+.am-theory-links {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-sm);
+}
+
 .am-mode {
   margin-bottom: var(--space-3);
 }

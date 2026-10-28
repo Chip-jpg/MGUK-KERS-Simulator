@@ -32,6 +32,9 @@ describe('rl-energy mount (DOM, no WebGL)', () => {
     expect(norm(host.querySelector('[data-testid="tau-ratio"]')?.textContent)).toBe('63,2 %');
     expect(norm(host.querySelector('.rl-tau')?.textContent)).toBe('i(τ) = 63,2 % di I₀');
 
+    const hint = host.querySelector<HTMLElement>('[data-testid="energy-hint"]');
+    expect(hint?.hidden).toBe(false); // QA-017: hint while the switch is open
+
     const buttons = (): HTMLButtonElement[] => [...host.querySelectorAll('button')];
     buttons()
       .find((b) => b.textContent?.includes('Chiudi interruttore'))
@@ -40,6 +43,7 @@ describe('rl-energy mount (DOM, no WebGL)', () => {
     const step = buttons().find((b) => b.textContent?.includes('Passo'));
     expect(step).toBeDefined();
     for (let k = 0; k < 30; k++) step?.click();
+    expect(hint?.hidden).toBe(true);
     const dbg = (window as unknown as { __kersDebug: Record<string, () => DebugState> })
       .__kersDebug;
     const state = dbg['rl-energy']?.();
@@ -50,7 +54,8 @@ describe('rl-energy mount (DOM, no WebGL)', () => {
 
     d.dispose();
     expect(host.childElementCount).toBe(0);
-    expect(dbg['rl-energy']?.().mounted).toBe(0);
+    // QA-005: the hook is removed with the sim.
+    expect(dbg['rl-energy']).toBeUndefined();
     host.remove();
   });
 });

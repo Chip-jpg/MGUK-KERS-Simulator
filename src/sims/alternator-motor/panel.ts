@@ -8,10 +8,27 @@ import type { Disposable } from '../../core/types';
 import type { MachineMode } from './model';
 
 export const THREE_PHASE_NOTE_IT =
-  "Nota: l'MGU-K reale è una macchina sincrona trifase a magneti permanenti; qui usiamo una sola spira (modello monofase delle slide 18–19).";
+  'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo una sola spira (modello monofase delle slide 18–19).';
+
+/** In-panel links to the theory sections behind the two halves of the sim (QA-006). */
+export const THEORY_LINKS_IT: ReadonlyArray<{ labelIT: string; id: string }> = [
+  { labelIT: 'Alternatore (07)', id: '07-alternatore-corrente-alternata' },
+  { labelIT: 'Motore e forza di Lorentz (09)', id: '09-motore-elettrico-lorentz' },
+  { labelIT: 'KERS/MGU-K (10)', id: '10-kers-mguk' },
+];
+
+/** "Teoria: Alternatore (07) · Motore e forza di Lorentz (09) · KERS/MGU-K (10)". */
+export function createTheoryLinks(): HTMLElement {
+  const parts: (Node | string)[] = ['Teoria: '];
+  THEORY_LINKS_IT.forEach((l, k) => {
+    if (k > 0) parts.push(' · ');
+    parts.push(el('a', { text: l.labelIT, attrs: { href: `#/teoria/${l.id}` } }));
+  });
+  return el('p', { class: 'am-theory-links' }, parts);
+}
 
 export const MODEL_NOTE_IT =
-  'B uniforme, una spira rettangolare, nessuna saturazione o perdita nel ferro, alimentazione ideale; autoinduzione della spira trascurata, batteria in frenata modellata come carico resistivo equivalente R_c, motore con alimentazione sincronizzata v_s = V_s·sin θ (corrente sempre in fase con la f.e.m., coppia media positiva), velocità limitata a 150 rad/s.';
+  'B uniforme, una spira rettangolare, nessuna saturazione o perdita nel ferro, alimentazione ideale; autoinduzione della spira trascurata, batteria in frenata modellata come carico resistivo equivalente, motore con alimentazione sincronizzata vₛ = Vₛ·sin θ (corrente sempre in fase con la f.e.m., coppia media positiva), velocità limitata a 150 rad/s.';
 
 /** Captions of the three nodes and of the loss node, per mode. */
 export const FLOW_LABELS_IT: Record<
@@ -49,6 +66,22 @@ export function arrowWidth(p: number, pRef: number): number {
   return ARROW_MIN_PX + (ARROW_MAX_PX - ARROW_MIN_PX) * Math.min(1, p / pRef);
 }
 
+/**
+ * Arrowhead length beyond the line end, in SVG units, for stroke width `w`: the marker
+ * is 3 stroke widths long with refX = 2 of 10, so its tip sticks out 0.8·3·w.
+ */
+export const headOvershoot = (w: number): number => 2.4 * w;
+
+/**
+ * Line end such that the arrowhead tip stops `FLOW_GAP` before `target` (the box edge),
+ * never before `start` + 2 (QA-017: thick heads used to cover the box text).
+ */
+export function arrowEnd(start: number, target: number, w: number, dir: 1 | -1 = 1): number {
+  const end = target - dir * (FLOW_GAP + headOvershoot(w));
+  return dir > 0 ? Math.max(start + 2, end) : Math.min(start - 2, end);
+}
+const FLOW_GAP = 2;
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 function svg<K extends keyof SVGElementTagNameMap>(
   tag: K,
@@ -80,7 +113,7 @@ export function createEnergyFlow(container: HTMLElement, mode: MachineMode): Ene
     role: 'img',
     'aria-labelledby': '',
   });
-  const nodeX = [90, 300, 510];
+  const nodeX = [84, 300, 516];
   const nodeY = 60;
   const boxes = nodeX.map((x) =>
     svg('rect', {
@@ -109,8 +142,9 @@ export function createEnergyFlow(container: HTMLElement, mode: MachineMode): Ene
     'text-anchor': 'middle',
     class: 'am-flow__label',
   });
+  // Box edges: node 1 right 164, node 2 left 220 / right 380, node 3 left 436, loss top 136.
   const a1 = svg('line', {
-    x1: 172,
+    x1: 166,
     y1: nodeY,
     x2: 212,
     y2: nodeY,
@@ -120,7 +154,7 @@ export function createEnergyFlow(container: HTMLElement, mode: MachineMode): Ene
   const a2 = svg('line', {
     x1: 382,
     y1: nodeY,
-    x2: 422,
+    x2: 428,
     y2: nodeY,
     class: 'am-flow__arrow',
     'marker-end': `url(#${head})`,
@@ -134,13 +168,13 @@ export function createEnergyFlow(container: HTMLElement, mode: MachineMode): Ene
     'marker-end': `url(#${headLoss})`,
   });
   const v1 = svg('text', {
-    x: 192,
+    x: 193,
     y: nodeY - 30,
     'text-anchor': 'middle',
     class: 'am-flow__value',
   });
   const v2 = svg('text', {
-    x: 402,
+    x: 408,
     y: nodeY - 30,
     'text-anchor': 'middle',
     class: 'am-flow__value',
@@ -203,6 +237,9 @@ export function createEnergyFlow(container: HTMLElement, mode: MachineMode): Ene
       a1.setAttribute('stroke-width', w[0].toFixed(2));
       a2.setAttribute('stroke-width', w[1].toFixed(2));
       a3.setAttribute('stroke-width', w[2].toFixed(2));
+      a1.setAttribute('x2', arrowEnd(166, 220, w[0]).toFixed(1));
+      a2.setAttribute('x2', arrowEnd(382, 436, w[1]).toFixed(1));
+      a3.setAttribute('y2', arrowEnd(86, 136, w[2]).toFixed(1));
       v1.textContent = fmtW(p.p1);
       v2.textContent = fmtW(p.p2);
       v3.textContent = fmtW(p.pLoss);
@@ -247,19 +284,19 @@ export const READOUTS: readonly ReadoutDef[] = [
   { key: 'tau', labelIT: 'Coppia elettromagnetica τ', digits: 3, unit: 'N·m', quantity: 'f' },
   {
     key: 'pMech',
-    labelIT: 'Potenza meccanica P_mecc (media)',
+    labelIT: 'Potenza meccanica (media)',
     digits: 2,
     unit: 'W',
     quantity: 'energy',
   },
   {
     key: 'pElec',
-    labelIT: 'Potenza elettrica P_elett (media)',
+    labelIT: 'Potenza elettrica (media)',
     digits: 2,
     unit: 'W',
     quantity: 'energy',
   },
-  { key: 'pJoule', labelIT: 'Potenza Joule P_J (media)', digits: 2, unit: 'W', quantity: 'energy' },
+  { key: 'pJoule', labelIT: 'Potenza Joule (media)', digits: 2, unit: 'W', quantity: 'energy' },
   { key: 'eta', labelIT: 'Rendimento η', digits: 1, unit: '%', scale: 100 },
   { key: 'balance', labelIT: 'Errore del bilancio energetico', digits: 1 },
 ];
@@ -270,12 +307,28 @@ export interface Readouts extends Disposable {
   text(key: keyof ReadoutValues): string;
 }
 
+const SUPERSCRIPT: Record<string, string> = {
+  '-': '⁻',
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+};
+
+/** Relative balance error as "2,0·10⁻¹⁰" (Unicode superscripts, QA-016). */
 export function formatBalance(rel: number): string {
   if (!Number.isFinite(rel)) return '—';
   if (rel === 0) return '0';
   const e = Math.floor(Math.log10(rel));
   const m = rel / 10 ** e;
-  return `${formatIT(m, 1)}·10^${e}`;
+  const exp = [...String(e)].map((c) => SUPERSCRIPT[c] ?? c).join('');
+  return `${formatIT(m, 1)}·10${exp}`;
 }
 
 export function createReadouts(container: HTMLElement): Readouts {

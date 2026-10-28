@@ -1,3 +1,4 @@
+import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import {
   createFormulaPanel,
@@ -11,6 +12,7 @@ import {
   onThemeChange,
   type Slider,
 } from '../../ui';
+import { singularTurnsScale } from '../shared/turns';
 import {
   Z_FAR,
   Z_NEAR,
@@ -37,24 +39,16 @@ type Mode = 'auto' | 'manuale';
 export const MODEL_NOTE_IT =
   'magnete come dipolo puntiforme sull’asse della bobina; flusso Φ = B̄·S con B̄ campo medio sulla sezione (equivale a B uniforme sulla sezione); bobina sottile; autoinduzione trascurata; moto del magnete imposto. La forza è calcolata come interazione dipolo–spira, ma la lunghezza delle frecce è qualitativa (scala logaritmica).';
 
-/** Debug counters for the e2e leak check (only exposed with `?kersDebug` or in dev). */
+/** Debug counters for the e2e leak check (exposed only when `debugEnabled()`). */
 const debug = { mounts: 0, disposes: 0, frames: 0 };
 
-interface DebugWindow {
-  __kersDebug?: Record<string, () => unknown>;
-}
-
-function exposeDebug(getScene: () => LenzScene | null): void {
-  const enabled = import.meta.env.DEV || /[?&]kersDebug\b/.test(window.location.search);
-  if (!enabled) return;
-  const w = window as unknown as DebugWindow;
-  w.__kersDebug ??= {};
-  w.__kersDebug['lenz'] = () => ({
+function exposeDebug(getScene: () => LenzScene | null): () => void {
+  return registerDebugHook('lenz', () => ({
     ...debug,
     live: liveResources(),
     renderer: getScene()?.info() ?? null,
     canvases: document.querySelectorAll('.sim-scene canvas').length,
-  });
+  }));
 }
 
 function mount(host: HTMLElement, ctx: AppContext): Disposable {
@@ -86,7 +80,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       el('p', { class: 'sim-placeholder', text: 'WebGL non disponibile: scena 3D disattivata.' }),
     );
   }
-  exposeDebug(() => scene);
+  const unregisterDebug = exposeDebug(() => scene);
   const canvas = scene?.canvas ?? null;
   if (scene && canvas) {
     canvas.tabIndex = 0;
@@ -199,6 +193,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
           }
         : {}),
     });
+    singularTurnsScale(s.element);
     sliders.push(s);
     layout.controls.append(s.element);
   }
@@ -390,7 +385,9 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       const a = anchors[k];
       const node = labels[k];
       node.hidden = !(show[k] && a.visible);
-      node.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px)`;
+      // "B indotto" ends at its anchor (left of the coil), the others start there.
+      const alignEnd = k === 'bInd' ? ' translateX(-100%)' : '';
+      node.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px)${alignEnd}`;
     }
   }
 
@@ -480,6 +477,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scene = null;
       layout.dispose();
       host.replaceChildren();
+      unregisterDebug();
     },
   };
 }
@@ -498,7 +496,7 @@ const sim: SimModule = {
   titleIT: 'Legge di Lenz',
   summaryIT:
     'Un magnete si avvicina o si allontana da una bobina: la corrente indotta crea un campo che si oppone alla variazione del flusso e una forza che si oppone al moto.',
-  slideRefs: [2, 3, 4, 5, 6, 7, 8, 9, 11],
+  slideRefs: [4, 7, 8, 9, 11],
   theoryId: '04-lenz',
   mount,
 };

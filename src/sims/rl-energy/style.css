@@ -42,6 +42,28 @@
   white-space: nowrap;
 }
 
+.rl-energy-plot {
+  position: relative;
+}
+.rl-energy-plot--idle .u-wrap {
+  opacity: 0.35;
+}
+.rl-plot-hint {
+  position: absolute;
+  inset: 40% var(--space-4) auto;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+}
+.rl-plot-hint[hidden] {
+  display: none;
+}
+
 .rl-label--emf {
   color: var(--q-emf);
   font-weight: var(--fw-medium);

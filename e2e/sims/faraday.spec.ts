@@ -160,27 +160,32 @@ test.describe('sim faraday', () => {
       return usedSize;
     };
     const heaps: number[] = [];
+    let first: Debug | null = null;
     await page.goto('./#/teoria');
     for (let k = 0; k < 20; k++) {
       await page.evaluate(() => (location.hash = '#/sim/faraday'));
       await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
       await page.waitForTimeout(150);
+      // The counters live at module level, so with one mount alive they prove
+      // that every previous mount released its scene, renderer, geometries and materials.
       const d = await debug(page);
+      first ??= d;
       expect(d['liveScenes']).toBe(1);
+      expect(d['liveRenderers']).toBe(1);
       expect(d['liveMounts']).toBe(1);
+      expect(d['liveGeometries']).toBe(first['liveGeometries']);
+      expect(d['liveMaterials']).toBe(first['liveMaterials']);
       await page.evaluate(() => (location.hash = '#/teoria'));
       await expect(page.locator('.prose, .theory-index').first()).toBeVisible();
-      const after = await debug(page);
-      expect(after['liveScenes']).toBe(0);
-      expect(after['liveRenderers']).toBe(0);
-      expect(after['liveGeometries']).toBe(0);
-      expect(after['liveMaterials']).toBe(0);
-      expect(after['liveMounts']).toBe(0);
-      expect(after['canvases']).toBe(0);
+      // QA-005: the debug hook is removed together with the sim.
+      expect(await debug(page)).toEqual({});
+      expect(await page.locator('canvas').count()).toBe(0);
       heaps.push(await heapAfterGc());
     }
+    await page.evaluate(() => (location.hash = '#/sim/faraday'));
+    await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
     const d = await debug(page);
-    expect(d['totalMounts']).toBe(20);
+    expect(d['totalMounts']).toBe(21);
     // Heap after forced GC at every unmount. The first ~10 mounts warm up JIT/code
     // caches (KaTeX, uPlot, Three.js); a real leak grows linearly with the number of
     // mounts, so the gate compares the heap after mount #10 with the one after #20.

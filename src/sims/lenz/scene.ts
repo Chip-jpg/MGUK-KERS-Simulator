@@ -267,6 +267,8 @@ export function createLenzScene(theme: Theme): LenzScene {
   const one = new THREE.Vector3(1, 1, 1);
   const faceAnchor = new THREE.Vector3();
   const currentAnchor = new THREE.Vector3();
+  /** "B indotto" label: below the coil on the side away from the magnet (QA-017). */
+  const bIndAnchor = new THREE.Vector3();
   let width = 1;
   let height = 1;
 
@@ -333,6 +335,9 @@ export function createLenzScene(theme: Theme): LenzScene {
       }
       faceAnchor.set(COIL_LENGTH / 2, r + 0.35, 0);
       currentAnchor.set(COIL_LENGTH / 2, -r - 0.3, 0);
+      // The induced-field arrow is short and mostly hidden inside the rings, so its
+      // tip would put the label on top of the coil: anchor it under the far face.
+      bIndAnchor.set(-COIL_LENGTH / 2, -r - 0.12, 0);
 
       renderer.render(scene, camera);
     },
@@ -348,7 +353,7 @@ export function createLenzScene(theme: Theme): LenzScene {
     anchors() {
       return {
         bMag: project(arrowBMag.tipWorld()),
-        bInd: project(arrowBInd.tipWorld()),
+        bInd: project(bIndAnchor),
         current: project(currentAnchor),
         force: project(arrowForce.tipWorld()),
         face: project(faceAnchor),

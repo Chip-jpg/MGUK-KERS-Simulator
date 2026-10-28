@@ -55,10 +55,10 @@ export const params = {
     step: 1,
     default: 120,
     unit: 'kW',
-    labelIT: 'Potenza massima MGU-K P_max (elettrica)',
+    labelIT: 'Potenza massima MGU-K Pₘₐₓ (elettrica)',
   },
   eta: { min: 0, max: 1, step: 0.01, default: 0.9, unit: '', labelIT: 'Rendimento MGU-K η' },
-  tBrake: { min: 0.5, max: 10, step: 0.1, default: 3, unit: 's', labelIT: 'Durata frenata t_f' },
+  tBrake: { min: 0.5, max: 10, step: 0.1, default: 3, unit: 's', labelIT: 'Durata della frenata' },
 } as const satisfies ParamsSchema<KersUiParams>;
 
 export type ParamKey = keyof KersUiParams;

@@ -5,6 +5,7 @@
  * and, as a second mode, the bar sliding on rails (f.e.m. = B·l·v). Physics from
  * `src/physics` via `./model`; Three.js scene in `./scene`; formulas in `./panel`.
  */
+import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import {
   createFormulaPanel,
@@ -20,6 +21,7 @@ import {
   type Plot,
   type Slider,
 } from '../../ui';
+import { singularTurnsScale } from '../shared/turns';
 import { toDegrees360 } from './format';
 import { defaultParams, FaradaySim, params, type FaradayMode, type FaradayParams } from './model';
 import { formulaItems, panelScales, scalesKey } from './panel';
@@ -31,35 +33,25 @@ export type { FaradayParams, FaradayMode } from './model';
 export const MODEL_NOTE_IT =
   'campo B uniforme, spira rigida monofase, nessuna resistenza/autoinduzione della spira; ω e v sono imposte (la coppia/forza di Lenz non è modellata); l’MGU-K reale è una macchina trifase.';
 
-/** Read-only debug hook for the e2e leak / fps checks (`window.__kersDebug.faraday()`). */
-interface KersDebug {
-  faraday?: () => Record<string, unknown>;
-}
-declare global {
-  interface Window {
-    __kersDebug?: KersDebug;
-  }
-}
 let liveMounts = 0;
 let totalMounts = 0;
 let currentScene: FaradayScene | null = null;
 
-function installDebugHook(): void {
-  if (typeof window === 'undefined') return;
-  window.__kersDebug ??= {};
-  window.__kersDebug.faraday = () => ({
+/** Read-only debug hook for the e2e leak / fps checks (`window.__kersDebug.faraday()`). */
+function debugSnapshot(): Record<string, unknown> {
+  return {
     liveMounts,
     totalMounts,
     ...sceneStats,
     rendererMemory: currentScene?.memory() ?? null,
     canvases: document.querySelectorAll('.sim-scene canvas').length,
-  });
+  };
 }
 
 function mount(host: HTMLElement, ctx: AppContext): Disposable {
   // Idempotent: a second mount into the same host replaces the first.
   (host as HTMLElement & { __faradayDispose?: () => void }).__faradayDispose?.();
-  installDebugHook();
+  const unregisterDebug = registerDebugHook('faraday', debugSnapshot);
   liveMounts++;
   totalMounts++;
 
@@ -131,6 +123,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
         draw();
       },
     });
+    singularTurnsScale(s.element);
     sliders[key] = s;
     groups[groupOf[key]].append(s.element);
     disposers.push(() => s.dispose());
@@ -160,10 +153,10 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     const rotating = sim.mode === 'rotating';
     phiPlot = createPlot(layout.plots, {
       titleIT: rotating
-        ? 'Flusso Φ_B(t) attraverso una spira'
-        : 'Flusso Φ_B(t) attraverso il circuito dei binari',
+        ? 'Flusso Φ(t) attraverso una spira'
+        : 'Flusso Φ(t) attraverso il circuito dei binari',
       series: [
-        { labelIT: 'Φ_B', unit: scales.phi.unit, quantity: 'b', digits: scales.phi.digits + 1 },
+        { labelIT: 'Φ', unit: scales.phi.unit, quantity: 'b', digits: scales.phi.digits + 1 },
       ],
       xLabelIT: 't',
       xUnit: 's',
@@ -280,6 +273,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     host.replaceChildren();
     delete (host as HTMLElement & { __faradayDispose?: () => void }).__faradayDispose;
     liveMounts--;
+    unregisterDebug();
   };
   (host as HTMLElement & { __faradayDispose?: () => void }).__faradayDispose = dispose;
   return { dispose };
@@ -289,7 +283,7 @@ const sim: SimModule = {
   id: 'faraday',
   titleIT: 'Flusso e legge di Faraday-Neumann',
   summaryIT:
-    'Una bobina di N spire ruota in un campo magnetico uniforme: il flusso Φ_B = B·S·cos α varia e induce la f.e.m. N·B·S·ω·sin(ωt). In alternativa, una sbarretta scorre su due binari: f.e.m. = B·l·v.',
+    'Una bobina di N spire ruota in un campo magnetico uniforme: il flusso Φ = B·S·cos α varia e induce la f.e.m. N·B·S·ω·sin(ωt). In alternativa, una sbarretta scorre su due binari: f.e.m. = B·l·v.',
   slideRefs: [7, 8, 18, 19],
   theoryId: '03-faraday-neumann',
   mount,

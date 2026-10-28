@@ -1,3 +1,4 @@
+import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import {
   createButton,
@@ -47,7 +48,6 @@ export interface MountOptions {
 }
 
 let mounted = 0;
-type DebugWindow = Window & { __kersDebug?: Record<string, () => unknown> };
 
 export function mountRl(
   host: HTMLElement,
@@ -234,6 +234,14 @@ export function mountRl(
       { labelIT: 'Campo ½Li²', unit: 'J', quantity: 'b', digits: 4 },
     ],
   });
+  // Before the switch closes the energy plot would be empty axes: show a hint (QA-017).
+  const energyHint = el('p', {
+    class: 'rl-plot-hint',
+    text: 'Chiudi l’interruttore per avviare il transitorio',
+    attrs: { 'data-testid': 'energy-hint' },
+  });
+  energyPlot.element.classList.add('rl-energy-plot', 'rl-energy-plot--idle');
+  energyPlot.element.append(energyHint);
   const bars = createEnergyBars(layout.plots);
 
   // --- logic ------------------------------------------------------------------
@@ -245,6 +253,8 @@ export function mountRl(
   }
   function setClosed(c: boolean): void {
     closed = c;
+    energyHint.hidden = c;
+    energyPlot.element.classList.toggle('rl-energy-plot--idle', !c);
     switchBtn.setLabel(c ? 'Apri e azzera' : 'Chiudi interruttore', c ? '↺' : '⏻');
     resetState();
     if (c && loop.isPaused() && !ctx.reducedMotion) {
@@ -332,9 +342,7 @@ export function mountRl(
   resetState();
   draw();
 
-  const w = window as DebugWindow;
-  w.__kersDebug ??= {};
-  w.__kersDebug[ID] = () => ({
+  const unregisterDebug = registerDebugHook(ID, () => ({
     mounted,
     renderers: sceneCounters.renderers,
     geometries: sceneCounters.geometries,
@@ -344,7 +352,7 @@ export function mountRl(
     i: s.i,
     tauRatio: currentRatioAtTau(inp),
     balance: energyBalance(s, inp.L),
-  });
+  }));
 
   let disposed = false;
   return {
@@ -367,6 +375,7 @@ export function mountRl(
       scene = null;
       layout.dispose();
       host.replaceChildren();
+      unregisterDebug();
     },
   };
 }
@@ -375,7 +384,7 @@ const sim: SimModule = {
   id: ID,
   titleIT: 'Autoinduzione, circuito RL, energia',
   summaryIT:
-    'Chiudi l’interruttore: l’autoinduzione frena la corrente, che cresce come i(t) = I₀(1 − e^(−t/τ)) con τ = L/R. L’energia del generatore si divide tra calore Joule ed energia del campo magnetico ½LI².',
+    'Chiudi l’interruttore: l’autoinduzione frena la corrente, che cresce come i(t) = I₀·(1 − exp(−t/τ)) con τ = L/R. L’energia del generatore si divide tra calore Joule ed energia del campo magnetico ½LI².',
   slideRefs: [12, 13, 14, 15, 16, 17],
   theoryId: '06-circuito-rl-energia-campo',
   mount: (host, ctx) => mountRl(host, ctx),

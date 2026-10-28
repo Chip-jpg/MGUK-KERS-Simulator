@@ -16,6 +16,11 @@ describe('kers-braking balance card', () => {
     expect(out('dEk')).toBe('2,47\u00A0MJ');
     expect(out('recovered')).toBe('0,36\u00A0MJ');
     expect(out('tRec')).toBe('18,5\u00A0s');
+    // QA-012: the time is to *absorb* all ΔE_k at the cap, not to store all of it.
+    const tRecRow = host.querySelector('[data-out="tRec"]')?.closest('div')?.textContent ?? '';
+    expect(tRecRow).toContain('Tempo per assorbire tutta ΔEₖ alla potenza massima');
+    expect(tRecRow).toContain('in batteria arriva solo η·ΔEₖ');
+    expect(host.textContent).not.toMatch(/recuperare tutta/);
     const sum = parseMJ(out('recovered')) + parseMJ(out('dissipated'));
     expect(Math.abs(sum - parseMJ(out('dEk')))).toBeLessThanOrEqual(0.0100001);
     expect(host.querySelector('.kers-message')?.hasAttribute('hidden')).toBe(true);

@@ -257,7 +257,8 @@ export function createRlScene(container: HTMLElement, overlay: HTMLElement, them
     labels.push({ node, at: new THREE.Vector3(x, y, 0) });
     return node;
   };
-  const lGen = label(-6, -0.9, 'rl-label--emf');
+  // Inside the circuit, right of the battery: the wire at x = −6 must not cross it (QA-017).
+  const lGen = label(-3.4, 0.2, 'rl-label--emf');
   const lSwitch = label(-3, 3.9);
   const lRes = label(2, 3.9);
   const lCoil = label(6, -3.6);

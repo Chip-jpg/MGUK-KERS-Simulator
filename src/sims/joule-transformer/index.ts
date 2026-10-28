@@ -1,3 +1,4 @@
+import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import {
   createFormulaPanel,
@@ -38,7 +39,6 @@ interface DebugApi {
   info: ReturnType<TransformerScene['info']> | null;
   lossFactor: number;
 }
-type DebugWindow = Window & { __kersDebug?: Record<string, () => unknown> };
 
 /** Mount implementation; `SimModule.mount` calls it with defaults. */
 export function mountTransformer(
@@ -190,16 +190,14 @@ export function mountTransformer(
   recompute();
   scene?.render(t);
 
-  const w = window as DebugWindow;
-  w.__kersDebug ??= {};
-  w.__kersDebug[ID] = (): DebugApi => ({
+  const unregisterDebug = registerDebugHook(ID, (): DebugApi => ({
     mounted,
     renderers: sceneCounters.renderers,
     geometries: sceneCounters.geometries,
     materials: sceneCounters.materials,
     info: scene?.info() ?? null,
     lossFactor: lastFactor,
-  });
+  }));
 
   let disposed = false;
   return {
@@ -218,6 +216,7 @@ export function mountTransformer(
       scene = null;
       layout.dispose();
       host.replaceChildren();
+      unregisterDebug();
     },
   };
 }

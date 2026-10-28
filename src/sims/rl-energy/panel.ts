@@ -105,7 +105,7 @@ export function createEnergyBars(container: HTMLElement): EnergyBars {
       balance.textContent =
         b.gen === 0
           ? 'Interruttore aperto: nessuno scambio di energia.'
-          : `${ok ? '✓' : '✗'} Scarto relativo |E_gen − (E_J + U_M)| / E_gen = ${fmtSci(b.relError)} (tolleranza ${fmtSci(BALANCE_TOLERANCE, 0)})`;
+          : `${ok ? '✓' : '✗'} Scarto relativo tra energia del generatore e (calore Joule + energia magnetica): ${fmtSci(b.relError)} (tolleranza ${fmtSci(BALANCE_TOLERANCE, 0)})`;
     },
     dispose() {
       element.remove();

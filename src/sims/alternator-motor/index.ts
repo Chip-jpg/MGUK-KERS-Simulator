@@ -20,6 +20,7 @@ import {
   type FormulaPanel,
   type Slider,
 } from '../../ui';
+import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import {
   MODE_PARAMS,
@@ -37,6 +38,7 @@ import {
 import {
   MODEL_NOTE_IT,
   THREE_PHASE_NOTE_IT,
+  createTheoryLinks,
   createEnergyFlow,
   createReadouts,
   type FlowPowers,
@@ -126,7 +128,7 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       key: 'pJ',
       tex: 'P_J = R_w\\, i^2',
       symbolTex: 'P_J',
-      labelIT: "Calore Joule nell'avvolgimento",
+      labelIT: 'Calore Joule nell’avvolgimento',
       unit: 'W',
       digits: 2,
       quantity: 'energy',
@@ -158,8 +160,6 @@ export interface AlternatorDebug {
   relError: number;
   input: number;
 }
-
-type DebugHost = { __kersDebug?: Record<string, () => unknown> };
 
 let liveMounts = 0;
 const mounted = new WeakMap<HTMLElement, Disposable>();
@@ -202,7 +202,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     onClick: () => restartRun(),
   });
   const restartWrap = el('div', { class: 'am-restart' }, [restart.element]);
-  layout.controls.append(note, modeCtl.element, restartWrap);
+  layout.controls.append(note, createTheoryLinks(), modeCtl.element, restartWrap);
   const readouts = createReadouts(layout.controls);
 
   const sliders = new Map<keyof MachineParams, Slider>();
@@ -266,7 +266,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     series: [
       { labelIT: 'Convertita τω = εi', unit: 'W', quantity: 'f', digits: 2 },
       { labelIT: 'Elettrica (batteria)', unit: 'W', quantity: 'energy', digits: 2 },
-      { labelIT: 'Joule R_w i²', unit: 'W', quantity: 'i', digits: 2, dash: [6, 4] },
+      { labelIT: 'Joule R·i²', unit: 'W', quantity: 'i', digits: 2, dash: [6, 4] },
     ],
     xLabelIT: 't',
     xUnit: 's',
@@ -351,6 +351,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       pJ: q.pJoule,
       E: bal.input,
     });
+    // Same frame as the readouts: no one-frame lag between the two panels (QA-018).
+    formulas.flush();
     iRef = Math.max(iRef * 0.99, Math.abs(q.sideCurrent));
     fRef = Math.max(fRef * 0.99, Math.abs(q.forceSide));
     if (scene) {
@@ -381,7 +383,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   setMode(mode);
 
   // --- debug hook ----------------------------------------------------------------
-  const dbgHost = window as unknown as DebugHost;
   const debugFn = (): AlternatorDebug => {
     const bal = energyBalance(mode, p, s0, s);
     return {
@@ -395,7 +396,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       input: bal.input,
     };
   };
-  dbgHost.__kersDebug = { ...(dbgHost.__kersDebug ?? {}), [SIM_ID]: debugFn };
+  const unregisterDebug = registerDebugHook(SIM_ID, debugFn);
 
   const handle: Disposable = {
     dispose() {
@@ -417,10 +418,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scene = null;
       layout.dispose();
       host.replaceChildren();
-      if (dbgHost.__kersDebug?.[SIM_ID] === debugFn) {
-        // keep a read-only snapshot so e2e can verify the mount count after unmount
-        dbgHost.__kersDebug[SIM_ID] = () => ({ liveMounts, canvases: 0, renderer: null });
-      }
+      unregisterDebug();
       if (mounted.get(host) === handle) mounted.delete(host);
     },
   };

@@ -62,6 +62,14 @@
   white-space: nowrap;
 }
 
+.jt-label--end {
+  transform: translate(-100%, -100%);
+}
+
+.jt-label--start {
+  transform: translate(0, -100%);
+}
+
 .jt-label--line {
   color: var(--q-i);
   font-weight: var(--fw-medium);

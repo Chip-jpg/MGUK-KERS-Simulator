@@ -5,6 +5,7 @@
  * splits ΔE_k between the MGU-K (electrical cap P_max, efficiency η) and the
  * disc brakes; the scene plays the event back in real time (×1 or ×0,25).
  */
+import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule, Theme } from '../../core/types';
 import {
   createFormulaPanel,
@@ -35,12 +36,12 @@ import './style.css';
 export { params } from './model';
 
 export const MODEL_NOTE_IT =
-  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. P_max è il limite di potenza elettrica dell’MGU-K.';
+  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K.';
 
 /** Pause at the end of the event before the playback restarts [s]. */
 const END_HOLD = 1.5;
 
-/** Read-only debug data for e2e leak checks (exposed only in dev or under WebDriver). */
+/** Read-only debug data for e2e leak checks (exposed only when `debugEnabled()`). */
 interface KersDebug {
   liveMounts: number;
   mountsTotal: number;
@@ -49,18 +50,6 @@ interface KersDebug {
 }
 let liveMounts = 0;
 let mountsTotal = 0;
-
-function debugEnabled(): boolean {
-  return import.meta.env.DEV || (typeof navigator !== 'undefined' && navigator.webdriver === true);
-}
-
-function publishDebug(d: KersDebug | null): void {
-  if (!debugEnabled()) return;
-  const w = window as unknown as { __kersDebug?: Record<string, KersDebug> };
-  w.__kersDebug ??= {};
-  if (d) w.__kersDebug['kers-braking'] = d;
-  else delete w.__kersDebug['kers-braking'];
-}
 
 function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const layout = createSimLayout(host, { modelNoteIT: MODEL_NOTE_IT });
@@ -167,7 +156,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     {
       key: 'eRec',
       tex: 'E_{rec} = \\eta \\int_0^{t_f} \\min\\!\\left(P_{fren},\\ P_{\\max}/\\eta\\right) dt',
-      labelIT: 'Energia elettrica accumulata (P_max limite elettrico)',
+      labelIT: 'Energia elettrica accumulata (Pₘₐₓ limite elettrico)',
       symbolTex: 'E_{rec}',
       unit: 'MJ',
       scale: 1e-6,
@@ -188,7 +177,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     {
       key: 'tRec',
       tex: 't_{rec} = \\eta\\,\\Delta E_k / P_{\\max}',
-      labelIT: 'Tempo per recuperare tutta ΔE_k alla potenza massima',
+      labelIT: 'Tempo per assorbire tutta ΔEₖ alla potenza massima',
       symbolTex: 't_{rec}',
       unit: 's',
       digits: 1,
@@ -241,7 +230,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   plot.element.append(
     el('p', {
       class: 'kers-caption',
-      text: 'Area viola: potenza elettrica accumulata dall’MGU-K (al massimo P_max). Fascia grigia tra le due curve: potenza dissipata nei freni a disco e nelle perdite dell’MGU-K.',
+      text: 'Area viola: potenza elettrica accumulata dall’MGU-K (al massimo Pₘₐₓ). Fascia grigia tra le due curve: potenza dissipata nei freni a disco e nelle perdite dell’MGU-K.',
     }),
   );
   const balance = createBalance(layout.plots);
@@ -336,7 +325,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   recompute();
   liveMounts += 1;
   mountsTotal += 1;
-  publishDebug({
+  const unregisterDebug = registerDebugHook<KersDebug>('kers-braking', {
     get liveMounts() {
       return liveMounts;
     },
@@ -366,7 +355,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       layout.dispose();
       host.replaceChildren();
       liveMounts -= 1;
-      if (liveMounts === 0) publishDebug(null);
+      unregisterDebug();
     },
   };
 }
@@ -375,7 +364,7 @@ const sim: SimModule = {
   id: 'kers-braking',
   titleIT: 'Frenata e recupero di energia',
   summaryIT:
-    'Un’auto frena da v₁ a v₂: l’MGU-K recupera energia elettrica fino alla potenza massima P_max, il resto diventa calore nei freni a disco.',
+    'Un’auto frena da v₁ a v₂: l’MGU-K recupera energia elettrica fino alla potenza massima Pₘₐₓ, il resto diventa calore nei freni a disco.',
   slideRefs: [16, 17, 18, 19],
   theoryId: '10-kers-mguk',
   mount,

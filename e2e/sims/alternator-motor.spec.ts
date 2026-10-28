@@ -32,12 +32,13 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-/** "1,9·10^-9" → 1.9e-9 */
+/** "1,9·10⁻⁹" → 1.9e-9 */
 function parseBalance(txt: string): number {
   if (txt.trim() === '0') return 0;
-  const m = /^([\d,]+)·10\^(-?\d+)$/.exec(txt.trim());
+  const m = /^([\d,]+)·10([⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/u.exec(txt.trim());
   if (!m) return Number.NaN;
-  return Number((m[1] as string).replace(',', '.')) * 10 ** Number(m[2]);
+  const exp = [...(m[2] as string)].map((c) => '-0123456789'['⁻⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)]).join('');
+  return Number((m[1] as string).replace(',', '.')) * 10 ** Number(exp);
 }
 
 test('loads without console errors, shows canvas, note, readouts and passes the energy gate', async ({
@@ -47,7 +48,13 @@ test('loads without console errors, shows canvas, note, readouts and passes the 
   await page.goto(URL);
   await expect(page.getByRole('heading', { level: 1, name: /Alternatore/ })).toBeVisible();
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
-  await expect(page.getByRole('note').filter({ hasText: 'sincrona trifase' })).toBeVisible();
+  await expect(
+    page.getByRole('note').filter({ hasText: 'trifase, generalmente descritta come sincrona' }),
+  ).toBeVisible();
+  // QA-006: theory 07 and 09 are linked from the panel, not only 10 from the header.
+  for (const id of ['07-alternatore-corrente-alternata', '09-motore-elettrico-lorentz']) {
+    await expect(page.locator(`.am-theory-links a[href="#/teoria/${id}"]`)).toBeVisible();
+  }
   await expect(page.locator('.sim-note')).toContainText('Modello semplificato');
   await expect(page.getByTestId('am-energy-flow')).toContainText(
     'Energia cinetica → energia elettrica → batteria (+ calore Joule)',
@@ -103,7 +110,7 @@ test('sliders and mode toggle work by keyboard', async ({ page }) => {
   await gen.focus();
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('radio', { name: 'Motore (accelerazione)' })).toBeChecked();
-  await expect(page.getByRole('slider', { name: 'Tensione di picco batteria V_s' })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Tensione di picco batteria Vₛ' })).toBeVisible();
   await expect(page.getByRole('slider', { name: 'Velocità iniziale ω₀' })).toBeHidden();
 });
 

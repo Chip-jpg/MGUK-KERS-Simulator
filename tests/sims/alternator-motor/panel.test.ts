@@ -16,11 +16,23 @@ vi.hoisted(() => {
     })) as unknown as typeof window.matchMedia;
   }
 });
+// uPlot needs a 2D canvas context, which jsdom lacks (mount test below).
+vi.mock('uplot', () => ({
+  default: class {
+    destroy(): void {}
+    setData(): void {}
+    setSize(): void {}
+  },
+}));
+
 import {
   ARROW_MAX_PX,
   ARROW_MIN_PX,
+  arrowEnd,
+  headOvershoot,
   FLOW_LABELS_IT,
   THREE_PHASE_NOTE_IT,
+  createTheoryLinks,
   arrowWidth,
   createEnergyFlow,
   createReadouts,
@@ -49,6 +61,14 @@ describe('energy-flow diagram', () => {
     expect(w1).toBeGreaterThan(w2);
     expect(w2).toBeGreaterThan(w3);
     expect(w1).toBe(ARROW_MAX_PX);
+    // QA-017: arrowhead tips stop before the box edges (220, 436, loss top 136)
+    const lines = [...flow.element.querySelectorAll('line')];
+    const at = (k: number, a: string): number => Number(lines[k]?.getAttribute(a));
+    expect(at(0, 'x2') + headOvershoot(w1)).toBeLessThanOrEqual(220);
+    expect(at(1, 'x2') + headOvershoot(w2)).toBeLessThanOrEqual(436);
+    expect(at(2, 'y2') + headOvershoot(w3)).toBeLessThanOrEqual(136);
+    expect(at(0, 'x2')).toBeGreaterThan(at(0, 'x1'));
+    expect(arrowEnd(166, 220, ARROW_MIN_PX)).toBeCloseTo(220 - 2 - 2.4 * ARROW_MIN_PX, 9);
     flow.setMode('motor');
     expect(flow.element.textContent).toContain(
       'Batteria → energia elettrica → energia meccanica (+ calore Joule)',
@@ -79,20 +99,34 @@ describe('readouts', () => {
     expect(r.text('i')).toBe('−2,50 A'.replace('−', r.text('i').startsWith('-') ? '-' : '−'));
     expect(r.text('rpm')).toBe('286 giri/min');
     expect(r.text('eta')).toBe('80,0 %');
-    expect(r.text('balance')).toBe('1,9·10^-9');
+    expect(r.text('balance')).toBe('1,9·10⁻⁹');
     r.dispose();
   });
 
   it('balance formatter', () => {
     expect(formatBalance(0)).toBe('0');
     expect(formatBalance(Number.NaN)).toBe('—');
-    expect(formatBalance(3.2e-7)).toBe('3,2·10^-7');
+    // QA-016: Unicode superscripts, no ASCII 10^-7
+    expect(formatBalance(3.2e-7)).toBe('3,2·10⁻⁷');
+    expect(formatBalance(2e-10)).toBe('2,0·10⁻¹⁰');
   });
 
-  it('three-phase note text is the required one', () => {
+  it('three-phase note is hedged on the PMSM topology (QA-007)', () => {
     expect(THREE_PHASE_NOTE_IT).toBe(
-      "Nota: l'MGU-K reale è una macchina sincrona trifase a magneti permanenti; qui usiamo una sola spira (modello monofase delle slide 18–19).",
+      'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo una sola spira (modello monofase delle slide 18–19).',
     );
+  });
+
+  it('links theory 07, 09 and 10 in the panel (QA-006)', () => {
+    const p = createTheoryLinks();
+    expect(p.textContent).toBe(
+      'Teoria: Alternatore (07) · Motore e forza di Lorentz (09) · KERS/MGU-K (10)',
+    );
+    expect([...p.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      '#/teoria/07-alternatore-corrente-alternata',
+      '#/teoria/09-motore-elettrico-lorentz',
+      '#/teoria/10-kers-mguk',
+    ]);
   });
 });
 
@@ -110,5 +144,36 @@ describe('module metadata and formulas', () => {
       }
     }
     expect(Object.keys(mod.params)).toContain('Vs');
+  });
+});
+
+describe('formula panel and readouts in the same frame (QA-018)', () => {
+  it('a single step updates ε and i in both panels synchronously', async () => {
+    const { formatIT } = await import('../../../src/core/format');
+    const mod = await import('../../../src/sims/alternator-motor/index');
+    const host = document.createElement('div');
+    document.body.append(host);
+    const d = mod.default.mount(host, { theme: 'light', reducedMotion: true, formatIT });
+    const step = [...host.querySelectorAll('button')].find((b) => b.textContent?.includes('Passo'));
+    expect(step).toBeDefined();
+    const num = (t: string | null | undefined): number =>
+      Number(
+        (t ?? '')
+          .replace('−', '-')
+          .replace(/[^\d,-]/g, '')
+          .replace(',', '.'),
+      );
+    for (let k = 0; k < 5; k++) {
+      step?.click();
+      for (const key of ['emf', 'i']) {
+        const readout = host.querySelector(`.am-readouts__value[data-key="${key}"]`)?.textContent;
+        const formula = host.querySelector(
+          `.formula-row[data-key="${key}"] .formula-row__number`,
+        )?.textContent;
+        expect(num(formula), key).toBeCloseTo(num(readout), 1);
+      }
+    }
+    d.dispose();
+    host.remove();
   });
 });

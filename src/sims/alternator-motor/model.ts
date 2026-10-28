@@ -96,7 +96,7 @@ export const params = {
     step: 0.01,
     default: 0.5,
     unit: 'kg·m²',
-    labelIT: "Momento d'inerzia del rotore J",
+    labelIT: 'Momento d’inerzia del rotore J',
   },
   Rw: {
     min: 0.2,
@@ -104,7 +104,7 @@ export const params = {
     step: 0.1,
     default: 1,
     unit: 'Ω',
-    labelIT: "Resistenza dell'avvolgimento R_w",
+    labelIT: 'Resistenza dell’avvolgimento',
   },
   Rload: {
     min: 0.5,
@@ -112,7 +112,7 @@ export const params = {
     step: 0.5,
     default: 4,
     unit: 'Ω',
-    labelIT: 'Carico equivalente batteria R_c',
+    labelIT: 'Carico equivalente della batteria',
   },
   omega0: {
     min: 0,
@@ -128,7 +128,7 @@ export const params = {
     step: 0.1,
     default: 0,
     unit: 'N·m',
-    labelIT: 'Coppia esterna dalle ruote τ_est',
+    labelIT: 'Coppia esterna dalle ruote τₑₛₜ',
   },
   Vs: {
     min: 0,
@@ -136,7 +136,7 @@ export const params = {
     step: 1,
     default: 24,
     unit: 'V',
-    labelIT: 'Tensione di picco batteria V_s',
+    labelIT: 'Tensione di picco batteria Vₛ',
   },
   tauLoad: {
     min: 0,
@@ -144,7 +144,7 @@ export const params = {
     step: 0.1,
     default: 2,
     unit: 'N·m',
-    labelIT: 'Coppia resistente del carico τ_c',
+    labelIT: 'Coppia resistente del carico',
   },
 } satisfies ParamsSchema<MachineParams>;
 

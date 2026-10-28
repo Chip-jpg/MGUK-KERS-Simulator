@@ -226,28 +226,33 @@ export function createTransformerScene(
   });
 
   // HTML labels in the overlay.
-  const labels: Array<{ node: HTMLElement; at: THREE.Vector3 }> = [];
-  const label = (x: number, y: number, cls = ''): HTMLElement => {
+  /** Horizontal alignment of a label on its anchor (`end`: the label ends there). */
+  type Align = 'center' | 'start' | 'end';
+  const labels: Array<{ node: HTMLElement; at: THREE.Vector3; align: Align }> = [];
+  const label = (x: number, y: number, cls = '', align: Align = 'center'): HTMLElement => {
     const node = document.createElement('div');
-    node.className = `jt-label ${cls}`;
+    node.className = `jt-label ${cls}${align === 'center' ? '' : ` jt-label--${align}`}`;
     overlay.append(node);
-    labels.push({ node, at: new THREE.Vector3(x, y, 0) });
+    labels.push({ node, at: new THREE.Vector3(x, y, 0), align });
     return node;
   };
   const lPlant = label(-8.6, -3.55, 'jt-label--below');
-  const lUp = label(-5, 0.35);
+  // Transformer labels grow with N₁/N₂: keep them clear of the pylons at x = ±2 (QA-017).
+  const lUp = label(-2.35, 0.35, '', 'end');
   const lLine = label(0, lineY + 0.9, 'jt-label--line');
-  const lDown = label(5, 0.35);
+  const lDown = label(2.35, 0.35, '', 'start');
   const lUsers = label(9.2, -3.55, 'jt-label--below');
 
   const placeLabels = (): void => {
     const w = container.clientWidth;
     const h = container.clientHeight;
-    for (const { node, at } of labels) {
+    for (const { node, at, align } of labels) {
       const p = at.clone().project(camera);
-      // Keep the (centred) label inside the scene.
-      const half = node.offsetWidth / 2 + 4;
-      const left = Math.min(Math.max(((p.x + 1) / 2) * w, half), Math.max(half, w - half));
+      // Keep the label inside the scene: [lo, hi] is the allowed range of its anchor.
+      const width = node.offsetWidth + 8;
+      const lo = align === 'end' ? width : align === 'start' ? 4 : width / 2;
+      const hi = align === 'end' ? w - 4 : align === 'start' ? w - width : w - width / 2;
+      const left = Math.min(Math.max(((p.x + 1) / 2) * w, lo), Math.max(lo, hi));
       node.style.left = `${left}px`;
       node.style.top = `${((1 - p.y) / 2) * h}px`;
     }
