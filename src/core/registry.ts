@@ -11,6 +11,7 @@ export const SIM_IDS = [
   // Phase 4 (optional, advanced)
   'field-biot-savart',
   'pmsm-dq',
+  'car-dynamics',
 ] as const;
 
 export type SimId = (typeof SIM_IDS)[number];

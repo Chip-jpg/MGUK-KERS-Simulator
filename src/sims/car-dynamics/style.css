@@ -1,0 +1,235 @@
+/* car-dynamics simulator (scoped by .cd-* class names). */
+
+.cd-hud,
+.cd-legend-scene {
+  position: absolute;
+  display: flex;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-text);
+}
+
+.cd-hud {
+  top: var(--space-3);
+  left: var(--space-3);
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.cd-legend-scene {
+  right: var(--space-3);
+  bottom: var(--space-3);
+  flex-direction: column;
+  gap: 2px;
+  max-width: calc(100% - 2 * var(--space-3));
+  font-size: var(--fs-xs);
+}
+
+.cd-legend-scene .q-f {
+  color: var(--q-f);
+}
+
+.cd-hud__energy {
+  color: var(--q-energy);
+}
+
+.cd-block {
+  margin-bottom: var(--space-4);
+}
+
+.cd-subtitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-base);
+}
+
+.cd-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cd-small {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+
+.cd-links {
+  margin-bottom: var(--space-3);
+}
+
+.cd-sources a,
+.cd-links a {
+  color: var(--color-accent);
+}
+
+.cd-ideal {
+  margin: 0 0 var(--space-4);
+}
+
+.cd-fixed summary {
+  cursor: pointer;
+  font-weight: var(--fw-bold);
+}
+
+.cd-list {
+  margin: var(--space-2) 0 0;
+}
+
+.cd-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+}
+
+.cd-list__row dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cd-balance {
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.cd-message {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface-2);
+}
+
+.cd-bar {
+  display: flex;
+  height: 1.1rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+.cd-bar__seg {
+  display: block;
+  height: 100%;
+}
+
+.cd-seg--stored,
+.cd-legend .cd-seg--stored::before {
+  background: var(--q-energy);
+}
+
+.cd-seg--loss,
+.cd-legend .cd-seg--loss::before {
+  background: repeating-linear-gradient(45deg, var(--q-energy) 0 3px, var(--color-neutral) 3px 6px);
+}
+
+.cd-seg--front,
+.cd-legend .cd-seg--front::before {
+  background: var(--color-accent);
+}
+
+.cd-seg--rear,
+.cd-legend .cd-seg--rear::before {
+  background: var(--color-neutral);
+}
+
+.cd-seg--aero,
+.cd-legend .cd-seg--aero::before {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-border-strong) 0 3px,
+    var(--color-surface-2) 3px 6px
+  );
+}
+
+.cd-legend li.cd-seg--stored,
+.cd-legend li.cd-seg--loss,
+.cd-legend li.cd-seg--front,
+.cd-legend li.cd-seg--rear,
+.cd-legend li.cd-seg--aero {
+  background: none;
+}
+
+.cd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-xs);
+}
+
+.cd-legend li::before {
+  content: '';
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.35em;
+  border-radius: 2px;
+  vertical-align: -0.1em;
+}
+
+.cd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.cd-table caption {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+  text-align: left;
+}
+
+.cd-table th,
+.cd-table td {
+  padding: 3px var(--space-2) 3px 0;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.cd-table thead th {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+
+.cd-table td {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cd-table tbody th {
+  font-weight: normal;
+}
+
+.cd-tr--total th,
+.cd-tr--total td {
+  font-weight: var(--fw-bold);
+}
+
+.cd-tr--stored td {
+  color: var(--q-energy);
+  font-weight: var(--fw-bold);
+}
+
+.cd-tr--sub th {
+  color: var(--color-text-muted);
+}
+
+.cd-balance--idle .cd-bar {
+  opacity: 0.4;
+}

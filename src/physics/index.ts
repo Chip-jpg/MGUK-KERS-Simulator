@@ -112,3 +112,31 @@ export type {
   PmsmDynState,
   PmsmDynInputs,
 } from './pmsm';
+// Car dynamics in a braking zone (Phase 4 extension)
+export {
+  G_STANDARD,
+  AIR_DENSITY_STD,
+  PACEJKA_ILLUSTRATIVE,
+  DEFAULT_WEIGHT_FRONT,
+  pacejkaFx,
+  pacejkaPeakSlip,
+  pacejkaSlipForRatio,
+  aeroDrag,
+  aeroDownforce,
+  idealBrakeBalance,
+  carBrakingForces,
+  carBrakingStep,
+  simulateBrakingZone,
+} from './vehicle-dynamics';
+export type {
+  PacejkaCoeffs,
+  PacejkaShape,
+  CarModel,
+  CarBrakingParams,
+  BrakeLimit,
+  MgukLimit,
+  CarBrakingForces,
+  CarBrakingState,
+  CarBrakingSample,
+  BrakingZoneResult,
+} from './vehicle-dynamics';

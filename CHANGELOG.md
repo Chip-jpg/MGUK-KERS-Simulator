@@ -7,6 +7,19 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-28
+
+Fase 4, terzo modulo di approfondimento.
+
+### Aggiunto
+
+- Simulatore "Dinamica della vettura: frenata combinata MGU-K + freni": vettura puntiforme con
+  trasferimento di carico, pneumatici Pacejka al picco di aderenza (ABS ideale), resistenza
+  aerodinamica e deportanza, MGU-K solo sull’asse posteriore limitata da Pₘₐₓ/η (D8) e
+  dall’aderenza; confronto diretto con il modello a decelerazione costante di "Frenata e
+  recupero di energia". Nuova scheda di teoria 17 e domande del quiz.
+- Funzioni di fisica `vehicle-dynamics.ts` con test (bilancio energetico entro 1·10⁻⁶).
+
 ## [0.3.0] - 2026-10-28
 
 Fase 4, primi due moduli di approfondimento.
@@ -132,7 +145,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/releases/tag/v0.1.0

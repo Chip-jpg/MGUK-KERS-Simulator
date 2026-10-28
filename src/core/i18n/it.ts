@@ -98,6 +98,7 @@ export const it = {
       'rl-energy': 'Autoinduzione, circuito RL, energia',
       'field-biot-savart': 'Campo magnetico di bobine reali (Biot-Savart)',
       'pmsm-dq': 'Macchina sincrona a magneti permanenti: modello d-q',
+      'car-dynamics': 'Dinamica della vettura: frenata combinata MGU-K + freni',
     },
   },
   quiz: {

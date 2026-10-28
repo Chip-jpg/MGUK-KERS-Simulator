@@ -19,6 +19,7 @@ export const SECTIONS = [
   { id: '14-glossario', labelIT: '14 · Glossario' },
   { id: '15-campo-biot-savart', labelIT: '15 · Campo di bobine reali (Biot-Savart)' },
   { id: '16-pmsm-dq', labelIT: '16 · Modello d-q della PMSM' },
+  { id: '17-dinamica-frenata', labelIT: '17 · Dinamica della frenata' },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]['id'];

@@ -845,6 +845,52 @@
         "solenoide lungo: campo quasi uniforme $\\mu_0 N I/l$",
         "agli estremi circa metà, fuori non nullo"
       ]
+    },
+    {
+      "id": "sm-dinamica-deportanza",
+      "type": "scelta-multipla",
+      "section": "17-dinamica-frenata",
+      "difficulty": 2,
+      "promptIT": "In una frenata al limite di aderenza, perché la deportanza accorcia lo spazio di frenata soprattutto ad alta velocità?",
+      "options": [
+        "Perché riduce la massa della vettura",
+        "Perché aumenta il carico verticale $F_z$ e quindi la forza frenante massima $\\mu F_z$; cresce con $v^2$",
+        "Perché aumenta il rendimento dell’MGU-K",
+        "Perché riduce il coefficiente di aderenza $\\mu$ degli pneumatici"
+      ],
+      "answer": 1,
+      "explanationIT": "La deportanza $\\tfrac12 \\rho\\, C_z A\\, v^2$ spinge la vettura sull’asfalto senza aggiungere massa: la forza frenante massima $\\mu F_z$ aumenta, la decelerazione pure. Poiché dipende da $v^2$, l’effetto è grande ad alta velocità e piccolo a bassa.",
+      "slideRefs": []
+    },
+    {
+      "id": "sm-dinamica-asse-posteriore",
+      "type": "scelta-multipla",
+      "section": "17-dinamica-frenata",
+      "difficulty": 3,
+      "promptIT": "Nel modello di frenata con pneumatici e aerodinamica l’MGU-K agisce solo sull’asse posteriore. Con un $P_{\\max}$ elevato, che cosa limita il recupero a bassa velocità?",
+      "options": [
+        "La legge di Lenz, che a bassa velocità non vale più",
+        "La resistenza aerodinamica, che a bassa velocità è massima",
+        "La forza frenante disponibile sull’asse posteriore, fissata da aderenza e ripartizione di frenata",
+        "Il limite di energia per giro, che vale per ogni singola frenata"
+      ],
+      "answer": 2,
+      "explanationIT": "La forza dell’MGU-K è $\\min(F_{x,post},\\ P_{\\max}/(\\eta v))$: a bassa velocità il termine $P_{\\max}/(\\eta v)$ diventa grande e il limite è la forza frenante dell’asse posteriore. Per questo il recupero può essere minore di quello del modello a decelerazione costante.",
+      "slideRefs": [16, 17]
+    },
+    {
+      "id": "voce-dinamica-bilancio",
+      "type": "a-voce",
+      "section": "17-dinamica-frenata",
+      "difficulty": 2,
+      "promptIT": "Spiega a voce dove va l’energia cinetica in una frenata con pneumatici e aerodinamica, e perché l’MGU-K ne recupera solo una parte.",
+      "answerIT": "L’energia cinetica $\\tfrac12 m(v_1^2 - v_2^2)$ si divide tra batteria, perdite Joule dell’MGU-K, calore nei freni anteriori e posteriori e resistenza dell’aria: è il bilancio delle slide 16–17 applicato all’auto intera. L’MGU-K frena solo l’asse posteriore e può inviare alla batteria al massimo $P_{\\max}$: ad alta velocità la frenata richiede molta più potenza, a bassa velocità il limite è la forza dell’asse posteriore. Il resto finisce in calore.",
+      "slideRefs": [16, 17],
+      "keyPointsIT": [
+        "batteria, perdite MGU-K, freni, aria",
+        "limite di potenza ad alta velocità",
+        "limite dell’asse posteriore a bassa velocità"
+      ]
     }
   ]
 }

@@ -29,6 +29,7 @@ describe('registry', () => {
       'rl-energy',
       'field-biot-savart',
       'pmsm-dq',
+      'car-dynamics',
     ]);
   });
 

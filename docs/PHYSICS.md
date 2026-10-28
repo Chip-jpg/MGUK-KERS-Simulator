@@ -311,3 +311,74 @@ speed (`infeasible` beyond it).
 cross-coupling), sinusoidal back-emf (no harmonics, no cogging), iron and mechanical losses
 neglected, ideal inverter (no switching ripple, dead time or losses), balanced three-wire
 machine (zero sequence ignored), shaft speed imposed from outside in the dynamic model.
+
+## 9. Car dynamics (Phase 4)
+
+`src/physics/vehicle-dynamics.ts`, used by the `car-dynamics` simulator. It extends the
+constant-deceleration KERS model of §4 to a braking zone with tyres, aerodynamics and
+per-axle braking. Extension, not in the slides (`@slide none`); the energy bookkeeping is the
+balance of slides 16–17 applied to the whole car.
+
+**Assumptions.** Point-mass car on a flat straight, longitudinal motion only (no pitch or
+heave dynamics, no wheel rotational inertia, no rolling resistance, no tyre temperature or
+wear). Drag acts at the height of the centre of gravity (no pitch moment); downforce is split
+between the axles like the weight ($w_f$, default 0,45). Ideal ABS: the axle that limits the
+braking works at the peak slip $\kappa^*$; the other axle works at the smaller slip set by the
+brake balance. The MGU-K brakes the **rear axle only**; following D8, `Pmax` is its
+**electrical** cap, so it absorbs at most $P_{max}/\eta$ of mechanical power. Ideal
+brake-by-wire blending: the rear friction brakes supply what the MGU-K does not take. No
+low-speed torque limit of the MGU-K, no per-lap energy limit, no battery state of charge.
+All parameters of the simulator (800 kg, $C_dA$, $C_lA$, $\mu$, $h$, $L$, tyre shape) are
+illustrative, not data of a real car.
+
+| Function                                      | Formula                                                                        | Units     | Notes                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------ | --------- | -------------------------------------------------------- |
+| `pacejkaFx(kappa, Fz, {B, C, D, E})`          | $F_x = F_z D \sin\big(C\arctan(B\kappa - E(B\kappa - \arctan B\kappa))\big)$   | –, N → N  | odd in κ; $D = \mu$; $1 < C \le 2$, $E < 1$              |
+| `pacejkaPeakSlip({B, C, E})`                  | $\varphi(B\kappa^*) = \tan\frac{\pi}{2C}$, $\varphi(u) = u - E(u - \arctan u)$ | –         | bisection; $E = 0$: $\kappa^* = \tan(\pi/2C)/B$ (tested) |
+| `pacejkaSlipForRatio(r, {B, C, E})`           | $\varphi(B\kappa) = \tan(\arcsin(r)/C)$                                        | –         | inverse on the stable branch $[0, \kappa^*]$             |
+| `aeroDrag(v, rho, CdA)`                       | $D = \tfrac12\rho C_dA v^2$                                                    | m/s → N   | magnitude, opposes the motion                            |
+| `aeroDownforce(v, rho, ClA)`                  | $L = \tfrac12\rho C_lA v^2$                                                    | m/s → N   | no lift ($C_lA \ge 0$)                                   |
+| `idealBrakeBalance(mu, h, L, wf)`             | $\beta_{id} = w_f + \mu h/L$                                                   | –         | both axles at $\kappa^*$ together                        |
+| `carBrakingForces(v, model)`                  | see below                                                                      | → N, W    | loads, forces, slips, powers, limiting axle, MGU-K limit |
+| `carBrakingStep(state, model, dt)`            | RK4 (`rk4Step`) of the ODE below                                               | s         | a stopped car stays at rest                              |
+| `simulateBrakingZone({v1, v2, dt, ...model})` | integrate until $v = v_2$ (last step shortened by bisection)                   | → s, m, J | totals, residual, trace at every step                    |
+
+**Forces at speed v** (β = front share of the total tyre braking force):
+
+$$
+\begin{aligned}
+F_z &= m g + \tfrac12\rho C_lA v^2, \quad F_{z,f0} = w_f F_z, \quad F_{z,r0} = (1-w_f) F_z\\
+F_x &= \min\Big(\frac{\mu F_{z,f0}}{\beta - \mu h/L},\ \frac{\mu F_{z,r0}}{1 - \beta + \mu h/L}\Big)
+\quad\text{(front term only if } \beta > \mu h/L)\\
+F_{z,f} &= F_{z,f0} + F_x h/L, \quad F_{z,r} = F_{z,r0} - F_x h/L, \quad F_{x,f} = \beta F_x, \quad F_{x,r} = (1-\beta) F_x\\
+F_{MGU\text{-}K} &= \min\big(F_{x,r},\ (P_{max}/\eta)/v\big), \quad F_{brakes,r} = F_{x,r} - F_{MGU\text{-}K}\\
+m\,\dot v &= -(F_x + \tfrac12\rho C_dA v^2)
+\end{aligned}
+$$
+
+At $\beta = \beta_{id}$ both axles are at the limit and $F_x = \mu F_z$, the maximum. Inputs with
+$\mu h/L \ge 1 - w_f$ are rejected (the rear wheels would lift at full braking).
+
+**Energy bookkeeping.** The state integrates $E_{MGU\text{-}K} = \int F_{MGU\text{-}K} v\,dt$
+(mechanical), $E_{brakes,f}$, $E_{brakes,r}$ and $E_{aero} = \int D v\,dt$. For the exact ODE
+$\tfrac12 m(v_1^2 - v_2^2) = E_{MGU\text{-}K} + E_{brakes,f} + E_{brakes,r} + E_{aero}$; RK4 keeps
+it within $10^{-6}$ relative (tested on 25 random cases, typically $10^{-12}$). Stored energy
+$E_{stored} = \eta E_{MGU\text{-}K} \le P_{max} t$, losses $(1-\eta)E_{MGU\text{-}K}$.
+
+**Cross-check with §4.** With $C_dA = C_lA = 0$ and $\beta = 0$ (all braking on the rear axle)
+the deceleration is constant, $a = \mu(1-w_f)g$, and the energies equal `kersBrakingEvent` with
+the same $t_{brake}$ within $10^{-6}$ (tested for $P_{max}$ from 0 to 1 MW). With $\beta > 0$ the
+MGU-K can take at most the rear-axle force, so at low speed and high $P_{max}$ it recovers less
+than the constant-deceleration model.
+
+**Example** (simulator defaults: 800 kg, 300 → 100 km/h, $C_dA = 1{,}2$ m², $C_lA = 3{,}5$ m²,
+ρ = 1,225 kg/m³, μ = 1,6, β = 0,58, h = 0,30 m, L = 3,6 m, η = 0,9, B = 12, C = 1,9, E = 0,5 ⇒
+κ* ≈ 0,106): $t_{brake} \approx 1{,}83$ s, distance ≈ 93 m, deceleration from ≈ 5,3 g to ≈ 2,0 g;
+ΔE_k = 2,469 MJ = 0,24 MJ into the MGU-K (0,22 MJ stored with 120 kW, ≈ 8,9 %: power-limited
+for the whole zone) + 1,99 MJ friction brakes + 0,23 MJ drag. With 350 kW: 0,55 MJ stored
+(≈ 22,3 %), and below ≈ 167 km/h the MGU-K is limited by the rear-axle force instead of by
+$P_{max}$. Without aero the same zone takes ≈ 3,56 s and ≈ 198 m.
+
+**Validity limits.** Educational model: no transient of the ABS, no tyre load sensitivity
+(μ independent of $F_z$), constant η, aero coefficients independent of ride height and pitch,
+no track slope or wind.

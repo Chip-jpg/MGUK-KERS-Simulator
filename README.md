@@ -122,7 +122,7 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
      (v0.3.0);
   2. ✅ `pmsm-dq` — modello d-q della macchina sincrona a magneti permanenti, mappe
      coppia/potenza (v0.3.0);
-  3. (in corso) `car-dynamics` — dinamica del veicolo (pneumatici Pacejka, aerodinamica, frenata combinata MGU-K + freni);
+  3. ✅ `car-dynamics` (v0.3.1) — dinamica del veicolo (pneumatici Pacejka, aerodinamica, frenata combinata MGU-K + freni);
   4. app desktop Windows (`.exe`) con Tauri 2.
 
 Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
