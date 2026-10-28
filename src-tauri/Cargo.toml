@@ -1,0 +1,27 @@
+[package]
+name = "kers-lab"
+version = "0.3.1"
+description = "KERS Lab desktop shell (Tauri 2) wrapping the offline Vite build"
+license = "MIT"
+edition = "2021"
+rust-version = "1.90"
+publish = false
+
+[lib]
+# `_lib` suffix avoids a name clash with the binary on Windows (cargo issue #8519).
+name = "kers_lab_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.3", features = [] }
+
+[dependencies]
+# Exact pins (docs/DECISIONS.md D11). Keep the minor in step with @tauri-apps/cli.
+tauri = { version = "=2.12.4", features = [] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

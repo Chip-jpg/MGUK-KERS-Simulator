@@ -97,3 +97,25 @@ function returns the negative `dEk` and zeros elsewhere. Full model in
 Files 10–13 exceed the ≈450-word guideline (core KERS section with sourced
 regulation list, verbatim UN/Constitution quotations, the oral script). Accepted
 for now; A11 assesses whether any must be shortened.
+
+## D11 — Tauri 2 Windows packaging (2026-10-28, P4.4)
+
+- **Pins (exact):** crates `tauri =2.12.4`, `tauri-build =2.7.3`; npm
+  `@tauri-apps/cli 2.12.3` (all ≥ 2 weeks old at pin time; 3.0 is still alpha).
+  `src-tauri/Cargo.lock` is committed. Rust edition 2021, MSRV 1.90.
+- **Shell:** no custom commands, no external plugins; one inline `on_navigation` hook keeps
+  the window on the app origin (external source links are blocked, not opened). Capability
+  `default` grants only `core:default`.
+- **Bundles:** `nsis` (per-user, no admin) + `msi`, Windows x64 only, built by
+  `.github/workflows/desktop.yml` on `v*` tags / manual dispatch; a separate job with
+  `contents: write` attaches them to the tag's Release (`softprops/action-gh-release@v2`).
+  Binaries are unsigned (SmartScreen warning) and there is no auto-update.
+- **WebView2:** `embedBootstrapper` (≈ +1.8 MB). WebView2 ships with Windows 11 / updated
+  Windows 10; `offlineInstaller` (≈ +127 MB) is the documented switch for offline PCs.
+- **CSP:** `default-src 'self'`; `script-src 'self'` (plus the hash of the inline theme
+  script, added by Tauri at build time); `style-src 'self' 'unsafe-inline'` (KaTeX/uPlot
+  inline styles; Tauri's style-src rewriting is disabled so `'unsafe-inline'` stays
+  effective); `img-src 'self' data: blob:`; `font-src 'self' data:`; `worker-src 'self'`;
+  `connect-src 'self' ipc: http://ipc.localhost` ('self' for Vite's modulepreload polyfill); `object-src 'none'`; `base-uri 'self'`;
+  `form-action 'none'`. Derived by grepping `dist/` (no `eval`, no `blob:` worker, no remote
+  network fetch). Details in `docs/DESKTOP.md`.

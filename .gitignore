@@ -24,3 +24,7 @@ Thumbs.db
 
 # agent worktrees
 .claude/worktrees/
+
+# Tauri (desktop) build output
+src-tauri/target/
+src-tauri/gen/schemas/

@@ -8,3 +8,6 @@ package-lock.json
 src/core/types.ts
 docs/ARCHITECTURE.md
 .claude/
+# Tauri desktop shell: Rust sources and Cargo output (formatted by rustfmt)
+src-tauri/target/
+src-tauri/gen/

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Original abstract mark for KERS Lab: a conducting loop crossed by field lines
+       and an induced-current arc. Pure geometry, no logos or trademarks. -->
+  <rect x="32" y="32" width="960" height="960" rx="200" fill="#10151f"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M232 300 C 420 380, 604 380, 792 300" stroke="#3b82c4" stroke-width="28" opacity="0.55"/>
+    <path d="M232 512 L 792 512" stroke="#3b82c4" stroke-width="28" opacity="0.8"/>
+    <path d="M232 724 C 420 644, 604 644, 792 724" stroke="#3b82c4" stroke-width="28" opacity="0.55"/>
+    <ellipse cx="512" cy="512" rx="150" ry="270" stroke="#f2a33a" stroke-width="56"/>
+    <path d="M700 300 A 300 300 0 0 1 700 724" stroke="#e5484d" stroke-width="40"/>
+    <path d="M664 700 L 704 728 L 690 680" stroke="#e5484d" stroke-width="40" stroke-linejoin="round"/>
+  </g>
+</svg>

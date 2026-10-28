@@ -145,6 +145,16 @@ Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
    `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file note.md`), copiando come note
    il testo della sezione corrispondente di `CHANGELOG.md`.
 
+## App desktop (Windows)
+
+Lo stesso tag `v*` avvia anche [`desktop.yml`](.github/workflows/desktop.yml), che con
+[Tauri 2](https://v2.tauri.app/) produce gli installer Windows (`.exe` NSIS e `.msi`) e li
+allega alla Release del tag (se la Release non esiste ancora la crea: le note si
+aggiornano poi con `gh release edit vX.Y.Z --notes-file note.md`). L’app usa la stessa
+build del sito ed è completamente offline. Build locale su Windows: `npm run desktop:build`.
+Prerequisiti, CSP e limitazioni (binario non firmato → avviso SmartScreen, nessun
+aggiornamento automatico) in [`docs/DESKTOP.md`](docs/DESKTOP.md).
+
 ## Modello semplificato
 
 KERS Lab è un **modello didattico**, non un simulatore certificato: ogni simulatore
