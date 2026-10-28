@@ -143,7 +143,7 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   },
   {
     key: 'vMag',
-    tex: '\\sqrt{v_d^2 + v_q^2} \\le V_{\\max} = \\dfrac{V_{DC}}{\\sqrt{3}}',
+    tex: '\\sqrt{v_d^2 + v_q^2} \\le V_{\\max} = \\dfrac{V_{\\text{DC}}}{\\sqrt{3}}',
     symbolTex: '|v|',
     labelIT: 'Limite di tensione dell’inverter (ellisse)',
     unit: 'V',

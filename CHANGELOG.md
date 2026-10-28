@@ -7,6 +7,20 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-28
+
+### Corretto
+
+- Pedici testuali in tondo anche in "Frenata e recupero di energia" (E_rec, E_diss, t_rec,
+  P_fren, P_MGU-K), nel bilancio di "rl-energy" (E_gen), in "pmsm-dq" e nella teoria 16
+  (V_DC) e in una domanda del quiz (F_x,post).
+
+### Modificato
+
+- README aggiornato alla v0.4.0: 17 schede di teoria, 9 simulatori (tabella degli
+  approfondimenti), 82 domande, app desktop, struttura del progetto e nuovi screenshot in
+  `docs/media/`.
+
 ## [0.4.0] - 2026-10-28
 
 Fase 4 completata: app desktop per Windows e verifica indipendente dei moduli avanzati.
@@ -181,7 +195,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.2.0...v0.3.0

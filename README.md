@@ -11,14 +11,18 @@ parte dalla legge di Faraday-Neumann-Lenz e arriva all'**MGU-K**, la macchina el
 che in Formula 1 recupera energia in frenata e la restituisce in accelerazione.
 
 È un'unica app web statica che funziona **offline** (nessuna richiesta di rete a
-runtime, font inclusi) e contiene:
+runtime, font inclusi), disponibile anche come app desktop per Windows, e contiene:
 
-- **Teoria** — 14 schede in italiano, sintetiche e pensate per l'interrogazione, con
-  formule KaTeX e riferimenti alle slide del corso.
-- **Simulatori** — 6 simulatori 3D con grafici in tempo reale e formule che si
-  aggiornano con i valori numerici.
-- **Interrogazione** — quiz e flashcard ("spiega a voce") con domande numeriche
-  generate dal motore fisico e ripasso degli errori.
+- **Teoria** — 17 schede in italiano (14 di base + 3 di approfondimento), sintetiche e
+  pensate per l'interrogazione, con formule KaTeX e riferimenti alle slide del corso.
+- **Simulatori** — 9 simulatori 3D (6 di base + 3 di approfondimento) con grafici in
+  tempo reale e formule che si aggiornano con i valori numerici.
+- **Interrogazione** — 82 domande: scelta multipla, esercizi numerici generati dal
+  motore fisico e flashcard "spiega a voce", con ripasso degli errori (scatole di
+  Leitner) e simulazione d'interrogazione.
+
+**Versione attuale: v0.4.0** — tutte le fasi del progetto (1–4) sono completate; le
+novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
 
@@ -40,12 +44,13 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 ## Screenshot
 
-> Catture generate dai test end-to-end (`e2e/screenshots/`). Altre immagini
-> (frenata `kers-braking`, Interrogazione, animazione generatore ⇄ motore): screenshot in arrivo.
-
-| Teoria                                                                          | Simulatore `faraday`                                                                                                     |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png) | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme e parametri](e2e/screenshots/sim-empty-dark-1280x720.png) |
+| Teoria                                                                                               | Simulatore `faraday`                                                                                         |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png)                      | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme](e2e/screenshots/sim-empty-dark-1280x720.png) |
+| **Frenata e recupero di energia**                                                                    | **Interrogazione**                                                                                           |
+| ![Frenata con MGU-K al limite di potenza e freni a disco](docs/media/kers-braking-dark-1280x720.png) | ![Modalità Interrogazione con domanda a scelta multipla](docs/media/interrogazione-dark-1280x720.png)        |
+| **Campo di bobine reali (Biot-Savart)**                                                              | **Dinamica della vettura**                                                                                   |
+| ![Linee di campo di un solenoide reale](docs/media/field-biot-savart-dark-1280x720.png)              | ![Frenata combinata MGU-K + freni con forze sugli assi](docs/media/car-dynamics-dark-1280x720.png)           |
 
 ## I simulatori
 
@@ -54,9 +59,17 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 | `faraday`           | Flusso e legge di Faraday-Neumann   | Spira di N spire che ruota in un campo uniforme; Φ(t) e f.e.m.(t), moto traslatorio (B·l·v).               |
 | `lenz`              | Legge di Lenz                       | Magnete che si avvicina/allontana da una bobina: campo indotto, verso della corrente, forza che si oppone. |
 | `alternator-motor`  | Alternatore ⇄ motore (MGU-K)        | La stessa macchina come generatore (frenata) e come motore (forza di Lorentz), con i flussi di energia.    |
-| `kers-braking`      | Frenata e recupero di energia       | ΔE_k = ½m(v₁² − v₂²), energia recuperata limitata da P_max e η, resto dissipato nei freni.                 |
+| `kers-braking`      | Frenata e recupero di energia       | ΔE_k = ½m(v₁² − v₂²), energia recuperata limitata da Pₘₐₓ e η, resto dissipato nei freni.                  |
 | `joule-transformer` | Trasformatore e perdite Joule       | Trasformatore ideale e perdite di linea: "10× tensione → 100× meno perdite".                               |
 | `rl-energy`         | Autoinduzione, circuito RL, energia | i(t) = I₀(1 − e^(−t/τ)), τ = L/R, energia ½LI² e bilancio energetico.                                      |
+
+**Approfondimento (Fase 4)**
+
+| ID                  | Titolo                                                  | Cosa mostra                                                                                                              |
+| ------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `field-biot-savart` | Campo magnetico di bobine reali (Biot-Savart)           | Spira, solenoide e bobine di Helmholtz; linee di campo animate sulla GPU e confronto con il solenoide ideale B = μ₀NI/l. |
+| `pmsm-dq`           | Macchina sincrona a magneti permanenti: modello d-q     | Correnti d-q, limiti di corrente e tensione, MTPA e deflussaggio, mappe coppia/potenza in motore e in frenata.           |
+| `car-dynamics`      | Dinamica della vettura: frenata combinata MGU-K + freni | Pneumatici Pacejka, resistenza e deportanza, MGU-K sull'asse posteriore limitata da Pₘₐₓ/η e dall'aderenza.              |
 
 ## Avvio rapido
 
@@ -87,14 +100,16 @@ Per Playwright con un Chromium già installato: `PW_CHROMIUM_PATH=/percorso/chro
 - **Vite 5 + TypeScript 5** (strict), senza framework UI: TypeScript "vanilla" e piccoli componenti.
 - **Three.js r169** per le scene 3D, **uPlot 1.6** per i grafici in tempo reale.
 - **marked 14 + KaTeX 0.16** per la teoria in Markdown con formule.
-- **Vitest** (unit test) e **Playwright** (smoke test su Chromium).
+- **Vitest** (unit test) e **Playwright** (test end-to-end e accessibilità con axe su Chromium).
 - **ESLint + Prettier**, Conventional Commits (commitlint), GitHub Actions, GitHub Pages.
+- **Tauri 2** per l'app desktop Windows.
 
 ## Struttura del progetto
 
 ```
 README.md  LICENSE  CHANGELOG.md  CONTRIBUTING.md
-docs/            ARCHITECTURE.md, PHYSICS.md (formule ↔ slide), DECISIONS.md
+docs/            ARCHITECTURE.md, PHYSICS.md (formule ↔ slide), DECISIONS.md,
+                 OPEN_FACTS.md (dati da verificare), QA_REPORT.md, DESKTOP.md, media/
 content/theory/  NN-slug.md — schede di teoria (italiano)
 content/quiz/    quiz.json
 src/
@@ -105,7 +120,8 @@ src/
   theory/        loader e renderer del Markdown
   quiz/          modalità Interrogazione
 tests/  e2e/
-.github/         workflow CI, deploy Pages, modelli di issue e PR
+.github/         workflow CI, deploy Pages, build desktop, modelli di issue e PR
+src-tauri/       app desktop Windows (Tauri 2)
 ```
 
 Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
@@ -183,9 +199,11 @@ test obbligatori, fisica "pura", testi in italiano e codice in inglese.
 
 **KERS Lab** — _from Faraday's induction to the MGU-K_ — is an educational, offline-first
 web app (Italian UI) that walks from the Faraday-Neumann-Lenz law to the Formula 1
-MGU-K (kinetic energy recovery). It bundles concise exam-oriented theory pages,
-six interactive 3D simulators with live plots and formulas, and a quiz / oral-exam
-trainer. The narrative links electromagnetic induction → the MGU-K → UN Agenda 2030
+MGU-K (kinetic energy recovery). It bundles 17 concise exam-oriented theory pages,
+nine interactive 3D simulators with live plots and formulas (including advanced
+modules on the Biot-Savart field of real coils, a d-q PMSM model and braking vehicle
+dynamics), and an 82-question quiz / oral-exam trainer. A Windows desktop build
+(Tauri 2) is produced by CI on every release tag. The narrative links electromagnetic induction → the MGU-K → UN Agenda 2030
 Goal 9 → Article 32 of the Italian Constitution (health as a right and a collective
 interest).
 

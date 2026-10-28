@@ -22,7 +22,7 @@ $$T = \tfrac{3}{2}\,p\,\big[\psi_m i_q + (L_d - L_q)\,i_d i_q\big] \qquad \tfrac
 
 Limiti dell’inverter (cerchio di corrente ed ellisse di tensione):
 
-$$\sqrt{i_d^2 + i_q^2} \le I_{\max} \qquad \sqrt{v_d^2 + v_q^2} \le V_{\max} = \frac{V_{DC}}{\sqrt{3}}$$
+$$\sqrt{i_d^2 + i_q^2} \le I_{\max} \qquad \sqrt{v_d^2 + v_q^2} \le V_{\max} = \frac{V_{\text{DC}}}{\sqrt{3}}$$
 
 ## Spiegazione
 
@@ -42,11 +42,11 @@ $$T = 1{,}5 \cdot 4 \cdot 0{,}10 \cdot 300 = 180\ \text{N}\cdot\text{m} \qquad P
 
 $$P_{\text{Cu}} = 1{,}5 \cdot 0{,}020 \cdot 300^2 = 2{,}7\ \text{kW} \qquad \eta \approx \frac{75{,}4}{78{,}1} \approx 96{,}5\ \%$$
 
-Con $V_{DC} = 600\ \text{V}$ e $I_{\max} = 400\ \text{A}$ la velocità base è circa 5750 giri/min.
+Con $V_{\text{DC}} = 600\ \text{V}$ e $I_{\max} = 400\ \text{A}$ la velocità base è circa 5750 giri/min.
 
 ## Collegamento con KERS / MGU-K
 
-L’MGU-K è una macchina trifase, generalmente descritta come sincrona a magneti permanenti (tipo e dati reali non pubblici, [DA VERIFICARE]). Questo modello è quindi **rappresentativo**, non il progetto reale. Mostra però perché il recupero in frenata è limitato: coppia massima e potenza dipendono da $I_{\max}$, $V_{DC}$ e dalla velocità, oltre al limite di regolamento. Vedi [KERS e MGU-K](10-kers-mguk.md).
+L’MGU-K è una macchina trifase, generalmente descritta come sincrona a magneti permanenti (tipo e dati reali non pubblici, [DA VERIFICARE]). Questo modello è quindi **rappresentativo**, non il progetto reale. Mostra però perché il recupero in frenata è limitato: coppia massima e potenza dipendono da $I_{\max}$, $V_{\text{DC}}$ e dalla velocità, oltre al limite di regolamento. Vedi [KERS e MGU-K](10-kers-mguk.md).
 
 ## Domande da interrogazione
 

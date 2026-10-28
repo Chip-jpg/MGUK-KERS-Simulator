@@ -199,7 +199,7 @@ export function mountRl(
     {
       key: 'gen',
       tex: String.raw`E\,i\,\Delta t = R\,i^2\,\Delta t + L\,i\,\Delta i`,
-      symbolTex: 'E_{gen}',
+      symbolTex: 'E_{\\text{gen}}',
       unit: 'J',
       digits: 4,
       quantity: 'energy',

@@ -875,7 +875,7 @@
         "Il limite di energia per giro, che vale per ogni singola frenata"
       ],
       "answer": 2,
-      "explanationIT": "La forza dell’MGU-K è $\\min(F_{x,post},\\ P_{\\max}/(\\eta v))$: a bassa velocità il termine $P_{\\max}/(\\eta v)$ diventa grande e il limite è la forza frenante dell’asse posteriore. Per questo il recupero può essere minore di quello del modello a decelerazione costante.",
+      "explanationIT": "La forza dell’MGU-K è $\\min(F_{x,\\text{post}},\\ P_{\\max}/(\\eta v))$: a bassa velocità il termine $P_{\\max}/(\\eta v)$ diventa grande e il limite è la forza frenante dell’asse posteriore. Per questo il recupero può essere minore di quello del modello a decelerazione costante.",
       "slideRefs": [16, 17]
     },
     {
