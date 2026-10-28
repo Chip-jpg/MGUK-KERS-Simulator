@@ -1,6 +1,6 @@
 import type { SimModule } from './types';
 
-/** Simulator IDs of phases 1–3 (§2), in sidebar order. */
+/** Simulator IDs of phases 1–3 (§2) followed by the Phase 4 modules, in sidebar order. */
 export const SIM_IDS = [
   'faraday',
   'lenz',
@@ -8,6 +8,8 @@ export const SIM_IDS = [
   'kers-braking',
   'joule-transformer',
   'rl-energy',
+  // Phase 4 (optional, advanced)
+  'field-biot-savart',
 ] as const;
 
 export type SimId = (typeof SIM_IDS)[number];

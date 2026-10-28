@@ -96,6 +96,7 @@ export const it = {
       'kers-braking': 'Frenata e recupero di energia',
       'joule-transformer': 'Trasformatore e perdite Joule',
       'rl-energy': 'Autoinduzione, circuito RL, energia',
+      'field-biot-savart': 'Campo magnetico di bobine reali (Biot-Savart)',
     },
   },
   quiz: {

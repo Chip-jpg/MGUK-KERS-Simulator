@@ -38,7 +38,7 @@ describe('createApp (jsdom smoke)', () => {
     expect(nav.textContent).toContain('Teoria');
     expect(nav.textContent).toContain('Simulatori');
     expect(nav.textContent).toContain('Interrogazione');
-    expect(nav.querySelectorAll('.nav__item--soon')).toHaveLength(6);
+    expect(nav.querySelectorAll('.nav__item--soon')).toHaveLength(7);
     expect(root.querySelector('h1')?.textContent).toBe('Teoria');
     expect(root.querySelectorAll('.theory-index .card')).toHaveLength(2);
 
@@ -52,7 +52,7 @@ describe('createApp (jsdom smoke)', () => {
     expect(document.activeElement?.tagName).toBe('H1');
 
     await go('#/sim');
-    expect(root.querySelectorAll('.sim-index .card--soon')).toHaveLength(6);
+    expect(root.querySelectorAll('.sim-index .card--soon')).toHaveLength(7);
     expect(root.querySelector('.sim-index')?.textContent).toContain('In arrivo');
 
     await go('#/sim/faraday');

@@ -189,3 +189,59 @@ I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted 
 - **Lumped circuits**, quasi-static (no radiation, no skin effect).
 - **KERS**: constant deceleration, constant η, no battery state-of-charge or per-lap
   energy limits, no aero/rolling losses (§4).
+
+## 7. Biot-Savart (Phase 4)
+
+Module `src/physics/biotSavart.ts` (re-exported from `src/physics/index.ts`), used by the
+`field-biot-savart` simulator. It computes the field of a **real, finite coil** to show where the
+uniform-B idealisation of the slides (Φ = BS cos α, slide 7; B = μ₀NI/l and L = μ₀N²S/l, slide 14)
+holds and where it fails. Model: filamentary wire, steady current, vacuum (μ₀, no ferromagnetic
+material), magnetostatics. Coordinates in m, B in T; coil axis = z, centre = origin; a positive
+current circulates counter-clockwise seen from +z, so B points along +z inside the coil.
+`Vec3 = readonly [x, y, z]`, `Polyline = readonly Vec3[]`. Constant:
+`WIRE_CORE_RADIUS = 5·10⁻⁴ m` (0,5 mm, a typical magnet-wire radius).
+
+| Function                                   | Formula / method                                                                                              | Slide            | Units (in → out)  | Validity limits / notes                                                                                                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `biotSavartSegment(a, b, p, I, core?)`     | $\vec B = \frac{\mu_0 I}{4\pi d}(\cos\theta_1-\cos\theta_2)\,\hat e$, $\hat e \parallel \vec L\times\vec r_1$ | none (extension) | m, m, m, A, m → T | Exact closed form for a straight segment a→b ($\vec L = b-a$, $\vec r_1 = p-a$). Regularised $d^2 \to d^2 + r_c^2$ (below). Points on the segment's line give 0.                                                    |
+| `coilPolyline(spec)`                       | vertices on the ideal curve (inscribed polygons)                                                              | none (extension) | m → m             | `loop`: circle traced N times; `solenoid`: helix of N turns, −l/2 → +l/2 (leads not modelled); `helmholtz`: two N-turn loops at ∓s/2 (s = R default) joined by a lead traversed up and back (contributions cancel). |
+| `createFieldEvaluator(polyline, I, core?)` | same sum as `fieldAt`, no per-call allocation                                                                 | none (extension) | m, A → T          | For hot loops (field-line tracing in the Web Worker).                                                                                                                                                               |
+| `fieldAt(polyline, I, p, core?)`           | $\vec B(p) = \sum_i \vec B_{\text{seg}}(P_i \to P_{i+1}, p)$                                                  | none (extension) | m, A, m → T       | ≥ 2 points. I = 0 ⇒ 0. Finite everywhere, also on the wire.                                                                                                                                                         |
+| `fieldOnAxisLoop(R, I, z)`                 | $B_z = \frac{\mu_0 I R^2}{2(R^2+z^2)^{3/2}}$                                                                  | none (extension) | m, A, m → T       | Analytic reference, one thin loop (× N for N coincident turns).                                                                                                                                                     |
+| `fieldInfiniteSolenoid(N, l, I)`           | $B = \mu_0 N I / l$                                                                                           | 14               | –, m, A → T       | Ideal solenoid; consistent with `solenoidInductance` ($N B S = L I$).                                                                                                                                               |
+| `fieldOnAxisFiniteSolenoid(N, l, R, I, z)` | current-sheet formula (TSDoc)                                                                                 | 14               | –, m, m, A, m → T | Turns smeared over l. Centre → μ₀NI/l for l ≫ R; ends → half.                                                                                                                                                       |
+| `distanceToPolyline(polyline, p)`          | min distance to the segments                                                                                  | none (extension) | m → m             | Helper for "near the wire" tests.                                                                                                                                                                                   |
+| `traceFieldLine(fieldFn, seed, opts)`      | $d\vec r/ds = \pm\vec B/\lvert\vec B\rvert$ with `rk4Step`, s = arc length                                    | none (extension) | m → m, T          | Stops on `closed` (within 0,75·step of the seed after ≥ 4·tol + 4·step; seed appended), `bounds`, `nearWire`, `nullField` (\|B\| ≤ 10⁻¹⁵ T) or `maxSteps`. Returns points, \|B\| per point, length, stop reason.    |
+
+**Regularisation (core radius r_c).** A filament has a 1/d singularity on the wire. Each segment
+uses $d^2 + r_c^2$ instead of $d^2$, so the field is finite and smooth near the wire. For
+$d \gg r_c$ the relative error is $r_c^2/d^2$ (10⁻⁴ at d = 5 cm with 0,5 mm). The profile
+$d/(d^2+r_c^2)$ is only a smooth stand-in for the field inside a round wire (peak at $d = r_c$ with
+half the true value): values within a few $r_c$ of the wire are not physical, and the simulator
+stops field lines well before (0,06 R).
+
+**Validation (`tests/physics/biotSavart.test.ts`).**
+
+- Long straight segment → μ₀I/(2πd) (10⁻⁶); finite segment → μ₀I/(4πd)(cos θ₁ − cos θ₂) (10⁻¹²).
+- Loop, 128 segments/turn, vs `fieldOnAxisLoop` at z/R ∈ {0; 0,2; 0,5; 1; 2; −1,5}: **< 0,5 %**
+  (inscribed-polygon error O(1/n²)).
+- Solenoid l/R = 20, N = 200, 32 segments/turn: centre vs μ₀NI/l **< 2 %** (the finite length alone
+  gives −0,5 %), vs the current-sheet formula < 0,5 %; field at the ends ≈ ½ μ₀NI/l.
+- Helmholtz (s = R): centre ≈ (4/5)^{3/2} μ₀NI/R (< 0,5 %); \|B\| varies **< 1 %** within ±0,1 R
+  of the centre (axial, radial and diagonal probes).
+- ∇·B by central differences (h = 10⁻⁵ m) at off-axis points of loop, solenoid and Helmholtz:
+  \|∇·B\| / (\|B\| / 1 cm) < 10⁻⁵.
+- Symmetry (loop B_z even, B_ρ odd in z; 90° rotation); N coincident turns = N × one turn; the
+  Helmholtz lead pair cancels (field = sum of two separate loops to 10⁻⁹).
+- Loop field lines close (forward and backward, same length within 2 %), stay in their meridian
+  plane and encircle the wire; I = 0 ⇒ 0; point on the wire ⇒ finite; invalid input ⇒ RangeError.
+
+**Simulator choices (`src/sims/field-biot-savart/model.ts`).** Loop and Helmholtz are computed as
+one turn carrying N·I (exactly equivalent for coincident turns); the solenoid is the real helix (36
+segments/turn), so its on-axis profile shows the small ripple of the discrete turns. Field lines are
+traced in a Web Worker in the meridian plane x = 0 from seeds on the mid-plane inside the coil; they
+stop 0,06 R from the wire and at the edge of the view box. The dashes move with local speed ∝ \|B\|
+(clamped to 0,15–4 × B_centre) using the flow coordinate φ(s) = ∫ ds / v(s).
+
+**Validity limits.** μ = μ₀ everywhere (no ferromagnetic material), DC magnetostatics, thin wire
+(no skin/proximity effect, no winding thickness); helix leads not modelled.
