@@ -1,4 +1,93 @@
-# QA report — A11 independent verification (round 1)
+# QA report — A11 independent verification
+
+## Round 2 — re-verification of QA-001…QA-018
+
+Date: 2026-10-28 · Base: `claude/new-session-u560qi` @ `3c0c1ed` · Branch: `qa/A11-r2`.
+Scope: re-test every round-1 defect in code and in the browser, regression sweep, cross-consistency
+spot-check. Read-only on source; scripts and screenshots in the scratchpad `a11r2/` (not committed).
+
+### R2.1 Verdict
+
+| Item                                   | Result | Notes                                                       |
+| -------------------------------------- | ------ | ----------------------------------------------------------- |
+| Physics core (`src/physics`)           | PASS   | unchanged; 100 % coverage                                   |
+| Shell / UI (`src/core`, `src/ui`)      | PASS   | QA-001/003/004/005 fixed; nit QA-016 residue                |
+| Sim `faraday`                          | PASS   | —                                                           |
+| Sim `lenz`                             | PASS   | —                                                           |
+| Sim `alternator-motor`                 | PASS   | —                                                           |
+| Sim `kers-braking`                     | PASS   | —                                                           |
+| Sim `joule-transformer`                | PASS   | QA-001 fixed                                                |
+| Sim `rl-energy`                        | PASS   | —                                                           |
+| Theory 01–09                           | PASS   | 01/02/07/09 hedged wording verified                         |
+| Theory 10 kers-mguk                    | PASS   | numbers and wording aligned (QA-008/012/013)                |
+| Theory 11, 12, 13, 14                  | PASS   | 13 formula count fixed; titles 10–12 keep " - " (nit)       |
+| Quiz / Interrogazione                  | PASS   | page scroll gone; residual in-panel overflow QA-019 (minor) |
+| CI / docs (README, PHYSICS, DECISIONS) | PASS   | —                                                           |
+
+**Overall: PASS** for release v0.1.0 — no open blocker or major defect. One new minor defect
+(QA-019) and two nit residues (QA-016) are recommended but not release-blocking.
+
+### R2.2 Status of round-1 defects
+
+| ID     | Sev   | Status                       | Evidence (round 2)                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------ | ----- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QA-001 | major | Verified-fixed               | `parseNumberIT` (`src/ui/slider.ts`) treats valid thousands groups as grouping. Browser (prod build): Enter on `20.000` → `20.000` (range 20000, not invalid); typed `25.000` → 25000; `12.345,5` → 12.500 (snapped); `abc` → `aria-invalid=true`; P `10.000.000` + Enter unchanged. Enter on every slider field of all 6 sims (40 fields) leaves the value unchanged. Round-trip unit test + e2e added. |
+| QA-002 | major | Verified-fixed (page scroll) | `#/interrogazione` 1280×720 dark + light: `scrollWidth − clientWidth = 0`; e2e asserts it in 3 quiz states. Residual overflow **inside** the side panel → new QA-019 (minor).                                                                                                                                                                                                                            |
+| QA-003 | minor | Verified-fixed               | `tickDigits` exported and tested: 0,25 → 2, 2,5 → 1, float noise absorbed (`tests/ui/plot-ticks.test.ts`).                                                                                                                                                                                                                                                                                               |
+| QA-004 | minor | Verified-fixed               | Field width from `--slider-chars`; P at max `100.000.000`: scrollWidth 137 = clientWidth 137. No clipped field on any sim.                                                                                                                                                                                                                                                                               |
+| QA-005 | minor | Verified-fixed               | `src/core/debug.ts` `registerDebugHook` used by all 6 sims; bundle has `import.meta.env.DEV` stripped. Prod preview with `--disable-blink-features=AutomationControlled` + `navigator.webdriver` forced `false`: `Object.keys(window.__kersDebug ?? {})` = `[]` on all 6 sims; with `?kersDebug` → `["faraday"]`. Hooks unregister on dispose.                                                           |
+| QA-006 | minor | Verified-fixed               | Alternator panel shows "Teoria: Alternatore (07) · Motore e forza di Lorentz (09) · KERS/MGU-K (10)", hrefs resolve to the three theory routes.                                                                                                                                                                                                                                                          |
+| QA-007 | minor | Verified-fixed               | grep `magneti permanenti` / `PMSM` over content, src, README: every MGU-K statement is hedged ("generalmente descritta come sincrona a magneti permanenti", `[DA VERIFICARE]` in 07/09/10/README). Glossary/quiz PMSM entries define the acronym only; quiz adds "tipo esatto non pubblico".                                                                                                             |
+| QA-008 | minor | Verified-fixed               | PHYSICS.md §4 example now t = 3 s: 2.469 MJ, P 1.235 → 0.412 MW, absorbed 0.40 MJ, stored 0.36 MJ (14.6 %), discs 2.069 + MGU-K 0.040 MJ, 18.5 s; 350 kW variant 1.05 MJ / 6.3 s. Matches theory 10, quiz, sim.                                                                                                                                                                                          |
+| QA-009 | minor | Verified-fixed               | README embeds `e2e/screenshots/theory-dark-1280x720.png` and `sim-empty-dark-1280x720.png`; both exist and are tracked.                                                                                                                                                                                                                                                                                  |
+| QA-010 | minor | Verified-fixed               | Screenshots go to `test-results/screenshots/` (gitignored) unless `UPDATE_SCREENSHOTS=1`. `git status --short` after the full e2e run: empty.                                                                                                                                                                                                                                                            |
+| QA-011 | minor | Verified-fixed               | `sm-mguk-limite`: "può inviare alla batteria al massimo $P_{\max}$ (assorbe meccanicamente al massimo $P_{\max}/\eta$)"; explanation de-duplicated.                                                                                                                                                                                                                                                      |
+| QA-012 | minor | Verified-fixed               | "Tempo per assorbire tutta ΔE_k alla potenza massima (in batteria … η·ΔE_k)" in theory 10 (Formule + Esempio), sim formula label, balance row + hint, quiz generator. No "recuperare tutta" left.                                                                                                                                                                                                        |
+| QA-013 | nit   | Verified-fixed               | lenz `[4, 7, 8, 9, 11]`; kers-braking sim and theory 10 frontmatter both `[16, 17, 18, 19]`; PHYSICS.md documents the alignment (function table still "none (extension)", consistent).                                                                                                                                                                                                                   |
+| QA-014 | nit   | Verified-fixed               | 09 trimmed (24 kW line removed), 10 tightened; sources and `[DA VERIFICARE]` markers intact. Optional item, accepted.                                                                                                                                                                                                                                                                                    |
+| QA-015 | nit   | Verified-fixed               | 13 "Le otto formule" (8 counted); 06 "ed energia"; `63{,}2\ \%` (and other `%` in 06/08/10).                                                                                                                                                                                                                                                                                                             |
+| QA-016 | nit   | Still-open (partial)         | Fixed: Φ, Pₘₐₓ, ΔEₖ, τₑₛₜ, `2,0·10⁻¹⁰`, `exp(−t/τ)`, "1 spira" (faraday, lenz), curly apostrophes in sims. Residue: theory titles 10/11/12 still use " - " (`content/theory/10-kers-mguk.md:3`, `11-…:3`, `12-…:3`, visible in the sidebar); straight `'` remains in shell tagline (`src/core/i18n/it.ts:11-12`) and quiz text. Fix: " – " in the three `titleIT`; pick one apostrophe style.            |
+| QA-017 | nit   | Verified-fixed               | Screenshots: lenz "B indotto" below the coil; alternator arrowheads stop before the boxes; joule labels clear of the pylons; rl-energy "Generatore E" right of the battery, energy plot dimmed with hint "Chiudi l’interruttore per avviare il transitorio".                                                                                                                                             |
+| QA-018 | nit   | Verified-fixed               | `formulas.flush()` in `render()`. Running alternator, same instant: formula ε −14,52 V / i −2,90 A / τ −2,145 N·m = readouts −14,52 V / −2,90 A / −2,145 N·m.                                                                                                                                                                                                                                            |
+
+### R2.3 New defects
+
+| ID     | Sev   | Owner | File:line                                                                                                       | Defect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Evidence                                                                                                                                                                                                                                                                | Suggested fix                                                                                                                                                         |
+| ------ | ----- | ----- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QA-019 | minor | A9    | `src/quiz/quiz.css:42-46` (`.quiz__controls`, `.quiz__filters`); `src/styles/components.css:365` (`.segmented`) | At 1280×720 (both themes) the Interrogazione side panel content still overflows its card: panel `.quiz__controls` box x 941–1248, `scrollWidth 332 > clientWidth 305`; the "Allenamento / Simulazione interrogazione" toggle and the "Sezione" `<select>` end at x ≈ 1274, i.e. across the card border and right padding. The page no longer scrolls (QA-002 assertion passes), but the toggle does not wrap: `<fieldset>` has `min-inline-size: min-content` and the grid items keep `min-width: auto`, so `flex-wrap: wrap` never triggers. Not reproduced at 1920×1080. | `a11r2/shots/quiz-dark.png`, `quiz-side-light-1280.png`; measurement `a11r2/q2.mjs`. Injecting `.quiz .segmented, .quiz__controls > *, .quiz__filters > *, .quiz__field > * { min-width: 0; min-inline-size: 0 }` → 305 = 305, toggle wraps (`quiz-side-fixprobe.png`). | Add that rule to `quiz.css` (or `min-inline-size: 0` on `.segmented` globally); extend the e2e no-overflow check to `.quiz__controls` (`scrollWidth <= clientWidth`). |
+
+### R2.4 Runs
+
+```
+npm run lint            → clean
+npm run format:check    → All matched files use Prettier code style!
+npm run typecheck       → clean
+npm test                → Test Files 38 passed (38) · Tests 500 passed (500)
+npm run build           → ✓ built in 3.50s (three.module 496.51 kB, no >500 kB warning)
+npx vitest run --coverage → physics 100 % stmts / 100 % branch / 100 % funcs / 100 % lines
+PW_PORT=4440 … npm run e2e -- --workers=2 → 71 passed (2.6m)
+git status --short (after e2e) → empty
+```
+
+Own sweep on the production preview (1280×720, 23 routes × dark + light = 46 screenshots in
+`a11r2/shots/`): horizontal page scroll 0 on every route; axe-core WCAG 2.0/2.1 A+AA **0
+violations** on all 46; **0** non-same-origin requests; **0** console errors / page errors. Visual
+review of all 6 sims, the quiz and theory 10 (both themes in the subset): no empty canvases, no
+clipping, no label overlaps; only finding QA-019.
+
+### R2.5 Cross-consistency spot-check
+
+- KERS defaults (800 kg, 300 → 100 km/h, 3 s, 120 kW, η 0,9): sim shows "In batteria: 0,360 MJ";
+  theory 10 2,47 MJ / 0,36 MJ / ≈ 0,40 MJ absorbed / 2,07 MJ discs / 18,5 s; PHYSICS.md same; quiz
+  `sm-mguk-limite` 2,47 MJ, 820 kW, 0,36 MJ; "assorbire" wording everywhere — consistent.
+- MGU-K machine type hedged in theory 01/02/07/09/10/13, alternator note, quiz, README — consistent
+  with OPEN_FACTS #8.
+- Italian proofreading of changed strings: correct ("ed energia", "1 spira", "Tempo per assorbire
+  tutta ΔEₖ…", "Chiudi l’interruttore per avviare il transitorio"); only QA-016 residue above.
+
+---
+
+# Round 1
 
 Date: 2026-10-27 · Base: `claude/new-session-u560qi` @ `42e4791` · Branch: `qa/A11`.
 Scope: §6 A11 checks 1–5. Read-only on source; screenshots and scripts kept outside the
