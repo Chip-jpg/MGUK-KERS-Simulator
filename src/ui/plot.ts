@@ -71,14 +71,27 @@ function seriesColor(q: PlotSeries['quantity'], theme: Theme): string {
   return p.quantity[q];
 }
 
-/** Fraction digits that make adjacent axis ticks distinguishable. */
-function tickDigits(splits: number[]): number {
+/** Upper bound on axis tick decimals. */
+const MAX_TICK_DIGITS = 6;
+
+/**
+ * Fraction digits that represent the tick step exactly (QA-003): 0,25 → 2,
+ * 2,5 → 1, 0,1 → 1, 5 → 0, capped at {@link MAX_TICK_DIGITS}.
+ */
+export function tickDigits(splits: readonly number[]): number {
   const a = splits[0];
   const b = splits[1];
   if (a === undefined || b === undefined) return 2;
   const step = Math.abs(b - a);
-  if (!(step > 0)) return 2;
-  return Math.min(6, Math.max(0, -Math.floor(Math.log10(step) + 1e-9)));
+  if (!(step > 0) || !Number.isFinite(step)) return 2;
+  let d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+  while (d < MAX_TICK_DIGITS) {
+    const scaled = step * 10 ** d;
+    // Relative tolerance absorbs float noise from uPlot's split arithmetic.
+    if (Math.abs(scaled - Math.round(scaled)) <= 1e-6 * Math.max(1, scaled)) break;
+    d++;
+  }
+  return Math.min(MAX_TICK_DIGITS, d);
 }
 
 const axisValues = (_u: uPlot, splits: number[]): string[] => {

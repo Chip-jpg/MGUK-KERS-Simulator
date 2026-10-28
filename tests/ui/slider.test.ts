@@ -35,6 +35,28 @@ describe('slider helpers', () => {
     expect(parseNumberIT('')).toBeNaN();
   });
 
+  it('parseNumberIT reads "." as Italian thousands grouping (QA-001)', () => {
+    expect(parseNumberIT('20.000')).toBe(20000);
+    expect(parseNumberIT('20000')).toBe(20000);
+    expect(parseNumberIT('10.000.000')).toBe(10_000_000);
+    expect(parseNumberIT('20.000,5')).toBe(20000.5);
+    expect(parseNumberIT('1.500')).toBe(1500);
+    expect(parseNumberIT('0,05')).toBe(0.05);
+    expect(parseNumberIT('1,2e-3')).toBe(0.0012);
+    expect(parseNumberIT('−20.000')).toBe(-20000);
+    // Dot decimals where the dot cannot be grouping.
+    expect(parseNumberIT('0.500')).toBe(0.5);
+    expect(parseNumberIT('2.25')).toBe(2.25);
+    expect(parseNumberIT('1.2345')).toBe(1.2345);
+    expect(parseNumberIT('.5')).toBe(0.5);
+    // Malformed grouping is rejected rather than guessed.
+    expect(parseNumberIT('1.2,5')).toBeNaN();
+    expect(parseNumberIT('1.23.456')).toBeNaN();
+    expect(parseNumberIT('1,2,3')).toBeNaN();
+    expect(parseNumberIT('-')).toBeNaN();
+    expect(parseNumberIT(',')).toBeNaN();
+  });
+
   it('snapToSpec clamps and snaps without float noise', () => {
     expect(snapToSpec(5, B)).toBe(2);
     expect(snapToSpec(-1, B)).toBe(0);

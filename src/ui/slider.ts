@@ -42,19 +42,47 @@ export function stepDigits(step: number): number {
   return s.split('.')[1]?.length ?? 0;
 }
 
+/** Integer part written with Italian "." thousands grouping: "20.000", "1.234.567". */
+const GROUPED_INT = /^[1-9]\d{0,2}(\.\d{3})+$/;
+
 /**
- * Parse a user-typed number, Italian or dot decimals: "1.234,5" → 1234.5,
- * "0,5" → 0.5, "0.5" → 0.5, "-3" → -3. Returns NaN when not a number.
+ * Parse a user-typed number written Italian style or with a dot decimal.
+ * Returns NaN when not a number. Rules (chosen so that
+ * `parseNumberIT(formatIT(v, d)) === v` for every value a slider can show):
+ *
+ * - A `,` is always the decimal separator; any `.` before it must form valid
+ *   thousands groups: "1.234,5" → 1234.5, "20.000,5" → 20000.5, "0,05" → 0.05.
+ * - Without a `,`, dots that form valid thousands groups (first group 1–3
+ *   digits not starting with 0, then groups of exactly 3 digits) are grouping:
+ *   "20.000" → 20000, "1.234.567" → 1234567. So "1.500" reads as 1500
+ *   (Italian reading), never 1,5.
+ * - Otherwise a single `.` is a decimal point: "0.5", "2.25", "0.500", "1.5".
+ * - An exponent may follow: "1,2e-3", "1e-3". A leading "−" (U+2212) is a
+ *   minus; spaces / NBSP are ignored.
  */
 export function parseNumberIT(input: string): number {
-  let s = input
+  const s = input
     .trim()
     .replace(/\s|\u00A0/g, '')
     .replace(/^\u2212/, '-');
-  if (s === '') return Number.NaN;
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  if (!/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(s)) return Number.NaN;
-  return Number(s);
+  const m = /^([+-]?)([\d.]*)(?:,(\d*))?(e[+-]?\d+)?$/i.exec(s);
+  if (!m) return Number.NaN;
+  const [, sign = '', intRaw = '', frac, exp = ''] = m;
+  let mantissa: string;
+  if (frac !== undefined) {
+    // Comma decimal: dots (if any) must be thousands grouping.
+    if (intRaw.includes('.') && !GROUPED_INT.test(intRaw)) return Number.NaN;
+    const int = intRaw.replace(/\./g, '');
+    if (int === '' && frac === '') return Number.NaN;
+    mantissa = `${int || '0'}.${frac || '0'}`;
+  } else if (GROUPED_INT.test(intRaw)) {
+    mantissa = intRaw.replace(/\./g, '');
+  } else if (/^(\d+\.?\d*|\.\d+)$/.test(intRaw)) {
+    mantissa = intRaw; // plain integer or one dot decimal
+  } else {
+    return Number.NaN;
+  }
+  return Number(`${sign}${mantissa}${exp}`);
 }
 
 /** Clamp to [min,max] and snap to the step grid anchored at `min`. */
@@ -105,6 +133,10 @@ export function createSlider(options: SliderOptions): Slider {
       'aria-describedby': errorId,
     },
   });
+  // Size the field for the widest value it can show (QA-004); CSS turns this
+  // character count into a `ch` width with a 6.5rem floor.
+  const maxChars = Math.max(fmt(spec.min).length, fmt(spec.max).length, fmt(spec.default).length);
+  number.style.setProperty('--slider-chars', String(maxChars));
   const error = el('p', {
     class: 'slider__error',
     attrs: { id: errorId, 'aria-live': 'polite' },

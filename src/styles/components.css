@@ -250,7 +250,9 @@
 }
 
 .slider__number {
-  width: 6.5rem;
+  /* --slider-chars: length of the widest formatted value (set by slider.ts). */
+  width: max(6.5rem, calc((var(--slider-chars, 0) + 1) * 1ch + 2 * var(--space-2) + 2px));
+  max-width: 100%;
   padding: 0.2rem var(--space-2);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);

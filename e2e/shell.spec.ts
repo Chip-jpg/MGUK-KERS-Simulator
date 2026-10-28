@@ -153,3 +153,34 @@ test.describe('keyboard navigation', () => {
     expect(Number(await range.inputValue())).toBeGreaterThan(before);
   });
 });
+
+test.describe('slider numeric field', () => {
+  test('Enter on an unchanged grouped value keeps it (QA-001)', async ({ page }) => {
+    await page.goto('./#/sim/joule-transformer');
+    const v1 = page.locator('#joule-transformer-V1-number');
+    await expect(v1).toHaveValue('20.000');
+    await v1.press('Enter');
+    await expect(v1).toHaveValue('20.000');
+    await expect(v1).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('#joule-transformer-V1-range')).toHaveValue('20000');
+
+    await v1.fill('25.000');
+    await v1.press('Enter');
+    await expect(v1).toHaveValue('25.000');
+
+    const p = page.locator('#joule-transformer-P-number');
+    await expect(p).toHaveValue('10.000.000');
+    await p.press('Enter');
+    await expect(p).toHaveValue('10.000.000');
+    await expect(p).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
+  test('large values fit in the numeric field (QA-004)', async ({ page }) => {
+    await page.goto('./#/sim/joule-transformer');
+    const p = page.locator('#joule-transformer-P-number');
+    await page.locator('#joule-transformer-P-range').press('End');
+    await expect(p).toHaveValue('100.000.000');
+    const [scroll, client] = await p.evaluate((e) => [e.scrollWidth, e.clientWidth]);
+    expect(scroll).toBeLessThanOrEqual(client);
+  });
+});
