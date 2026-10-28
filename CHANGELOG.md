@@ -7,6 +7,14 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-28
+
+Rifinitura dopo la verifica di qualità (QA round 2).
+
+### Aggiunto
+
+- README: sezione "Come pubblicare una release" (GitHub Pages, tag, Release).
+
 ### Corretto
 
 - QA-016 completato: apostrofo tipografico ’ al posto di quello dritto `'` nei testi
@@ -102,5 +110,6 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/releases/tag/v0.1.0
