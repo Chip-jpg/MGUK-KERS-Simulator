@@ -13,15 +13,13 @@ che in Formula 1 recupera energia in frenata e la restituisce in accelerazione.
 È un'unica app web statica che funziona **offline** (nessuna richiesta di rete a
 runtime, font inclusi), disponibile anche come app desktop per Windows, e contiene:
 
-- **Teoria** — 17 schede in italiano (14 di base + 3 di approfondimento), sintetiche e
-  pensate per l'interrogazione, con formule KaTeX e riferimenti alle slide del corso.
-- **Simulatori** — 9 simulatori 3D (6 di base + 3 di approfondimento) con grafici in
+- **Teoria** — 15 schede sintetiche in italiano (14 del percorso principale + 1 di
+  approfondimento sulla dinamica della frenata), con formule KaTeX, esempi numerici e
+  collegamento con l'MGU-K.
+- **Simulatori** — 7 simulatori 3D (6 di base + 1 di approfondimento) con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
-- **Interrogazione** — 82 domande: scelta multipla, esercizi numerici generati dal
-  motore fisico e flashcard "spiega a voce", con ripasso degli errori (scatole di
-  Leitner) e simulazione d'interrogazione.
 
-**Versione attuale: v0.4.0** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.5.0** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
@@ -47,10 +45,8 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 | Teoria                                                                                               | Simulatore `faraday`                                                                                         |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png)                      | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme](e2e/screenshots/sim-empty-dark-1280x720.png) |
-| **Frenata e recupero di energia**                                                                    | **Interrogazione**                                                                                           |
-| ![Frenata con MGU-K al limite di potenza e freni a disco](docs/media/kers-braking-dark-1280x720.png) | ![Modalità Interrogazione con domanda a scelta multipla](docs/media/interrogazione-dark-1280x720.png)        |
-| **Campo di bobine reali (Biot-Savart)**                                                              | **Dinamica della vettura**                                                                                   |
-| ![Linee di campo di un solenoide reale](docs/media/field-biot-savart-dark-1280x720.png)              | ![Frenata combinata MGU-K + freni con forze sugli assi](docs/media/car-dynamics-dark-1280x720.png)           |
+| **Frenata e recupero di energia**                                                                    | **Dinamica della vettura**                                                                                   |
+| ![Frenata con MGU-K al limite di potenza e freni a disco](docs/media/kers-braking-dark-1280x720.png) | ![Frenata combinata MGU-K + freni con forze sugli assi](docs/media/car-dynamics-dark-1280x720.png)           |
 
 ## I simulatori
 
@@ -65,11 +61,9 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 **Approfondimento (Fase 4)**
 
-| ID                  | Titolo                                                  | Cosa mostra                                                                                                              |
-| ------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `field-biot-savart` | Campo magnetico di bobine reali (Biot-Savart)           | Spira, solenoide e bobine di Helmholtz; linee di campo animate sulla GPU e confronto con il solenoide ideale B = μ₀NI/l. |
-| `pmsm-dq`           | Macchina sincrona a magneti permanenti: modello d-q     | Correnti d-q, limiti di corrente e tensione, MTPA e deflussaggio, mappe coppia/potenza in motore e in frenata.           |
-| `car-dynamics`      | Dinamica della vettura: frenata combinata MGU-K + freni | Pneumatici Pacejka, resistenza e deportanza, MGU-K sull'asse posteriore limitata da Pₘₐₓ/η e dall'aderenza.              |
+| ID             | Titolo                                                  | Cosa mostra                                                                                                 |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `car-dynamics` | Dinamica della vettura: frenata combinata MGU-K + freni | Pneumatici Pacejka, resistenza e deportanza, MGU-K sull'asse posteriore limitata da Pₘₐₓ/η e dall'aderenza. |
 
 ## Avvio rapido
 
@@ -111,14 +105,12 @@ README.md  LICENSE  CHANGELOG.md  CONTRIBUTING.md
 docs/            ARCHITECTURE.md, PHYSICS.md (formule ↔ slide), DECISIONS.md,
                  OPEN_FACTS.md (dati da verificare), QA_REPORT.md, DESKTOP.md, media/
 content/theory/  NN-slug.md — schede di teoria (italiano)
-content/quiz/    quiz.json
 src/
   core/          shell dell'app, router (hash), i18n (it.ts), tema, registro moduli
   physics/       TypeScript puro, unità SI, nessun DOM/Three.js
   ui/            componenti, slider, wrapper dei grafici
   sims/<id>/     un simulatore per cartella
   theory/        loader e renderer del Markdown
-  quiz/          modalità Interrogazione
 tests/  e2e/
 .github/         workflow CI, deploy Pages, build desktop, modelli di issue e PR
 src-tauri/       app desktop Windows (Tauri 2)
@@ -130,16 +122,22 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
 ## Roadmap
 
 - [x] ✅ **v0.1.0 — Fasi 1–3** (completata): shell dell'app, motore fisico, teoria (14 schede), sei
-      simulatori, modalità Interrogazione.
+      simulatori, modalità Interrogazione (rimossa nella v0.5.0).
 - [x] ✅ **v0.2.0 — Rifinitura** (completata): correzioni dalla revisione indipendente,
       accessibilità, guida alla pubblicazione su GitHub Pages.
 - [x] ✅ **v0.3.x–v0.4.0 — Fase 4 (avanzata, facoltativa)** (completata):
   1. ✅ `field-biot-savart` — linee di campo animate sulla GPU per bobine reali (Biot-Savart)
-     (v0.3.0);
+     (v0.3.0; rimosso nella v0.5.0);
   2. ✅ `pmsm-dq` — modello d-q della macchina sincrona a magneti permanenti, mappe
-     coppia/potenza (v0.3.0);
+     coppia/potenza (v0.3.0; rimosso nella v0.5.0);
   3. ✅ `car-dynamics` (v0.3.1) — dinamica del veicolo (pneumatici Pacejka, aerodinamica, frenata combinata MGU-K + freni);
   4. ✅ app desktop Windows (`.exe`) con Tauri 2 (v0.4.0).
+
+- [x] ✅ **v0.5.0 — Versione essenziale**: per scelta, l'app si concentra sul filo logico
+      Faraday → MGU-K → Goal 9 → Art. 32. Rimossi la modalità Interrogazione (quiz,
+      flashcard, ripasso), i riferimenti alle slide nell'interfaccia e i due moduli avanzati
+      `field-biot-savart` e `pmsm-dq`; resta `car-dynamics`, che estende la frenata KERS
+      ([D13](docs/DECISIONS.md)).
 
 Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -182,7 +180,7 @@ da fonti ufficiali oppure sono marcati `[DA VERIFICARE]`.
 
 Il progetto **non è affiliato** a Formula 1, FIA o a qualsiasi scuderia e non usa loghi,
 marchi o immagini protetti: tutta la grafica è geometria astratta originale. Le slide
-del corso sono citate solo per numero, non incluse.
+del corso non sono incluse.
 
 ## Contribuire
 
@@ -199,10 +197,11 @@ test obbligatori, fisica "pura", testi in italiano e codice in inglese.
 
 **KERS Lab** — _from Faraday's induction to the MGU-K_ — is an educational, offline-first
 web app (Italian UI) that walks from the Faraday-Neumann-Lenz law to the Formula 1
-MGU-K (kinetic energy recovery). It bundles 17 concise exam-oriented theory pages,
-nine interactive 3D simulators with live plots and formulas (including advanced
-modules on the Biot-Savart field of real coils, a d-q PMSM model and braking vehicle
-dynamics), and an 82-question quiz / oral-exam trainer. A Windows desktop build
+MGU-K (kinetic energy recovery). It bundles 15 concise theory pages and seven
+interactive 3D simulators with live plots and formulas (including an advanced module on
+braking vehicle dynamics: tyres, aerodynamics and the MGU-K on the rear axle). Since
+v0.5.0 the app is deliberately slim: no quiz mode, no slide references in the UI and no
+Biot-Savart / PMSM modules. A Windows desktop build
 (Tauri 2) is produced by CI on every release tag. The narrative links electromagnetic induction → the MGU-K → UN Agenda 2030
 Goal 9 → Article 32 of the Italian Constitution (health as a right and a collective
 interest).

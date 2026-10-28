@@ -7,6 +7,39 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-28
+
+Versione essenziale ("slim"): l'app si concentra sul filo logico Faraday → alternatore →
+MGU-K in frenata → energia ed effetto Joule → Goal 9 → Art. 32
+([D13](docs/DECISIONS.md)).
+
+### Rimosso
+
+- Modalità **Interrogazione**: quiz, flashcard, ripasso degli errori e simulazione
+  d'interrogazione, con la relativa voce della barra laterale e la rotta `#/interrogazione`
+  (ora rimanda a Teoria).
+- Sezione "Domande da interrogazione" in fondo a ogni scheda di teoria.
+- Riferimenti alle slide del corso nell'interfaccia e nel testo della teoria (chip
+  "Slide N", campo `slideRefs`, menzioni "(slide N)"). I numeri di slide restano solo nella
+  documentazione per sviluppatori (`docs/PHYSICS.md`, tag `@slide`).
+- Simulatori di approfondimento `field-biot-savart` e `pmsm-dq`, i moduli fisici
+  `biotSavart` e `pmsm` con i loro test, le schede di teoria 15 (campo di Biot-Savart) e 16
+  (PMSM d-q) e le sezioni §7–§8 di `docs/PHYSICS.md`.
+- Screenshot `docs/media/field-biot-savart-*.png` e `docs/media/interrogazione-*.png`.
+
+### Modificato
+
+- Scheda 13 rinominata `13-filo-logico` ("Il filo logico: da Faraday all’Art. 32"): una
+  pagina di sintesi della catena, senza copione orale né domande.
+- Scheda "Dinamica della frenata" rinominata da `17-dinamica-frenata` a
+  `15-dinamica-frenata`; collegamenti interni aggiornati.
+- Formato delle schede di teoria: cinque titoli fissi (In breve, Formule, Spiegazione,
+  Esempio numerico, Collegamento con KERS / MGU-K), senza `slideRefs` nel frontmatter.
+- Glossario, `docs/ARCHITECTURE.md`, `docs/PHYSICS.md` (dinamica della vettura ora §7),
+  `docs/OPEN_FACTS.md`, `docs/DESKTOP.md`, README e CONTRIBUTING aggiornati: 15 schede di
+  teoria, 7 simulatori, nessun quiz. Nuova decisione D13 in `docs/DECISIONS.md`; nota in
+  testa a `docs/QA_REPORT.md` sui rilievi ormai obsoleti.
+
 ## [0.4.1] - 2026-10-28
 
 ### Corretto
@@ -195,7 +228,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.0...v0.3.1

@@ -58,9 +58,11 @@ value is kept so that numbers match the student's notebook exactly.
 | `kineticEnergyDelta` | none    | **none (extension)** — confirmed                                                   |
 | `kersBrakingEvent`   | 16, 17  | **none (extension)**, builds on 16–17 (energy balance) and 18–19 (alternator)      |
 
-The KERS topic as a whole (sim `kers-braking` and theory `10-kers-mguk`) shows the
-slide chips **[16, 17, 18, 19]** — energy balance and alternator — aligned in QA round 1
-(QA-013); Faraday-Neumann (8) and Lenz (11) are reached through theories 03 and 04.
+The KERS topic as a whole (sim `kers-braking` and theory `10-kers-mguk`) builds on
+slides **16, 17, 18, 19** — energy balance and alternator (aligned in QA round 1, QA-013);
+Faraday-Neumann (8) and Lenz (11) are reached through theories 03 and 04. Since v0.5.0 slide
+numbers appear only in this document and in the `@slide` TSDoc tags, not in the app UI
+(D13).
 
 Slide numbers were derived from the slide summary in the project brief, not from the
 deck file itself (not in the repo). Exact numbering of slides 21–23 should be checked
@@ -152,7 +154,7 @@ stacked plot pKers + pBrakes is the total braking power, $\int p_{Kers}\,dt$ =
 match the totals within 0.5 % on 60 random parameter sets, and an `rk4Step` integration
 of pKers reproduces `recovered`.
 
-Worked example — the same numbers as theory 10, the quiz and the `kers-braking` defaults
+Worked example — the same numbers as theory 10 and the `kers-braking` defaults
 (800 kg, 300 → 100 km/h, t_brake = 3 s, P_max = 120 kW, η = 0.9), output of
 `kersBrakingEvent` / `kersDissipationSplit`:
 
@@ -181,7 +183,7 @@ I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted 
 
 ## 6. Global validity limits
 
-- **Uniform B** over the circuit surface in the slide-based functions above; the field of real, finite coils (Biot-Savart) is covered in §7.
+- **Uniform B** over the circuit surface in the slide-based functions above (the field of real, finite coils is not modelled).
 - **Single-phase simplification**: the rotating loop is a simplified model of the real
   MGU-K, a three-phase permanent-magnet synchronous machine.
 - **Ideal transformer** and **linear materials** (no saturation, no hysteresis, no eddy
@@ -190,132 +192,7 @@ I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted 
 - **KERS**: constant deceleration, constant η, no battery state-of-charge or per-lap
   energy limits, no aero/rolling losses (§4).
 
-## 7. Biot-Savart (Phase 4)
-
-Module `src/physics/biotSavart.ts` (re-exported from `src/physics/index.ts`), used by the
-`field-biot-savart` simulator. It computes the field of a **real, finite coil** to show where the
-uniform-B idealisation of the slides (Φ = BS cos α, slide 7; B = μ₀NI/l and L = μ₀N²S/l, slide 14)
-holds and where it fails. Model: filamentary wire, steady current, vacuum (μ₀, no ferromagnetic
-material), magnetostatics. Coordinates in m, B in T; coil axis = z, centre = origin; a positive
-current circulates counter-clockwise seen from +z, so B points along +z inside the coil.
-`Vec3 = readonly [x, y, z]`, `Polyline = readonly Vec3[]`. Constant:
-`WIRE_CORE_RADIUS = 5·10⁻⁴ m` (0,5 mm, a typical magnet-wire radius).
-
-| Function                                   | Formula / method                                                                                              | Slide            | Units (in → out)  | Validity limits / notes                                                                                                                                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `biotSavartSegment(a, b, p, I, core?)`     | $\vec B = \frac{\mu_0 I}{4\pi d}(\cos\theta_1-\cos\theta_2)\,\hat e$, $\hat e \parallel \vec L\times\vec r_1$ | none (extension) | m, m, m, A, m → T | Exact closed form for a straight segment a→b ($\vec L = b-a$, $\vec r_1 = p-a$). Regularised $d^2 \to d^2 + r_c^2$ (below). Points on the segment's line give 0.                                                    |
-| `coilPolyline(spec)`                       | vertices on the ideal curve (inscribed polygons)                                                              | none (extension) | m → m             | `loop`: circle traced N times; `solenoid`: helix of N turns, −l/2 → +l/2 (leads not modelled); `helmholtz`: two N-turn loops at ∓s/2 (s = R default) joined by a lead traversed up and back (contributions cancel). |
-| `createFieldEvaluator(polyline, I, core?)` | same sum as `fieldAt`, no per-call allocation                                                                 | none (extension) | m, A → T          | For hot loops (field-line tracing in the Web Worker).                                                                                                                                                               |
-| `fieldAt(polyline, I, p, core?)`           | $\vec B(p) = \sum_i \vec B_{\text{seg}}(P_i \to P_{i+1}, p)$                                                  | none (extension) | m, A, m → T       | ≥ 2 points. I = 0 ⇒ 0. Finite everywhere, also on the wire.                                                                                                                                                         |
-| `fieldOnAxisLoop(R, I, z)`                 | $B_z = \frac{\mu_0 I R^2}{2(R^2+z^2)^{3/2}}$                                                                  | none (extension) | m, A, m → T       | Analytic reference, one thin loop (× N for N coincident turns).                                                                                                                                                     |
-| `fieldInfiniteSolenoid(N, l, I)`           | $B = \mu_0 N I / l$                                                                                           | 14               | –, m, A → T       | Ideal solenoid; consistent with `solenoidInductance` ($N B S = L I$).                                                                                                                                               |
-| `fieldOnAxisFiniteSolenoid(N, l, R, I, z)` | current-sheet formula (TSDoc)                                                                                 | 14               | –, m, m, A, m → T | Turns smeared over l. Centre → μ₀NI/l for l ≫ R; ends → half.                                                                                                                                                       |
-| `distanceToPolyline(polyline, p)`          | min distance to the segments                                                                                  | none (extension) | m → m             | Helper for "near the wire" tests.                                                                                                                                                                                   |
-| `traceFieldLine(fieldFn, seed, opts)`      | $d\vec r/ds = \pm\vec B/\lvert\vec B\rvert$ with `rk4Step`, s = arc length                                    | none (extension) | m → m, T          | Stops on `closed` (within 0,75·step of the seed after ≥ 4·tol + 4·step; seed appended), `bounds`, `nearWire`, `nullField` (\|B\| ≤ 10⁻¹⁵ T) or `maxSteps`. Returns points, \|B\| per point, length, stop reason.    |
-
-**Regularisation (core radius r_c).** A filament has a 1/d singularity on the wire. Each segment
-uses $d^2 + r_c^2$ instead of $d^2$, so the field is finite and smooth near the wire. For
-$d \gg r_c$ the relative error is $r_c^2/d^2$ (10⁻⁴ at d = 5 cm with 0,5 mm). The profile
-$d/(d^2+r_c^2)$ is only a smooth stand-in for the field inside a round wire (peak at $d = r_c$ with
-half the true value): values within a few $r_c$ of the wire are not physical, and the simulator
-stops field lines well before (0,06 R).
-
-**Validation (`tests/physics/biotSavart.test.ts`).**
-
-- Long straight segment → μ₀I/(2πd) (10⁻⁶); finite segment → μ₀I/(4πd)(cos θ₁ − cos θ₂) (10⁻¹²).
-- Loop, 128 segments/turn, vs `fieldOnAxisLoop` at z/R ∈ {0; 0,2; 0,5; 1; 2; −1,5}: **< 0,5 %**
-  (inscribed-polygon error O(1/n²)).
-- Solenoid l/R = 20, N = 200, 32 segments/turn: centre vs μ₀NI/l **< 2 %** (the finite length alone
-  gives −0,5 %), vs the current-sheet formula < 0,5 %; field at the ends ≈ ½ μ₀NI/l.
-- Helmholtz (s = R): centre ≈ (4/5)^{3/2} μ₀NI/R (< 0,5 %); \|B\| varies **< 1 %** within ±0,1 R
-  of the centre (axial, radial and diagonal probes).
-- ∇·B by central differences (h = 10⁻⁵ m) at off-axis points of loop, solenoid and Helmholtz:
-  \|∇·B\| / (\|B\| / 1 cm) < 10⁻⁵.
-- Symmetry (loop B_z even, B_ρ odd in z; 90° rotation); N coincident turns = N × one turn; the
-  Helmholtz lead pair cancels (field = sum of two separate loops to 10⁻⁹).
-- Loop field lines close (forward and backward, same length within 2 %), stay in their meridian
-  plane and encircle the wire; I = 0 ⇒ 0; point on the wire ⇒ finite; invalid input ⇒ RangeError.
-
-**Simulator choices (`src/sims/field-biot-savart/model.ts`).** Loop and Helmholtz are computed as
-one turn carrying N·I (exactly equivalent for coincident turns); the solenoid is the real helix (36
-segments/turn), so its on-axis profile shows the small ripple of the discrete turns. Field lines are
-traced in 3D in a Web Worker from seeds in the meridian plane x = 0, on the mid-plane inside the
-coil. Loop and Helmholtz lines stay in that plane by symmetry; the helix's net axial current makes
-the solenoid lines leave it slightly (up to ≈ 12 mm ≈ 0,4 R at the defaults; drawn as 3D curves). They
-stop 0,06 R from the wire and at the edge of the view box. The dashes move with local speed ∝ \|B\|
-(clamped to 0,15–4 × B_centre) using the flow coordinate φ(s) = ∫ ds / v(s).
-
-**Validity limits.** μ = μ₀ everywhere (no ferromagnetic material), DC magnetostatics, thin wire
-(no skin/proximity effect, no winding thickness); helix leads not modelled.
-
-## 8. PMSM d-q (Phase 4)
-
-`src/physics/pmsm.ts` — a **representative** three-phase permanent-magnet synchronous
-machine (PMSM) used by the `pmsm-dq` simulator and theory 16. It extends the single-phase
-rotating loop of slides 18–19: with zero current the peak phase voltage is $\omega_e\psi_m$,
-the three-phase analogue of $V_0 = NBS\omega$ with $\psi_m = NBS$ (tested). The real MGU-K
-type and data are not public (OPEN_FACTS #8): no parameter here is claimed to be the MGU-K's.
-
-**Conventions.**
-
-- **Amplitude-invariant** Clarke/Park transform: $\alpha = \tfrac23(a - \tfrac b2 - \tfrac c2)$,
-  $\beta = (b-c)/\sqrt3$, zero $= (a+b+c)/3$; $d = \alpha\cos\theta_e + \beta\sin\theta_e$,
-  $q = -\alpha\sin\theta_e + \beta\cos\theta_e$. A balanced set of amplitude $X$ gives a vector
-  of length $X$, hence powers and torque carry the factor 3/2.
-- **Motor (load) convention** $v = R_s i + d\psi/dt$. Positive torque/power = motoring.
-  Braking (generating) at positive speed: $i_q < 0$, $T < 0$, $P_\text{mech} < 0$ and
-  $P_\text{elec} < 0$ (power to the battery). With $i = 0$ the terminal voltage of phase a is
-  $-\varepsilon$ of slides 18–19 (the slides use the generator sign $\varepsilon = -d\psi/dt$).
-- $\theta_e = p\,\theta_\text{mech}$; d axis on the magnet flux, q leads by 90° electrical.
-- Inverter limit $V_\max = V_{DC}/\sqrt3$: peak phase voltage in the linear range of
-  space-vector PWM (or sine PWM with third-harmonic injection).
-
-| Function                                                                            | Formula                                                                                                             | Slide                                               | Units               | Notes                                                                     |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------- | ------------------------------------------------------------------------- |
-| `clarke(ia, ib, ic)` / `inverseClarke(alpha, beta, zero = 0)`                       | see conventions                                                                                                     | none (extension: d-q model)                         | A or V              | amplitude-invariant                                                       |
-| `park(alpha, beta, thetaE)` / `inversePark(d, q, thetaE)` / `dqToAbc(d, q, thetaE)` | see conventions                                                                                                     | none (extension)                                    | –, rad              | round trip tested                                                         |
-| `pmsmVoltages(id, iq, omegaE, m)`                                                   | $v_d = R_s i_d - \omega_e L_q i_q$, $v_q = R_s i_q + \omega_e L_d i_d + \omega_e\psi_m$                             | none (extension; $\omega_e\psi_m$ ↔ $V_0$ of 18–19) | A, rad/s → V        | steady state                                                              |
-| `pmsmTorque(id, iq, m)`                                                             | $T = \tfrac32 p[\psi_m i_q + (L_d - L_q) i_d i_q]$                                                                  | none (extension)                                    | A → N·m             | equals $\partial W'/\partial\theta_\text{mech}$ of the co-energy (tested) |
-| `pmsmCopperLoss(id, iq, Rs)`                                                        | $P_\text{Cu} = \tfrac32 R_s (i_d^2 + i_q^2)$                                                                        | 16                                                  | A, Ω → W            | Joule term, three phases                                                  |
-| `pmsmElectricalPower(vd, vq, id, iq)`                                               | $P_\text{elec} = \tfrac32 (v_d i_d + v_q i_q)$                                                                      | none (extension)                                    | V, A → W            |                                                                           |
-| `pmsmOperatingPoint(id, iq, omegaMech, m)`                                          | all of the above, $P_\text{mech} = T\omega_\text{mech}$                                                             | 16                                                  | → V, N·m, W         | $P_\text{elec} = P_\text{mech} + P_\text{Cu}$ exactly (tested to 1e-9)    |
-| `pmsmEfficiency(pElec, pMech)`                                                      | motor $P_m/P_e$, generator $P_e/P_m$                                                                                | 16                                                  | –                   | NaN if undefined                                                          |
-| `pmsmVoltageLimit(vdc)`                                                             | $V_\max = V_{DC}/\sqrt3$                                                                                            | none                                                | V                   |                                                                           |
-| `pmsmMtpa(I, m, mode)`                                                              | $i_d = -2(L_q-L_d)I^2 / [\psi_m + \sqrt{\psi_m^2 + 8(L_q-L_d)^2I^2}]$, $i_q = \pm\sqrt{I^2 - i_d^2}$                | none                                                | A                   | closed form; $i_d = 0$ if $L_d = L_q$                                     |
-| `pmsmBaseSpeed(m, Imax, Vmax)`                                                      | $\lvert v(i_\text{MTPA}(I_\max), p\omega_b)\rvert = V_\max$                                                         | none                                                | → rad/s             | bisection                                                                 |
-| `pmsmMaxTorque(omegaMech, m, Imax, Vmax, mode)`                                     | max/min of $T$ on circle ∩ voltage ellipse                                                                          | none                                                | → N·m, A, W, region | regions `mtpa`, `field-weakening`, `mtpv`, `infeasible`                   |
-| `pmsmTorqueSpeedEnvelope(m, Imax, Vmax, omegaMax, n)`                               | `pmsmMaxTorque` sampled for motor and generator                                                                     | none                                                | → N·m, W            | constant torque, then ≈ constant power                                    |
-| `pmsmCurrentDerivatives(id, iq, vd, vq, omegaE, m)`                                 | $L_d\dot i_d = v_d - R_s i_d + \omega_e L_q i_q$, $L_q\dot i_q = v_q - R_s i_q - \omega_e L_d i_d - \omega_e\psi_m$ | 15 (RL per axis)                                    | → A/s               |                                                                           |
-| `pmsmCurrentControllerGains(m, wc)`                                                 | $k_p = L\omega_c$, $k_i = R_s\omega_c$                                                                              | 15                                                  | → V/A, V/(A·s)      | first-order closed loop, $i(1/\omega_c) = 63{,}2\,\%$ (tested)            |
-| `pmsmControllerVoltages(s, inp, m, c)`                                              | PI + decoupling feed-forward, clamped to $\lvert v\rvert \le V_\max$                                                | none                                                | → V                 | ideal inverter otherwise                                                  |
-| `pmsmDynamicsStep(s, inp, m, c, dt)`                                                | RK4 (`rk4Step`) with sub-steps $h\lambda \le 0{,}25$                                                                | none                                                | s                   | deterministic; anti-windup while saturated                                |
-| `pmsmSteadyDynState(idRef, iqRef, m, c)`                                            | integrators $x = R_s i^*/k_i$                                                                                       | none                                                |                     | start without transient                                                   |
-
-**Voltage ellipse with $R_s$.** $v = A\,i + b$ with $A = [[R_s, -\omega_eL_q], [\omega_eL_d, R_s]]$
-and $b = (0, \omega_e\psi_m)$, so $\lvert v\rvert \le V_\max$ is an exact (slightly tilted) ellipse in
-the current plane; no $R_s = 0$ approximation is used. Since $T$ has no interior maximum, the
-constrained optimum lies on the boundary of circle ∩ ellipse: `pmsmMaxTorque` samples both
-boundary curves (720 points each) and refines the best feasible sample by bisection on the
-constraint crossing or by golden-section search. Tests compare it with a brute-force grid
-search of the feasible set. With $R_s = 0$ the braking envelope is the exact mirror of the
-motoring one; with $R_s > 0$ braking has slightly more voltage margin ($R_s i_q$ lowers $v_q$).
-
-**Envelope example** (illustrative machine of the sim, not the MGU-K: $R_s = 0{,}02\ \Omega$,
-$L_d = 0{,}20$ mH, $L_q = 0{,}35$ mH, $\psi_m = 0{,}08$ Wb, $p = 4$, $I_\max = 400$ A,
-$V_{DC} = 600$ V): MTPA torque 229,3 N·m up to the base speed 641,7 rad/s ≈ 6130 giri/min
-(≈ 147 kW); in field weakening the power rises to ≈ 181 kW at 1,5 × and ≈ 191–199 kW between 2
-and 3,2 × base speed (191,3 kW at 2 ×, 198,6 kW at 3,2 ×; within ±5 % of the value at 2,5 ×
-base, tested). The characteristic current $\psi_m/L_d = 400$ A equals
-$I_\max$, which is why the power stays nearly constant; with $I_\max > \psi_m/L_d$ an MTPV
-region appears at high speed, with $I_\max < \psi_m/L_d$ the machine has a finite maximum
-speed (`infeasible` beyond it).
-
-**Validity limits.** Linear magnetics (constant $L_d$, $L_q$, $\psi_m$: no saturation, no
-cross-coupling), sinusoidal back-emf (no harmonics, no cogging), iron and mechanical losses
-neglected, ideal inverter (no switching ripple, dead time or losses), balanced three-wire
-machine (zero sequence ignored), shaft speed imposed from outside in the dynamic model.
-
-## 9. Car dynamics (Phase 4)
+## 7. Car dynamics (Phase 4)
 
 `src/physics/vehicle-dynamics.ts`, used by the `car-dynamics` simulator. It extends the
 constant-deceleration KERS model of §4 to a braking zone with tyres, aerodynamics and

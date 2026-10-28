@@ -1,7 +1,6 @@
 ---
 id: 03-faraday-neumann
 titleIT: Legge di Faraday-Neumann
-slideRefs: [8, 9, 10]
 order: 3
 level: base
 ---
@@ -12,15 +11,15 @@ La **legge di Faraday-Neumann** dà la misura dell'induzione: la forza elettromo
 
 ## Formule
 
-F.e.m. "di movimento" di una sbarretta di lunghezza $l$ che si muove con velocità $v$ perpendicolare a $B$ (slide 8):
+F.e.m. "di movimento" di una sbarretta di lunghezza $l$ che si muove con velocità $v$ perpendicolare a $B$:
 
 $$\text{f.e.m.} = B \cdot l \cdot v$$
 
-Legge di Faraday-Neumann (slide 8), per una spira; con $N$ spire si moltiplica per $N$:
+Legge di Faraday-Neumann, per una spira; con $N$ spire si moltiplica per $N$:
 
 $$\text{f.e.m.} = -\frac{\Delta \Phi_B}{\Delta t} \qquad \text{f.e.m.} = -N\,\frac{\Delta \Phi_B}{\Delta t}$$
 
-Corrente indotta in un circuito di resistenza $R$ (slide 9):
+Corrente indotta in un circuito di resistenza $R$:
 
 $$i = \frac{\text{f.e.m.}}{R} = -\frac{1}{R}\,\frac{\Delta \Phi_B}{\Delta t}$$
 
@@ -42,7 +41,7 @@ Unità: $1\ \text{Wb/s} = 1\ \text{V}$.
 
 ## Esempio numerico
 
-Esempio della slide 10: $S = 5{,}0 \cdot 10^{-2}\ \text{m}^2$, il campo passa da $1{,}2 \cdot 10^{-3}\ \text{T}$ a $3{,}5 \cdot 10^{-3}\ \text{T}$ in $\Delta t = 0{,}46\ \text{s}$, $R = 4\ \text{m}\Omega$.
+Esercizio tipo: $S = 5{,}0 \cdot 10^{-2}\ \text{m}^2$, il campo passa da $1{,}2 \cdot 10^{-3}\ \text{T}$ a $3{,}5 \cdot 10^{-3}\ \text{T}$ in $\Delta t = 0{,}46\ \text{s}$, $R = 4\ \text{m}\Omega$.
 
 $$\Delta\Phi_B = S\,\Delta B = 5{,}0 \cdot 10^{-2} \cdot 2{,}3 \cdot 10^{-3} = 1{,}15 \cdot 10^{-4}\ \text{Wb}$$
 
@@ -55,21 +54,3 @@ Una f.e.m. piccolissima dà comunque una corrente apprezzabile perché la resist
 ## Collegamento con KERS / MGU-K
 
 In frenata le ruote fanno girare velocemente il rotore dell'MGU-K: $d\Phi_B/dt$ è grande, quindi la f.e.m. indotta è grande e la corrente può caricare la batteria. Velocità di rotazione alta significa f.e.m. alta: è il motivo per cui la macchina elettrica gira molto più veloce delle ruote. Vedi [KERS e MGU-K](10-kers-mguk.md).
-
-## Domande da interrogazione
-
-**D:** Enuncia la legge di Faraday-Neumann.
-
-**R:** La f.e.m. indotta in un circuito è $\text{f.e.m.} = -\Delta\Phi_B/\Delta t$: uguale all'opposto della rapidità di variazione del flusso concatenato. Il segno meno esprime la legge di Lenz.
-
-**D:** Come si ricava la f.e.m. di movimento $Blv$?
-
-**R:** La sbarretta in $\Delta t$ aumenta l'area di $l\,v\,\Delta t$, quindi il flusso di $B\,l\,v\,\Delta t$. Dividendo per $\Delta t$ si ottiene $Blv$.
-
-**D:** Rifai l'esempio della slide 10.
-
-**R:** $\Delta\Phi_B = 5{,}0\cdot10^{-2}\cdot 2{,}3\cdot10^{-3} = 1{,}15\cdot10^{-4}$ Wb; diviso $0{,}46$ s dà $2{,}5\cdot10^{-4}$ V; diviso $4$ mΩ dà $62{,}5$ mA.
-
-**D:** Che differenza c'è tra $\Delta\Phi_B/\Delta t$ e $d\Phi_B/dt$?
-
-**R:** Il primo è la variazione media in un intervallo, il secondo è il limite per $\Delta t \to 0$, cioè la f.e.m. istantanea. Coincidono se il flusso varia in modo uniforme.

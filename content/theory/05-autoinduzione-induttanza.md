@@ -1,18 +1,17 @@
 ---
 id: 05-autoinduzione-induttanza
 titleIT: Autoinduzione e induttanza
-slideRefs: [12, 13, 14]
 order: 5
 level: base
 ---
 
 ## In breve
 
-Un circuito percorso da corrente genera un campo magnetico che attraversa **il circuito stesso**: c'è quindi un flusso "proprio". Se la corrente cambia, cambia questo flusso e nel circuito nasce una f.e.m. indotta su se stesso: è l'**autoinduzione** (slide 12–13). La grandezza che misura quanto un circuito "reagisce" alle variazioni di corrente è l'**induttanza** $L$, misurata in henry.
+Un circuito percorso da corrente genera un campo magnetico che attraversa **il circuito stesso**: c'è quindi un flusso "proprio". Se la corrente cambia, cambia questo flusso e nel circuito nasce una f.e.m. indotta su se stesso: è l'**autoinduzione**. La grandezza che misura quanto un circuito "reagisce" alle variazioni di corrente è l'**induttanza** $L$, misurata in henry.
 
 ## Formule
 
-Definizione di induttanza (slide 13):
+Definizione di induttanza:
 
 $$L = \frac{\Phi_B}{i} \qquad \Leftrightarrow \qquad \Phi_B = L\,i$$
 
@@ -22,7 +21,7 @@ F.e.m. autoindotta (Faraday-Neumann con $\Phi_B = L\,i$ e $L$ costante):
 
 $$\text{f.e.m.} = -L\,\frac{\Delta i}{\Delta t}$$
 
-Induttanza di un solenoide lungo (slide 14), con $N$ spire, sezione $S$, lunghezza $l$:
+Induttanza di un solenoide lungo, con $N$ spire, sezione $S$, lunghezza $l$:
 
 $$L = \frac{\mu_0 N^2 S}{l} \qquad \mu_0 = 4\pi \cdot 10^{-7}\ \frac{\text{T}\cdot\text{m}}{\text{A}}$$
 
@@ -49,21 +48,3 @@ $$|\text{f.e.m.}| = 1{,}57\cdot10^{-3} \cdot \frac{2{,}0}{0{,}010} \approx 0{,}3
 ## Collegamento con KERS / MGU-K
 
 Gli avvolgimenti dello statore dell'MGU-K sono bobine con una loro induttanza: la corrente non può cambiare istantaneamente e l'elettronica di potenza (inverter) deve tenerne conto quando commuta rapidamente le correnti. L'induttanza contribuisce anche all'energia immagazzinata nel campo magnetico, vedi [Circuito RL ed energia](06-circuito-rl-energia-campo.md) e [KERS e MGU-K](10-kers-mguk.md).
-
-## Domande da interrogazione
-
-**D:** Che cos'è l'autoinduzione?
-
-**R:** È la produzione di una f.e.m. indotta in un circuito a causa della variazione della sua stessa corrente, che fa variare il flusso del campo da essa generato: $\text{f.e.m.} = -L\,\Delta i/\Delta t$.
-
-**D:** Definisci l'induttanza e la sua unità di misura.
-
-**R:** $L = \Phi_B/i$, rapporto tra flusso concatenato e corrente. Si misura in henry: $1\ \text{H} = 1\ \text{Wb/A}$. Dipende solo da geometria e materiale.
-
-**D:** Da cosa dipende l'induttanza di un solenoide?
-
-**R:** $L = \mu_0 N^2 S/l$: cresce con il quadrato del numero di spire e con la sezione, diminuisce con la lunghezza. Con un nucleo ferromagnetico aumenta molto.
-
-**D:** Perché si dice che l'induttanza è un'"inerzia elettrica"?
-
-**R:** Perché si oppone alle variazioni di corrente, come la massa si oppone alle variazioni di velocità: la corrente in un'induttanza non può cambiare di colpo.

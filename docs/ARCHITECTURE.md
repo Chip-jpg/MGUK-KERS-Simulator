@@ -1,9 +1,10 @@
 # KERS Lab — Architecture
 
-> **KERS Lab** — *"Dall'induzione di Faraday all'MGU-K"*. One static web app, three
+> **KERS Lab** — *"Dall'induzione di Faraday all'MGU-K"*. One static web app, two
 > areas behind one sidebar: **Teoria** (Italian theory pages rendered from Markdown +
-> KaTeX), **Simulatori** (interactive 3D scenes + live plots), **Interrogazione**
-> (quiz / oral-exam trainer).
+> KaTeX) and **Simulatori** (interactive 3D scenes + live plots). The former
+> **Interrogazione** area (quiz / oral-exam trainer) was removed in v0.5.0
+> ([D13](./DECISIONS.md)).
 >
 > This document freezes the shared contracts (§4.1–§4.5, frozen by task A0). Agents
 > may **not** change them; they file a change request with the orchestrator, who
@@ -22,7 +23,6 @@
             ├────────────────────────────────────────────────────────────┤
             │ ui/      components: Slider, Plot (uPlot), FormulaPanel …  │
             │ theory/  Markdown loader + renderer (marked + KaTeX)       │
-            │ quiz/    Interrogazione mode                               │
             │ sims/<id>/  one folder per simulator (Three.js + ui/)      │
             ├────────────────────────────────────────────────────────────┤
             │ physics/  PURE TypeScript, SI units, no DOM/Three/clock    │
@@ -33,12 +33,12 @@ Dependency rule (arrows point to allowed imports):
 
 - `physics` → nothing (only its own files). **Enforced by ESLint**: in
   `src/physics/**` the imports `three`, `uplot`, `katex`, `marked` and any path into
-  `core/ ui/ sims/ theory/ quiz/` are errors, and so are the globals `window`,
+  `core/ ui/ sims/ theory/` are errors, and so are the globals `window`,
   `document`, `navigator`, `localStorage`, `sessionStorage`, `Date`, `performance`,
   `requestAnimationFrame`, `cancelAnimationFrame`, `setTimeout`, `setInterval`,
   `process`.
 - `core` → `physics` (only `PHYSICS_DT`), browser APIs.
-- `ui`, `theory`, `quiz` → `core`, `physics`.
+- `ui`, `theory` → `core`, `physics`.
 - `sims/<id>` → `core`, `ui`, `physics`, `three`, `uplot`. A sim never imports
   another sim.
 
@@ -53,7 +53,6 @@ kers-lab/
   README.md  LICENSE  CHANGELOG.md  CONTRIBUTING.md
   docs/            # ARCHITECTURE.md, PHYSICS.md (formula ↔ slide map), DECISIONS.md
   content/theory/  # NN-slug.md  (Italian)
-  content/quiz/    # quiz.json
   src/
     core/          # app shell, router, i18n (it.ts), theme, module registry
     physics/       # PURE TS, no DOM/Three imports, SI units
@@ -64,7 +63,7 @@ kers-lab/
   .github/workflows/
 ```
 
-Additionally: `src/quiz/` (A9), root configs (`package.json`, `tsconfig.json`,
+Additionally: root configs (`package.json`, `tsconfig.json`,
 `vite.config.ts`, `playwright.config.ts`, `eslint.config.js`, `.prettierrc`,
 `.editorconfig`), `index.html`, `src/main.ts`.
 
@@ -93,14 +92,15 @@ and returns a change request.
 |---|---|---|
 | **A0** Architect / scaffold | root config, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md` (initial), `src/core/` skeleton, `.github/` stubs, stub `src/physics/index.ts`, `src/main.ts`, `index.html` | done when lint/typecheck/test/build pass on the empty shell |
 | **A1** Physics core | `src/physics/**`, `tests/physics/**`, `docs/PHYSICS.md` | implements §4.2 exactly, RK4, constants (μ₀ …); coverage ≥ 95 % on `src/physics` |
-| **A2** Theory writer | `content/theory/**`, `docs/OPEN_FACTS.md` | 14 files, §4.4 format |
+| **A2** Theory writer | `content/theory/**`, `docs/OPEN_FACTS.md` | 15 files since v0.5.0, §4.4 format |
 | **A3** UI shell & design system | `src/core/**` (extends A0), `src/ui/**`, `src/theory/**`, global CSS | sidebar, theory renderer, sim layout, tokens §4.5, `Slider`, `Plot`, `FormulaPanel` |
 | **A4** Sim `faraday` | `src/sims/faraday/**` | |
 | **A5** Sim `lenz` | `src/sims/lenz/**` | |
 | **A6** Sim `alternator-motor` | `src/sims/alternator-motor/**` | |
 | **A7** Sim `kers-braking` | `src/sims/kers-braking/**` | |
 | **A8** Sims `joule-transformer`, `rl-energy` | `src/sims/joule-transformer/**`, `src/sims/rl-energy/**` | |
-| **A9** Quiz / Interrogazione | `content/quiz/**`, `src/quiz/**` | |
+| ~~**A9** Quiz / Interrogazione~~ | ~~`content/quiz/**`, `src/quiz/**`~~ | removed in v0.5.0 (D13) |
+| **P4** Sim `car-dynamics` | `src/sims/car-dynamics/**`, `src/physics/vehicle-dynamics.ts` | Phase 4; the other two Phase 4 sims (`field-biot-savart`, `pmsm-dq`) were removed in v0.5.0 (D13) |
 | **A10** DevOps & repo hygiene | `.github/**`, `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE` | extends `ci.yml`, Pages deploy |
 | **A11** Independent QA | `docs/QA_REPORT.md`, issues list (read-only on source) | must not be an agent that built the code |
 
@@ -110,6 +110,11 @@ the CI wiring).
 
 Dependency graph: **A0 → (A1 ∥ A2 ∥ A3 ∥ A10) → (A4 ∥ A5 ∥ A6 ∥ A7 ∥ A8 ∥ A9) → A11
 → fix loop → release v0.1.0 → Phase 4.**
+
+v0.5.0 "slim" refactor (D13): **R1** owned all app code (`src/**`, `tests/**`, `e2e/**`,
+configs), **R2** owned `content/theory/**`, `docs/**`, `README.md`, `CHANGELOG.md`,
+`CONTRIBUTING.md`; the two worked in parallel against a frozen list of theory ids and
+`SIM_IDS`.
 
 ## 4. Shared contracts (verbatim, frozen)
 
@@ -157,13 +162,16 @@ Additions by A0 (not part of the frozen list, same rules apply):
 ```ts
 export interface SimModule {
   id: string; titleIT: string; summaryIT: string;
-  slideRefs: number[]; theoryId: string;       // links to content/theory/<theoryId>.md
+  theoryId: string;                            // links to content/theory/<theoryId>.md
   mount(host: HTMLElement, ctx: AppContext): Disposable;   // must be idempotent & leak-free
 }
 export interface AppContext { theme: 'dark'|'light'; reducedMotion: boolean; formatIT(n:number, digits?:number, unit?:string): string; }
 export interface Disposable { dispose(): void }   // stops RAF, removes listeners, disposes Three/uPlot resources
 ```
-Each sim exposes parameters through one typed `params` object with `{min,max,step,default,unit,labelIT}` per field so UI, tests and the quiz can read them.
+Each sim exposes parameters through one typed `params` object with `{min,max,step,default,unit,labelIT}` per field so UI and tests can read them.
+
+v0.5.0 (D13): `slideRefs` was removed from `SimModule` — slide numbers are not shown in
+the UI any more; they live only in `docs/PHYSICS.md` and the `@slide` TSDoc tags.
 
 In code (`src/core/types.ts`):
 
@@ -172,7 +180,11 @@ export interface ParamSpec { min: number; max: number; step: number; default: nu
 export type ParamsSchema<T> = Record<keyof T, ParamSpec>;
 ```
 
-**4.4 Theory file format** (frontmatter + Markdown): `id, titleIT, slideRefs[], goal(optional), order, level("base"|"approfondimento")`. Math with `$…$` / `$$…$$`. Fixed sections in this order, using these exact Italian headings: `## In breve`, `## Formule`, `## Spiegazione`, `## Esempio numerico`, `## Collegamento con KERS / MGU-K`, `## Domande da interrogazione`.
+**4.4 Theory file format** (frontmatter + Markdown): `id, titleIT, goal(optional), order, level("base"|"approfondimento")`; `id` equals the file stem. Math with `$…$` / `$$…$$`. Fixed sections in this order, using these exact Italian headings: `## In breve`, `## Formule`, `## Spiegazione`, `## Esempio numerico`, `## Collegamento con KERS / MGU-K`.
+
+v0.5.0 (D13): the `slideRefs` frontmatter key and the sixth section `## Domande da
+interrogazione` were removed; the text does not cite slide numbers. Files where a heading
+does not naturally apply (11–14) keep it with short, honest content.
 
 Example skeleton:
 
@@ -180,7 +192,6 @@ Example skeleton:
 ---
 id: 03-faraday-neumann
 titleIT: Legge di Faraday-Neumann
-slideRefs: [8, 9, 10]
 order: 3
 level: base
 ---
@@ -190,10 +201,9 @@ level: base
 ## Spiegazione
 ## Esempio numerico
 ## Collegamento con KERS / MGU-K
-## Domande da interrogazione
 ```
 
-The six headings are also available in code as `t.theory.headings`
+The five headings are also available in code as `t.theory.headings`
 (`src/core/i18n/it.ts`).
 
 **4.5 Design tokens (A3):** CSS custom properties for colour, spacing, type scale, radius, with dark/light sets; one accent colour; physical quantities have fixed colours across all sims (B = blue, E/emf = amber, current = red, force = green, energy = purple); every colour pair ≥ WCAG AA contrast.
@@ -235,7 +245,7 @@ with a fake clock (see `tests/core/loop.test.ts`).
 
 1. Create `src/sims/<id>/index.ts` where `<id>` is one of `SIM_IDS`
    (`faraday`, `lenz`, `alternator-motor`, `kers-braking`, `joule-transformer`,
-   `rl-energy`).
+   `rl-energy`, `car-dynamics`).
 2. `export default` a `SimModule` whose `id` equals the folder name:
 
    ```ts
@@ -244,7 +254,6 @@ with a fake clock (see `tests/core/loop.test.ts`).
      id: 'faraday',
      titleIT: 'Flusso e legge di Faraday-Neumann',
      summaryIT: '…',
-     slideRefs: [7, 8, 18, 19],
      theoryId: '03-faraday-neumann',
      mount(host, ctx) { /* build scene, createLoop, … */ return { dispose() { /* … */ } }; },
    };
@@ -267,8 +276,9 @@ instances, and empties `host`.
 ## 7. Routing
 
 Hash-based (DECISIONS D5): `#/teoria` (default), `#/teoria/<theoryId>`, `#/sim`,
-`#/sim/<simId>`, `#/interrogazione`. Ids match `/^[a-z0-9][a-z0-9-]*$/`; anything
-else falls back to `#/teoria`. Build links with `formatRoute(route)`; never use
+`#/sim/<simId>`. Ids match `/^[a-z0-9][a-z0-9-]*$/`; anything
+else (including the former `#/interrogazione`, removed in v0.5.0) falls back to
+`#/teoria`. Build links with `formatRoute(route)`; never use
 `href="#anchor"` for in-page navigation.
 
 ## 8. Conventions
@@ -299,7 +309,7 @@ component returns a handle with `dispose()`; call them all from the sim's own
 ### 9.1 Page layout
 
 The shell renders the page header from the `SimModule` metadata (h1 `titleIT`,
-`summaryIT`, "Vai alla teoria" → `#/teoria/<theoryId>`, "Slide N" chips) and hands
+`summaryIT`, "Vai alla teoria" → `#/teoria/<theoryId>`) and hands
 `mount()` an empty `host`. Inside `mount`:
 
 ```ts
@@ -342,7 +352,7 @@ createButton({ labelIT, onClick, variant?: 'primary'|'secondary'|'ghost', icon?,
 createFormulaPanel(layout.formulas, items: FormulaItem[], o?: { titleIT? }):
   { element, update(values: Record<string, number>), flush(), dispose() }
 // FormulaItem: { key, tex, labelIT?, unit?, digits? (2), scale? (×, e.g. 1000 A→mA),
-//                quantity?: 'b'|'emf'|'i'|'f'|'energy', slide?, symbolTex? }
+//                quantity?: 'b'|'emf'|'i'|'f'|'energy', symbolTex? }
 // KaTeX is rendered once; update() may be called every physics step — the DOM is
 // written at most once per animation frame, numbers via formatIT.
 
@@ -353,7 +363,6 @@ createPlot(layout.plots, {
 // uPlot wrapper: ring buffer (RingBuffer), redraw ≤ 1 per frame, ResizeObserver,
 // axis + legend numbers via formatIT, quantity colours, follows the theme toggle.
 
-createSlideChips(refs: number[]): HTMLElement          // "Slide 7" chips
 renderTex(tex, displayMode?): { html, error? }         // KaTeX, trust:false, throwOnError:false
 el(tag, { class, text, attrs, dataset }, children)     // tiny DOM helper; listen(), uniqueId()
 ```
@@ -401,13 +410,11 @@ without camera motion).
   ids (accent-free slugs), TOC from `##`, `NN-slug.md` → `#/teoria/NN-slug`, raw
   HTML escaped, images dropped, unsafe URLs removed, external links open in a new
   tab. `tests/theory/content.test.ts` renders every real theory file and requires
-  zero KaTeX errors and the six §4.4 headings in order.
+  zero KaTeX errors and the five §4.4 headings in order.
 - `page.ts`: index page and section page (TOC buttons + `scrollIntoView`, D5).
 
-### 9.5 Interrogazione extension point (A9)
+### 9.5 Former Interrogazione extension point
 
-`src/core/extensions.ts`: if `src/quiz/index.ts` exists, its **default export**
-must be `{ mount(host: HTMLElement, ctx: AppContext): Disposable }` (type
-`QuizModule`). The shell lazy-loads it on `#/interrogazione`, mounts it into an
-empty `section.quiz-host` (the module renders its own `<h1 tabindex="-1">`) and
-disposes it on navigation. Without the file the page shows "In arrivo".
+Until v0.4.1 the shell lazy-loaded an optional quiz module (`src/quiz/`) on
+`#/interrogazione`. The quiz, its route and the extension point were removed in v0.5.0
+(D13); the sidebar has only **Teoria** and **Simulatori**.

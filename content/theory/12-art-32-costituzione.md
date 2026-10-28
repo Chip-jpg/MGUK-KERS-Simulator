@@ -1,7 +1,6 @@
 ---
 id: 12-art-32-costituzione
 titleIT: Art. 32 della Costituzione – diritto alla salute
-slideRefs: []
 order: 12
 level: base
 ---
@@ -47,22 +46,4 @@ La differenza, circa $1{,}24$ MW, è potenza che non bisogna produrre: in un'ora
 
 ## Collegamento con KERS / MGU-K
 
-L'MGU-K non "salva" la salute da solo: è una tecnologia di efficienza. Il punto per l'interrogazione è il ragionamento: la fisica dell'induzione permette di recuperare energia invece di trasformarla in calore; tecnologie di questo tipo, diffuse nella mobilità (auto ibride ed elettriche, treni), riducono i consumi e quindi le emissioni, che incidono sulla salute come interesse della collettività. Vedi [KERS e MGU-K](10-kers-mguk.md) e il [filo logico](13-filo-logico-interrogazione.md).
-
-## Domande da interrogazione
-
-**D:** Che cosa dice l'articolo 32 della Costituzione?
-
-**R:** Che la Repubblica tutela la salute come fondamentale diritto dell'individuo e interesse della collettività e garantisce cure gratuite agli indigenti; nessuno può essere obbligato a un trattamento sanitario se non per legge, nel rispetto della persona umana.
-
-**D:** Perché si parla di "doppia natura" del diritto alla salute?
-
-**R:** Perché è sia un diritto del singolo, sia un interesse della collettività: la salute di ognuno dipende anche dall'ambiente comune e dai comportamenti degli altri.
-
-**D:** Che cos'è la libertà di cura?
-
-**R:** È il principio del secondo comma: ognuno decide se curarsi; un trattamento obbligatorio è possibile solo per legge e senza violare il rispetto della persona umana.
-
-**D:** Come colleghi l'articolo 32 alla tua ricerca sull'MGU-K?
-
-**R:** Recuperare energia e ridurre le perdite significa consumare meno a parità di servizio e quindi emettere meno inquinanti: si tutela la salute come interesse della collettività. Gli articoli 9 e 41 riformati nel 2022 rafforzano il legame con l'ambiente.
+L'MGU-K non "salva" la salute da solo: è una tecnologia di efficienza. Il punto è il ragionamento: la fisica dell'induzione permette di recuperare energia invece di trasformarla in calore; tecnologie di questo tipo, diffuse nella mobilità (auto ibride ed elettriche, treni), riducono i consumi e quindi le emissioni, che incidono sulla salute come interesse della collettività. Vedi [KERS e MGU-K](10-kers-mguk.md) e il [filo logico](13-filo-logico.md).

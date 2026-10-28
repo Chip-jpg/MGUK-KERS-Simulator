@@ -1,8 +1,7 @@
 ---
-id: 17-dinamica-frenata
+id: 15-dinamica-frenata
 titleIT: Dinamica della frenata – MGU-K e freni insieme
-slideRefs: [16, 17]
-order: 17
+order: 15
 level: approfondimento
 ---
 
@@ -32,7 +31,7 @@ $$\tfrac12 m (v_1^2 - v_2^2) = E_{\text{MGU-K}} + E_{\text{freni}} + E_{\text{ae
 
 **Trasferimento di carico.** In frenata il carico passa dal posteriore all’anteriore, di una quantità $\Delta F_z = F_x h / L$. La **ripartizione di frenata** decide quale asse arriva prima al limite; quella ideale li porta al limite insieme.
 
-**Perché l’MGU-K recupera poco.** Ad alta velocità la potenza di frenata è molto più grande di $P_{\max}/\eta$: l’MGU-K è al limite di potenza. A bassa velocità, con $P_{\max}$ grande, il limite diventa la forza frenante dell’asse posteriore. Il resto è calore (slide 16–17, vedi [circuito RL ed energia](06-circuito-rl-energia-campo.md) e [effetto Joule](08-trasformatore-trasporto-joule.md)).
+**Perché l’MGU-K recupera poco.** Ad alta velocità la potenza di frenata è molto più grande di $P_{\max}/\eta$: l’MGU-K è al limite di potenza. A bassa velocità, con $P_{\max}$ grande, il limite diventa la forza frenante dell’asse posteriore. Il resto è calore (vedi [circuito RL ed energia](06-circuito-rl-energia-campo.md) e [effetto Joule](08-trasformatore-trasporto-joule.md)).
 
 ## Esempio numerico
 
@@ -45,21 +44,3 @@ Con $P_{\max} = 350$ kW in batteria circa 0,55 MJ: meno degli 0,64 MJ del modell
 ## Collegamento con KERS / MGU-K
 
 I valori 120 kW (fino al 2025) e circa 350 kW (dal 2026) sono quelli della sezione [KERS e MGU-K](10-kers-mguk.md). Fonte: [FIA, Power Unit Regulations 2014](https://www.fia.com/sites/default/files/publication/file/FIA%20F1%20Power%20Unit%20leaflet.pdf); [Formula 1, regolamento motori 2026](https://www.formula1.com/en/latest/article/more-efficient-less-fuel-and-carbon-net-zero-7-things-you-need-to-know-about.ZhtzvU3cPCv8QO7jtFxQR). Gli altri parametri sono illustrativi, non dati di una vettura reale.
-
-## Domande da interrogazione
-
-**D:** Perché la deportanza accorcia lo spazio di frenata?
-
-**R:** Aumenta il carico $F_z$ e quindi la forza frenante massima $\mu F_z$. Cresce con $v^2$: conta soprattutto ad alta velocità.
-
-**D:** Che cosa limita l’energia recuperata dall’MGU-K?
-
-**R:** Ad alta velocità il limite di potenza: in batteria al massimo $P_{\max}$. A bassa velocità, con $P_{\max}$ grande, la forza frenante disponibile sull’asse posteriore, dove agisce l’MGU-K.
-
-**D:** Dove va l’energia cinetica in questa frenata?
-
-**R:** In batteria, in perdite Joule dell’MGU-K, in calore nei freni e nella resistenza dell’aria. La somma è $\tfrac12 m(v_1^2 - v_2^2)$, come nel bilancio delle slide 16–17.
-
-**D:** Che cos’è la ripartizione di frenata ideale?
-
-**R:** La quota anteriore che porta entrambi gli assi al limite insieme: vale la quota statica più $\mu h/L$ per il trasferimento di carico.

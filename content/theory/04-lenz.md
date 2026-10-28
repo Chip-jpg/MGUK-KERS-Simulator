@@ -1,14 +1,13 @@
 ---
 id: 04-lenz
 titleIT: Legge di Lenz
-slideRefs: [11]
 order: 4
 level: base
 ---
 
 ## In breve
 
-**Legge di Lenz (slide 11):** la corrente indotta ha un verso tale che il campo magnetico da essa generato **si oppone alla variazione del flusso** che l'ha prodotta. Se il flusso aumenta, il campo indotto è opposto a quello esterno; se diminuisce, è concorde e cerca di "mantenerlo". È il segno meno nella [legge di Faraday-Neumann](03-faraday-neumann.md).
+**Legge di Lenz:** la corrente indotta ha un verso tale che il campo magnetico da essa generato **si oppone alla variazione del flusso** che l'ha prodotta. Se il flusso aumenta, il campo indotto è opposto a quello esterno; se diminuisce, è concorde e cerca di "mantenerlo". È il segno meno nella [legge di Faraday-Neumann](03-faraday-neumann.md).
 
 ## Formule
 
@@ -34,7 +33,7 @@ $$P = \text{f.e.m.} \cdot i = R\,i^2$$
 
 ## Esempio numerico
 
-Nell'esempio della slide 10 il campo **aumenta** da $1{,}2$ a $3{,}5$ mT: la corrente indotta di $62{,}5$ mA crea un campo opposto a quello esterno.
+Nell'esercizio della [sezione su Faraday-Neumann](03-faraday-neumann.md) il campo **aumenta** da $1{,}2$ a $3{,}5$ mT: la corrente indotta di $62{,}5$ mA crea un campo opposto a quello esterno.
 
 Altro caso: spinta di un magnete verso una bobina con $\text{f.e.m.} = 0{,}10\ \text{V}$ e $R = 2{,}0\ \Omega$.
 
@@ -45,21 +44,3 @@ Questi 5 mW non sono "gratis": sono la potenza meccanica che la mano spende cont
 ## Collegamento con KERS / MGU-K
 
 È il cuore della **frenata rigenerativa**. Quando l'MGU-K funziona da generatore, la corrente indotta negli avvolgimenti produce un campo che si oppone alla rotazione del rotore: nasce una **coppia frenante** (coppia di Lenz). Più corrente si manda alla batteria, più forte è la frenata elettrica. Vedi [KERS e MGU-K](10-kers-mguk.md).
-
-## Domande da interrogazione
-
-**D:** Enuncia la legge di Lenz.
-
-**R:** La corrente indotta circola in verso tale da generare un campo magnetico che si oppone alla variazione di flusso che l'ha generata. Matematicamente è il segno meno della legge di Faraday-Neumann.
-
-**D:** Perché la legge di Lenz è legata alla conservazione dell'energia?
-
-**R:** Se la corrente indotta favorisse la variazione, il sistema si autoalimenterebbe creando energia dal nulla. Opponendosi, obbliga chi muove il magnete a compiere lavoro, che si trasforma in energia elettrica e calore.
-
-**D:** Avvicino il polo nord di un magnete a una bobina: cosa succede?
-
-**R:** Il flusso aumenta, la bobina genera un campo opposto: la faccia vicina al magnete diventa un polo nord e lo respinge.
-
-**D:** Che ruolo ha la legge di Lenz nell'MGU-K?
-
-**R:** In frenata la corrente indotta crea una coppia che si oppone alla rotazione: è la coppia frenante che rallenta l'auto mentre la sua energia cinetica viene convertita in energia elettrica.

@@ -1,7 +1,6 @@
 ---
 id: 11-agenda-2030-goal-9
 titleIT: Agenda 2030 – Goal 9 (imprese, innovazione e infrastrutture)
-slideRefs: [21, 22, 23]
 goal: '9'
 order: 11
 level: base
@@ -48,21 +47,3 @@ Su una gara ipotetica di 50 giri il tetto massimo è $50 \cdot 2 = 100$ MJ, cio�
 ## Collegamento con KERS / MGU-K
 
 La catena è: [induzione](03-faraday-neumann.md) → generatore in frenata → energia recuperata invece che dissipata → maggiore efficienza (9.4) grazie a ricerca e innovazione tecnologica (9.5). Il passo successivo è il legame con la salute collettiva: [Art. 32 della Costituzione](12-art-32-costituzione.md).
-
-## Domande da interrogazione
-
-**D:** Perché hai scelto il Goal 9?
-
-**R:** Perché l'MGU-K è un esempio di innovazione tecnologica che aumenta l'efficienza nell'uso dell'energia: realizza il target 9.4 (tecnologie più pulite ed efficienti) e il 9.5 (ricerca e capacità tecnologiche).
-
-**D:** Che cosa chiede il target 9.4?
-
-**R:** Entro il 2030 migliorare le infrastrutture e riconfigurare le industrie in modo sostenibile, aumentando l'efficienza nell'uso delle risorse e adottando tecnologie e processi più puliti.
-
-**D:** Come entra la legge di Lenz nel Goal 9?
-
-**R:** Nei treni Maglev e nei freni a correnti parassite, dove le correnti indotte si oppongono al moto, e nella frenata rigenerativa, dove la coppia di Lenz frena il veicolo producendo energia elettrica.
-
-**D:** Che legame c'è con i Goal 7 e 13?
-
-**R:** Goal 7: efficienza energetica, meno sprechi. Goal 13: meno energia sprecata significa meno combustibile e meno emissioni, quindi un contributo alla lotta al cambiamento climatico.

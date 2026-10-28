@@ -52,8 +52,9 @@ contract.
 
 ## D5 — Hash routing and in-page anchors (2026-10-27)
 
-Routing is hash-based (`#/teoria/<id>`, `#/sim/<id>`, `#/interrogazione`, default
-`#/teoria`) so GitHub Pages needs no rewrites. Consequence: in-page links must
+Routing is hash-based (`#/teoria`, `#/teoria/<id>`, `#/sim`, `#/sim/<id>`, default
+`#/teoria`; since v0.5.0 any other hash, including the former `#/interrogazione`, is rewritten
+to its canonical form) so GitHub Pages needs no rewrites. Consequence: in-page links must
 **not** use `href="#something"` (that would change the route); use buttons +
 `element.scrollIntoView()` / `focus()` instead (e.g. skip link, theory TOC).
 
@@ -89,8 +90,7 @@ function returns the negative `dEk` and zeros elsewhere. Full model in
   `content/theory/` is empty).
 - Accessibility gate: Lighthouse cannot run offline here; `@axe-core/playwright`
   (WCAG 2.0/2.1 A+AA, zero violations) is the accepted proxy.
-- Quiz extension point: `src/quiz/index.ts` default export `{ mount(host, ctx) }`
-  is lazy-loaded on `#/interrogazione`.
+- ~~Quiz extension point~~ — removed in v0.5.0 (D13).
 
 ## D10 — Theory length (2026-10-27, orchestrator)
 
@@ -132,3 +132,32 @@ for now; A11 assesses whether any must be shortened.
   axe `scrollable-region-focusable` without adding a tab stop to every formula. Authors
   should still split formulas that overflow at 1280×720; `e2e/a11y.spec.ts` checks every
   theory section in both themes (QA-021).
+
+## D13 — Slim scope (v0.5.0) (2026-10-28, orchestrator, owner's decision)
+
+The app is reduced to what supports the owner’s own presentation of the topic.
+
+1. **No Interrogazione mode.** The quiz, flashcards and spaced repetition (`#/interrogazione`,
+   `src/quiz/`, `content/quiz/`) are removed, together with the `## Domande da interrogazione`
+   section of every theory file. Theory 13 becomes a plain one-page summary of the logical
+   chain (`13-filo-logico`), with no first-person oral script and no Q&A. _Reason:_ the owner
+   presents the topic personally; the app explains and lets the reader explore, it does not
+   interrogate.
+2. **No slide references in the UI.** Slide chips on theory pages, sim headers and formula
+   panels, the `slideRefs` frontmatter key and every "(slide N)" mention in theory text and
+   sim strings are removed. Slide numbers remain only in developer documentation
+   (`docs/PHYSICS.md`) and in the `@slide` TSDoc tags of `src/physics` (D7 still applies
+   there). _Reason:_ the numbers are only meaningful to someone holding the teacher’s deck;
+   for any other reader they are noise.
+3. **Only one Phase 4 module kept.** `car-dynamics` (theory renamed `15-dinamica-frenata`)
+   stays; `field-biot-savart` and `pmsm-dq` are removed entirely (simulators, physics
+   modules `biotSavart.ts` / `pmsm.ts` and their tests, theory 15 and 16, `PHYSICS.md` §7–§8,
+   README rows, e2e specs). _Reason:_ the content is limited to the thread
+   Faraday → alternatore → MGU-K in frenata → energia e Joule → Goal 9 → Art. 32; finite-coil
+   fields and d-q control of a PMSM are outside it, while car dynamics directly extends the
+   KERS braking model of `kers-braking` (theory 10) with aderenza, aerodinamica and the
+   rear-axle limit of the MGU-K.
+
+Result: 15 theory sections (five fixed headings each, §4.4), 7 simulators, two sidebar
+areas (Teoria, Simulatori). Unknown routes, including the former `#/interrogazione`, fall
+back to `#/teoria`.

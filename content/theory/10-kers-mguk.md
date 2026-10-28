@@ -1,7 +1,6 @@
 ---
 id: 10-kers-mguk
 titleIT: KERS e MGU-K – recupero dell’energia in frenata
-slideRefs: [16, 17, 18, 19]
 goal: '9'
 order: 10
 level: approfondimento
@@ -31,7 +30,7 @@ Potenza media richiesta dalla frenata: $\bar P = \Delta E_k / t_f$. Tempo per as
 
 **Frenata = alternatore + Lenz.** Le ruote fanno girare il rotore: il flusso negli avvolgimenti varia, nasce una f.e.m. ([Faraday-Neumann](03-faraday-neumann.md)) e la corrente indotta, inviata alla batteria, genera una coppia opposta alla rotazione. **Accelerazione = motore + Lorentz.** La corrente della batteria produce una coppia che si somma a quella del motore termico.
 
-**Modello semplificato.** Fisicamente l'MGU-K è una macchina **trifase**, generalmente descritta come **sincrona a magneti permanenti** (PMSM), comandata da un inverter; la spira singola rotante delle slide è un **modello semplificato** dello stesso principio. Il tipo esatto di macchina scelto dai costruttori non è pubblico (Fonte: [Silicon Chip, "The 2024 Formula 1 Power Unit"](https://siliconchip.com.au/Issue/2024/May/The+2024+Formula+1+Power+Unit)) [DA VERIFICARE].
+**Modello semplificato.** Fisicamente l'MGU-K è una macchina **trifase**, generalmente descritta come **sincrona a magneti permanenti** (PMSM), comandata da un inverter; la spira singola rotante è un **modello semplificato** dello stesso principio. Il tipo esatto di macchina scelto dai costruttori non è pubblico (Fonte: [Silicon Chip, "The 2024 Formula 1 Power Unit"](https://siliconchip.com.au/Issue/2024/May/The+2024+Formula+1+Power+Unit)) [DA VERIFICARE].
 
 **Perché il recupero è limitato dalla potenza.** Una frenata forte dissipa milioni di joule in pochi secondi: servono centinaia di kilowatt. L'MGU-K non può inviare alla batteria più di $P_{\max}$ (limite di regolamento, ma anche di corrente e di calore Joule $R\,i^2$ negli avvolgimenti), quindi assorbe al massimo $P_{\max}/\eta$ di potenza meccanica: l'eccedenza va ai **freni a disco** e diventa calore. Anche nell'MGU-K una parte si perde in calore ($\eta < 1$).
 
@@ -60,21 +59,3 @@ Per assorbire tutti i 2,47 MJ alla potenza massima servirebbero $t = 0{,}9 \cdot
 ## Collegamento con KERS / MGU-K
 
 Catena: [flusso](01-flusso-campo-magnetico.md) che varia → f.e.m. → corrente → coppia di Lenz (frenata); al contrario, corrente → forza di Lorentz (spinta). Il bilancio è quello del [circuito RL](06-circuito-rl-energia-campo.md): energia in ingresso = energia utile + calore. Efficienza e innovazione: [Agenda 2030, Goal 9](11-agenda-2030-goal-9.md).
-
-## Domande da interrogazione
-
-**D:** Che cosa fa l'MGU-K in frenata e in accelerazione?
-
-**R:** In frenata è un generatore: la rotazione induce corrente che carica la batteria e la coppia di Lenz rallenta l'auto. In accelerazione è un motore: la corrente della batteria produce, tramite la forza di Lorentz, una coppia che spinge l'auto.
-
-**D:** Calcola l'energia cinetica da smaltire tra 300 e 100 km/h con $m = 800$ kg.
-
-**R:** $\Delta E_k = \tfrac12 \cdot 800\,(83{,}33^2 - 27{,}78^2) \approx 2{,}47$ MJ. La massa è un valore illustrativo.
-
-**D:** Perché l'MGU-K non recupera tutta l'energia della frenata?
-
-**R:** Perché la frenata richiede centinaia di kW per pochi secondi, mentre l'MGU-K può inviare alla batteria al massimo $P_{\max}$ di potenza elettrica (120 kW fino al 2025): in 3 s solo 0,36 MJ in batteria (circa il 15 %). Il resto va in calore nei freni a disco (circa 2,07 MJ) e in perdite Joule dell'MGU-K (circa 0,04 MJ).
-
-**D:** La spira delle slide è un buon modello dell'MGU-K?
-
-**R:** Per il principio sì, ma è semplificato: la macchina reale è trifase, generalmente descritta come sincrona a magneti permanenti, con inverter. Il principio fisico, cioè Faraday-Neumann, Lenz e Lorentz, è lo stesso.

@@ -1,14 +1,13 @@
 ---
 id: 14-glossario
 titleIT: Glossario
-slideRefs: [7, 8, 9, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21]
 order: 14
 level: base
 ---
 
 ## In breve
 
-Definizioni brevi (una riga) dei termini usati nel percorso, con l'unità di misura nel Sistema Internazionale. Utile per il ripasso veloce prima dell'interrogazione. Ogni termine rimanda alla sezione in cui è spiegato.
+Definizioni brevi (una riga) dei termini usati nel percorso, con l'unità di misura nel Sistema Internazionale. Utile per un ripasso veloce. Ogni termine rimanda alla sezione in cui è spiegato.
 
 ## Formule
 
@@ -73,18 +72,4 @@ Conversioni utili:
 
 ## Collegamento con KERS / MGU-K
 
-I termini più importanti per la parte finale sono **MGU-K**, **coppia di Lenz**, **forza di Lorentz**, **rendimento** ed **effetto Joule**: con questi cinque si spiega perché l'energia di frenata viene recuperata solo in parte. Vedi [KERS e MGU-K](10-kers-mguk.md) e il [filo logico](13-filo-logico-interrogazione.md).
-
-## Domande da interrogazione
-
-**D:** Qual è la differenza tra weber e tesla?
-
-**R:** Il tesla misura il campo magnetico $B$; il weber misura il flusso $\Phi_B$. Sono legati da $1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2$.
-
-**D:** Che cosa misura l'henry?
-
-**R:** L'induttanza: un circuito ha induttanza 1 H se una corrente di 1 A produce un flusso concatenato di 1 Wb, cioè se una variazione di corrente di 1 A/s induce 1 V.
-
-**D:** Quanti joule ci sono in un kilowattora?
-
-**R:** $1\ \text{kWh} = 1000\ \text{W} \cdot 3600\ \text{s} = 3{,}6\cdot10^6\ \text{J} = 3{,}6\ \text{MJ}$.
+I termini più importanti per la parte finale sono **MGU-K**, **coppia di Lenz**, **forza di Lorentz**, **rendimento** ed **effetto Joule**: con questi cinque si spiega perché l'energia di frenata viene recuperata solo in parte. Vedi [KERS e MGU-K](10-kers-mguk.md) e il [filo logico](13-filo-logico.md).

@@ -1,7 +1,6 @@
 ---
 id: 09-motore-elettrico-lorentz
 titleIT: Motore elettrico e forza di Lorentz (principio inverso)
-slideRefs: [18, 19]
 order: 9
 level: approfondimento
 ---
@@ -46,22 +45,4 @@ $$M = 20 \cdot 1{,}2 \cdot 200 \cdot 5{,}0\cdot10^{-3} = 24\ \text{N}\cdot\text{
 
 ## Collegamento con KERS / MGU-K
 
-In accelerazione l'MGU-K è un **motore**: tramite l'inverter la batteria alimenta gli avvolgimenti e la forza di Lorentz produce una coppia che si somma a quella del motore termico. Fisicamente è una **macchina trifase**, generalmente descritta come **sincrona a magneti permanenti** (PMSM: magneti sul rotore, tre avvolgimenti sfasati sullo statore; tipo esatto [DA VERIFICARE]). La spira singola delle slide ne è un **modello semplificato**. Vedi [KERS e MGU-K](10-kers-mguk.md).
-
-## Domande da interrogazione
-
-**D:** Perché il motore elettrico è il "principio inverso" dell'induzione?
-
-**R:** Nel generatore un moto in un campo produce corrente; nel motore una corrente in un campo produce forza e quindi moto. La macchina è la stessa, cambia il verso della conversione di energia.
-
-**D:** Scrivi la forza di Lorentz su un filo e spiega da cosa dipende.
-
-**R:** $F = BIL\sin\theta$: proporzionale a campo, corrente e lunghezza del filo; massima con filo perpendicolare al campo, nulla con filo parallelo.
-
-**D:** Che cos'è la forza controelettromotrice di un motore?
-
-**R:** È la f.e.m. indotta nelle spire che ruotano nel campo; per Lenz si oppone alla corrente di alimentazione. Moltiplicata per la corrente dà la potenza meccanica prodotta.
-
-**D:** La spira delle slide è uguale all'MGU-K?
-
-**R:** No, è un modello semplificato: l'MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti, ma il principio fisico (Faraday-Neumann, Lenz, Lorentz) è lo stesso.
+In accelerazione l'MGU-K è un **motore**: tramite l'inverter la batteria alimenta gli avvolgimenti e la forza di Lorentz produce una coppia che si somma a quella del motore termico. Fisicamente è una **macchina trifase**, generalmente descritta come **sincrona a magneti permanenti** (PMSM: magneti sul rotore, tre avvolgimenti sfasati sullo statore; tipo esatto [DA VERIFICARE]). Il modello a una spira ne è una **versione semplificata**. Vedi [KERS e MGU-K](10-kers-mguk.md).

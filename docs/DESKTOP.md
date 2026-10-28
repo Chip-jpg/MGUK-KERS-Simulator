@@ -78,11 +78,10 @@ vanno committati (si tengono solo `32x32`, `64x64`, `128x128`, `128x128@2x`, `ic
   percorsi relativi che si risolvono sull’origine dell’app.
 - Il router è **hash-based** (`#/teoria`, `#/sim/…`): il frammento non viene mai richiesto al
   “server”, quindi ricaricare o aprire un percorso profondo carica sempre `index.html`.
-- I moduli caricati a richiesta (`import()`) e il **Web Worker** di `field-biot-savart` sono
-  file reali in `assets/` (`new Worker(new URL('worker-….js', import.meta.url), { type:
-'module' })`): stessa origine, nessun URL `blob:`. Tauri li serve con il MIME type corretto
-  (`text/javascript`), requisito dei moduli ES.
-- `localStorage` (tema, progressi del quiz) è legato all’origine: resta tra un avvio e
+- I moduli caricati a richiesta (`import()`) sono file reali in `assets/`: stessa origine,
+  nessun URL `blob:`. Tauri li serve con il MIME type corretto (`text/javascript`),
+  requisito dei moduli ES.
+- `localStorage` (tema) è legato all’origine: resta tra un avvio e
   l’altro. Cambiare `app.windows[].useHttpsScheme` cambierebbe l’origine e farebbe perdere
   i dati salvati: non va modificato.
 - I link esterni (fonti nella teoria e nei simulatori) **non** sostituiscono la finestra
@@ -101,7 +100,7 @@ ciò che la build in `dist/` usa davvero:
 | `style-src`   | `'self' 'unsafe-inline'`           | KaTeX, uPlot e l’interfaccia impostano attributi `style` dinamici.                                                                                                                 |
 | `img-src`     | `'self' data: blob:`               | immagini/texture inline di Three.js e uPlot.                                                                                                                                       |
 | `font-src`    | `'self' data:`                     | font KaTeX inclusi in `assets/` (e un fallback `data:font/woff` nel CSS).                                                                                                          |
-| `worker-src`  | `'self'`                           | Web Worker di `field-biot-savart` servito da `assets/`.                                                                                                                            |
+| `worker-src`  | `'self'`                           | dalla v0.5.0 nessun Web Worker è in uso (era quello di `field-biot-savart`, rimosso); la direttiva resta limitata alla stessa origine.                                             |
 | `connect-src` | `'self' ipc: http://ipc.localhost` | IPC interno di Tauri e richieste alla stessa origine (polyfill `modulepreload` di Vite); nessuna richiesta verso Internet.                                                         |
 | `object-src`  | `'none'`                           | nessun plugin.                                                                                                                                                                     |
 | `base-uri`    | `'self'`                           | impedisce di spostare la base dei percorsi relativi.                                                                                                                               |

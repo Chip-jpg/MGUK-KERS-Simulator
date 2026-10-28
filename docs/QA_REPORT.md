@@ -1,5 +1,10 @@
 # QA report — A11 independent verification
 
+> **Note (v0.5.0):** the Interrogazione mode (quiz) and the modules `field-biot-savart` /
+> `pmsm-dq` (theory 15 and 16) were removed by design ([D13](./DECISIONS.md)), and slide
+> references are no longer shown in the UI. Findings below about the quiz, those two modules
+> or slide chips are historical and obsolete; the rest of the history is kept unchanged.
+
 ## Phase 4 round — v0.3.0 / v0.3.1 (Biot-Savart, PMSM d-q, car dynamics)
 
 Date: 2026-10-28 · Base: `claude/new-session-u560qi` @ `8aa9aae` (v0.3.1) · Branch: `qa/A11-p4`.

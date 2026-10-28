@@ -1,13 +1,12 @@
 # Contribuire a KERS Lab
 
 Grazie per l'interesse! Queste regole tengono la cronologia pulita e il codice
-coerente con le slide del corso. _English hints are in italics._
+coerente con il programma del corso. _English hints are in italics._
 
 ## Lingue
 
 - **Interfaccia e contenuti in italiano**: ogni testo visibile all'utente sta in
-  `src/core/i18n/it.ts` (la teoria in `content/theory/*.md`, il quiz in
-  `content/quiz/`). Numeri sempre con `formatIT` (virgola decimale, unità di misura).
+  `src/core/i18n/it.ts` (la teoria in `content/theory/*.md`). Numeri sempre con `formatIT` (virgola decimale, unità di misura).
 - **Codice, identificatori, commenti e messaggi di commit in inglese.**
 
 _Italian for user-facing text, English for code and commits._
@@ -58,7 +57,6 @@ improvvisare. Le decisioni accettate finiscono in `docs/DECISIONS.md`.
 | `content/theory/**`, `docs/OPEN_FACTS.md`                                                       | A2 — teoria                    |
 | `src/core/**`, `src/ui/**`, `src/theory/**`, CSS globale                                        | A3 — shell e design system     |
 | `src/sims/<id>/**`                                                                              | A4–A8 — un simulatore per task |
-| `content/quiz/**`, `src/quiz/**`                                                                | A9 — Interrogazione            |
 | `.github/**`, `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `commitlint.config.js` | A10 — DevOps                   |
 
 _Only edit the paths your task owns; request contract changes instead of improvising._
@@ -84,7 +82,7 @@ _Every change ships with tests; CI must be green._
 
 `src/physics/**` è **TypeScript puro**: unità SI, funzioni pure, nessuno stato globale.
 Vietati DOM (`window`, `document`…), Three.js, uPlot, KaTeX, marked, orologi
-(`Date`, `performance`, timer) e import da `core/ ui/ sims/ theory/ quiz/`. La regola
+(`Date`, `performance`, timer) e import da `core/ ui/ sims/ theory/`. La regola
 è imposta da ESLint. Ogni funzione esportata ha un TSDoc con formula, unità e
 `@slide N`. L'integrazione nel tempo usa RK4 a passo fisso `dt = 1/240 s`.
 
@@ -97,7 +95,13 @@ _Physics is pure, deterministic, SI-only; ESLint enforces it._
 - Nessun dato regolamentare o numerico senza fonte: se non è verificabile, marcalo
   `[DA VERIFICARE]` e aggiungilo a `docs/OPEN_FACTS.md`.
 - Nessun logo, marchio o foto protetti (F1, FIA, scuderie); niente slide del corso nel
-  repository, solo il numero di slide.
+  repository.
+- Niente riferimenti alle slide nell'interfaccia né nel testo della teoria (niente chip
+  "Slide N", niente "(slide N)"): i numeri di slide restano solo in `docs/PHYSICS.md` e nei
+  tag TSDoc `@slide` di `src/physics` ([D13](docs/DECISIONS.md)).
+- Ogni scheda di teoria ha i cinque titoli fissi, nell'ordine: `## In breve`, `## Formule`,
+  `## Spiegazione`, `## Esempio numerico`, `## Collegamento con KERS / MGU-K`; niente
+  sezioni di domande e risposte.
 - Mai committare segreti, token, `.env`, `node_modules` o file binari pesanti.
 
 ## Segnalazioni
