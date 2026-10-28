@@ -33,6 +33,19 @@ async function expectNoHScroll(page: Page, label: string): Promise<void> {
       iw: window.innerWidth,
     }));
     expect(sw, `horizontal scroll (${label}, ${theme}): ${sw} > ${iw}`).toBeLessThanOrEqual(iw);
+    // QA-019: no content may spill past a side-panel card either.
+    const cards = await page
+      .locator('.quiz__side > *')
+      .evaluateAll((els) =>
+        els.map((e) => ({ cls: e.className, sw: e.scrollWidth, cw: e.clientWidth })),
+      );
+    expect(cards.length, `side cards (${label})`).toBeGreaterThan(0);
+    for (const c of cards) {
+      expect(
+        c.sw,
+        `side card overflow (${label}, ${theme}, .${c.cls}): ${c.sw} > ${c.cw}`,
+      ).toBeLessThanOrEqual(c.cw);
+    }
   }
 }
 

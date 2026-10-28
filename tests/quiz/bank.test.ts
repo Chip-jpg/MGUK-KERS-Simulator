@@ -187,6 +187,17 @@ describe('no ASCII pseudo-notation outside KaTeX (QA-016)', () => {
     );
     for (const s of strings) expect(PSEUDO.test(s), s).toBe(false);
   });
+
+  it('static question prose uses the typographic apostrophe ’ outside KaTeX', () => {
+    for (const q of STATIC_QUESTIONS) {
+      for (const txt of texts(q)) {
+        for (const part of splitMath(txt).filter((p) => !p.math)) {
+          expect(part.text.includes("'"), `${q.id}: "${part.text}"`).toBe(false);
+        }
+      }
+    }
+    expect(JSON.stringify(TEXT).includes("'")).toBe(false);
+  });
 });
 
 describe('KERS wording consistent with D8 and theory 10', () => {

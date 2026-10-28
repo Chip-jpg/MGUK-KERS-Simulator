@@ -113,7 +113,7 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
 
 ## Roadmap
 
-- [ ] **v0.1.0 — Fasi 1–3**: shell dell'app, motore fisico, teoria (14 schede), sei
+- [x] ✅ **v0.1.0 — Fasi 1–3** (completata): shell dell'app, motore fisico, teoria (14 schede), sei
       simulatori, modalità Interrogazione.
 - [ ] **v0.2.0 — Rifinitura**: correzioni dalla revisione indipendente, accessibilità,
       prestazioni, sito pubblicato su GitHub Pages.

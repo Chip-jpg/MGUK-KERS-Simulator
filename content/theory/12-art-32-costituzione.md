@@ -1,6 +1,6 @@
 ---
 id: 12-art-32-costituzione
-titleIT: Art. 32 della Costituzione - diritto alla salute
+titleIT: Art. 32 della Costituzione – diritto alla salute
 slideRefs: []
 order: 12
 level: base

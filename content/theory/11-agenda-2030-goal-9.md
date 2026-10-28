@@ -1,6 +1,6 @@
 ---
 id: 11-agenda-2030-goal-9
-titleIT: Agenda 2030 - Goal 9 (imprese, innovazione e infrastrutture)
+titleIT: Agenda 2030 – Goal 9 (imprese, innovazione e infrastrutture)
 slideRefs: [21, 22, 23]
 goal: '9'
 order: 11

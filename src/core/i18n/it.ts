@@ -8,8 +8,8 @@
 export const it = {
   app: {
     name: 'KERS Lab',
-    tagline: "Dall'induzione di Faraday all'MGU-K",
-    documentTitle: "KERS Lab — Dall'induzione di Faraday all'MGU-K",
+    tagline: 'Dall’induzione di Faraday all’MGU-K',
+    documentTitle: 'KERS Lab — Dall’induzione di Faraday all’MGU-K',
     skipToContent: 'Vai al contenuto',
     loading: 'Caricamento…',
     offlineNote: 'Funziona anche senza connessione.',

@@ -1,6 +1,6 @@
 ---
 id: 10-kers-mguk
-titleIT: KERS e MGU-K - recupero dell'energia in frenata
+titleIT: KERS e MGU-K – recupero dell'energia in frenata
 slideRefs: [16, 17, 18, 19]
 goal: '9'
 order: 10

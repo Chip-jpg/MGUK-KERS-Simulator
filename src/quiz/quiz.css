@@ -39,6 +39,17 @@
   max-width: 100%;
 }
 
+/* QA-019: <fieldset> defaults to min-inline-size: min-content and grid items to
+   min-width: auto, so the toggle never wrapped and the side panel content spilled
+   past its card at 1280×720. Let every control shrink to the card width. */
+.quiz .segmented,
+.quiz__controls > *,
+.quiz__filters > *,
+.quiz__field > * {
+  min-width: 0;
+  min-inline-size: 0;
+}
+
 .quiz__controls,
 .quiz__filters {
   display: grid;

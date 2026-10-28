@@ -7,8 +7,26 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-28
+
+Prima release: Fasi 1–3 complete.
+
 ### Aggiunto
 
+- Shell dell'app e design system: navigazione Teoria / Simulatori / Interrogazione,
+  tema chiaro/scuro, token di design, componenti condivisi (slider con campo numerico,
+  selettori, grafici, pannello formule KaTeX), tutto offline senza richieste esterne.
+- Motore fisico (`src/physics`) con copertura dei test al 100 %: flusso, Faraday-Neumann,
+  Lenz, autoinduzione e circuito RL, alternatore e motore, trasformatore e perdite Joule,
+  frenata con recupero KERS/MGU-K.
+- Teoria in 14 schede (dal flusso del campo magnetico al glossario), con formule KaTeX,
+  riferimenti alle slide, fonti e marcatori `[DA VERIFICARE]`.
+- Sei simulatori: "Flusso e legge di Faraday-Neumann", "Legge di Lenz",
+  "Autoinduzione, circuito RL, energia", "Alternatore ⇄ motore (MGU-K)",
+  "Trasformatore e perdite Joule", "Frenata e recupero di energia".
+- Modalità Interrogazione con 73 domande (53 fisse a scelta multipla e a voce, 20
+  generatori numerici con parametri casuali e soluzione passo passo), ripasso a scatole
+  di Leitner e simulazione d'interrogazione da 10 domande.
 - Scaffold del progetto (A0): Vite 5 + TypeScript strict, ESLint + Prettier, Vitest e
   Playwright; shell dell'app con router a hash, tema chiaro/scuro, formattazione
   numerica italiana (`formatIT`) e testi in `i18n/it.ts`; registro dei simulatori con
@@ -54,9 +72,27 @@ Correzioni dalla revisione QA indipendente, round 1 (`docs/QA_REPORT.md`):
 - QA-014: schede 09 e 10 più concise, fonti e marcatori invariati.
 - QA-015: conteggio delle formule nella scheda 13, "ed energia", spaziatura "63,2 %".
 - QA-016: notazione nei testi dell'interfaccia (pedici, esponenti, "1 spira", apostrofi,
-  trattini nei titoli).
+  trattini nei titoli); completata nel round 2 con il trattino lungo " – " nei titoli
+  delle schede 10, 11 e 12 e l'apostrofo tipografico (’) nel sottotitolo dell'app e nei
+  testi del quiz.
 - QA-017: etichette delle scene che non si sovrappongono più; grafico energie nascosto
   prima della chiusura dell'interruttore.
 - QA-018: pannello formule e letture aggiornati nello stesso fotogramma.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/commits/HEAD
+Correzioni dal round 2 della revisione QA:
+
+- QA-019: il pannello laterale dell'Interrogazione non deborda più dalla propria scheda a
+  1280×720 (il selettore "Allenamento / Simulazione interrogazione" va a capo).
+
+### Note
+
+- Dati ancora `[DA VERIFICARE]` (dettagli in `docs/OPEN_FACTS.md`): energia recuperabile
+  per giro nel 2026 (circa 7–9 MJ, variabile per evento); tipo di macchina dell'MGU-K
+  ("generalmente descritta come sincrona a magneti permanenti"); punteggiatura della
+  citazione dei traguardi 9.4 e 9.5 dell'Agenda 2030; capacità utile dell'accumulatore
+  2014–2025 (non usata nei testi).
+- I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
+  misure in Chromium headless.
+
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/releases/tag/v0.1.0
