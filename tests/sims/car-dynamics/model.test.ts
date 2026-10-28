@@ -43,6 +43,16 @@ describe('car-dynamics parameters', () => {
     }
   });
 
+  it('η slider stays in a meaningful range: the MGU-K never swallows the whole rear axle (QA-029)', () => {
+    expect(params.eta.min).toBe(0.5);
+    expect(params.eta.max).toBe(1);
+    const z = summarize({ ...defaultParams(), eta: params.eta.min }, true).zone;
+    expect(z.eStored).toBeGreaterThan(0);
+    expect(z.eStored).toBeGreaterThanOrEqual(z.eMgukLoss); // η ≥ 0,5
+    expect(z.eStored).toBeLessThanOrEqual(120e3 * z.tBrake * (1 + 1e-9));
+    expect(z.eBrakes).toBeGreaterThan(z.eMguk); // the friction brakes still do most of the work
+  });
+
   it('Italian number round-trip of every slider value (QA-001)', () => {
     for (const [key, spec] of Object.entries(params)) {
       const digits = stepDigits(spec.step);

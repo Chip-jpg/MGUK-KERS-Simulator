@@ -9,6 +9,10 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     sourcemap: true,
+    // The only chunk above Vite's 500 kB default is three.js (~511 kB minified),
+    // which is lazy-loaded with the 3D simulators and is not in the initial
+    // bundle (DECISIONS D4/D9/D12). Any other chunk above 600 kB still warns.
+    chunkSizeWarningLimit: 600,
   },
   test: {
     // Pure-logic tests run in Node. UI tests opt into a DOM with the per-file

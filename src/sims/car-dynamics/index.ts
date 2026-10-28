@@ -94,7 +94,7 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   },
   {
     key: 'fx',
-    tex: 'F_x \\le \\mu\\,F_z,\\quad F_{x,ant} = \\beta\\,F_x',
+    tex: 'F_x \\le \\mu\\,F_z,\\quad F_{x,\\text{ant}} = \\beta\\,F_x',
     symbolTex: 'F_x',
     labelIT: 'Forza frenante degli pneumatici (asse al limite in κ*, ripartizione β)',
     unit: 'kN',
@@ -105,7 +105,7 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   {
     key: 'kappa',
     tex: 'F_x = F_z\\,\\mu\\,\\sin\\!\\big(C\\arctan(B\\kappa - E(B\\kappa - \\arctan B\\kappa))\\big)',
-    symbolTex: '\\kappa_{post}',
+    symbolTex: '\\kappa_{\\text{post}}',
     labelIT: 'Pacejka semplificata: scorrimento delle ruote posteriori',
     unit: '%',
     scale: 100,
@@ -113,8 +113,8 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   },
   {
     key: 'fMguk',
-    tex: 'F_{MGU\\text{-}K} = \\min\\!\\big(F_{x,post},\\ P_{\\max}/(\\eta\\,v)\\big)',
-    symbolTex: 'F_{MGU\\text{-}K}',
+    tex: 'F_{\\text{MGU-K}} = \\min\\!\\big(F_{x,\\text{post}},\\ P_{\\max}/(\\eta\\,v)\\big)',
+    symbolTex: 'F_{\\text{MGU-K}}',
     labelIT: 'MGU-K solo sull’asse posteriore (Pₘₐₓ è il limite elettrico)',
     unit: 'kN',
     scale: 1e-3,
@@ -132,8 +132,8 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   },
   {
     key: 'pBatt',
-    tex: 'P_{batt} = \\eta\\,F_{MGU\\text{-}K}\\,v \\le P_{\\max}',
-    symbolTex: 'P_{batt}',
+    tex: 'P_{\\text{batt}} = \\eta\\,F_{\\text{MGU-K}}\\,v \\le P_{\\max}',
+    symbolTex: 'P_{\\text{batt}}',
     labelIT: 'Potenza elettrica verso la batteria',
     unit: 'kW',
     scale: 1e-3,
@@ -142,7 +142,7 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   },
   {
     key: 'dEk',
-    tex: '\\Delta E_k = E_{MGU\\text{-}K} + E_{freni} + E_{aero}',
+    tex: '\\Delta E_k = E_{\\text{MGU-K}} + E_{\\text{freni}} + E_{\\text{aero}}',
     symbolTex: '\\Delta E_k',
     labelIT: 'Bilancio energetico dell’intera frenata',
     unit: 'MJ',
@@ -153,8 +153,8 @@ export const FORMULA_ITEMS: FormulaItem[] = [
   },
   {
     key: 'eBatt',
-    tex: 'E_{batt} = \\eta\\,E_{MGU\\text{-}K} \\le P_{\\max}\\,t_f',
-    symbolTex: 'E_{batt}',
+    tex: 'E_{\\text{batt}} = \\eta\\,E_{\\text{MGU-K}} \\le P_{\\max}\\,t_f',
+    symbolTex: 'E_{\\text{batt}}',
     labelIT: 'Energia elettrica accumulata nella frenata',
     unit: 'MJ',
     scale: 1e-6,

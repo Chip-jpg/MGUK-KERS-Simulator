@@ -250,10 +250,8 @@ for (const theme of ['dark', 'light'] as const) {
         (v) => `${v.impact} ${v.id}: ${v.nodes.length} × ${v.nodes[0]?.target.join(' ')}`,
       );
       if (summary.length) console.warn(`[axe ${theme} ${mode}]\n  ${summary.join('\n  ')}`);
-      const serious = results.violations.filter(
-        (v) => v.impact === 'serious' || v.impact === 'critical',
-      );
-      expect(serious, summary.join('\n')).toEqual([]);
+      // D9: zero violations of any impact (QA-021).
+      expect(results.violations, summary.join('\n')).toEqual([]);
     });
   }
 }

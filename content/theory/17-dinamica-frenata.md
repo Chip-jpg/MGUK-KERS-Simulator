@@ -22,13 +22,15 @@ $$F_x = F_z\,\mu \sin\big(C \arctan(B\kappa - E(B\kappa - \arctan B\kappa))\big)
 
 MGU-K sull’asse posteriore ($P_{\max}$ è il limite **elettrico**) e bilancio energetico:
 
-$$F_{MGU\text{-}K} = \min\Big(F_{x,post},\ \frac{P_{\max}}{\eta\, v}\Big) \qquad \tfrac12 m (v_1^2 - v_2^2) = E_{MGU\text{-}K} + E_{freni} + E_{aero}$$
+$$F_{\text{MGU-K}} = \min\Big(F_{x,\text{post}},\ \frac{P_{\max}}{\eta\, v}\Big)$$
+
+$$\tfrac12 m (v_1^2 - v_2^2) = E_{\text{MGU-K}} + E_{\text{freni}} + E_{\text{aero}}$$
 
 ## Spiegazione
 
 **Aderenza e ABS ideale.** La forza frenante cresce con lo scorrimento $\kappa$ fino al picco, poi cala: un ABS ideale lavora vicino a $\kappa^*$.
 
-**Trasferimento di carico.** In frenata il carico passa dal posteriore all’anteriore ($\Delta F_z = F_x h / L$). La **ripartizione di frenata** decide quale asse arriva prima al limite; quella ideale li porta al limite insieme.
+**Trasferimento di carico.** In frenata il carico passa dal posteriore all’anteriore, di una quantità $\Delta F_z = F_x h / L$. La **ripartizione di frenata** decide quale asse arriva prima al limite; quella ideale li porta al limite insieme.
 
 **Perché l’MGU-K recupera poco.** Ad alta velocità la potenza di frenata è molto più grande di $P_{\max}/\eta$: l’MGU-K è al limite di potenza. A bassa velocità, con $P_{\max}$ grande, il limite diventa la forza frenante dell’asse posteriore. Il resto è calore (slide 16–17, vedi [circuito RL ed energia](06-circuito-rl-energia-campo.md) e [effetto Joule](08-trasformatore-trasporto-joule.md)).
 

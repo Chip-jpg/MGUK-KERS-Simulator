@@ -25,6 +25,7 @@ import {
   relDiff,
   type FieldRequest,
 } from './model';
+import { singularTurnsScale } from '../shared/turns';
 import {
   DEFAULT_GEOMETRY,
   GEOMETRY_OPTIONS,
@@ -58,6 +59,8 @@ export interface MountOptions {
 /** Live workers across mounts (leak check). */
 export const workerCounter = { alive: 0 };
 let mounted = 0;
+/** One live mount per host (QA-030): a second mount() disposes the first (no second Worker). */
+const mountedHosts = new WeakMap<HTMLElement, Disposable>();
 
 interface FieldService extends Disposable {
   readonly kind: 'worker' | 'main-thread';
@@ -201,6 +204,7 @@ export function mountBiot(
   ctx: AppContext,
   options: MountOptions = {},
 ): Disposable {
+  mountedHosts.get(host)?.dispose(); // idempotent: a second mount replaces the first
   mounted++;
   const layout = createSimLayout(host, { modelNoteIT: MODEL_NOTE_IT });
   const p: BiotParams = defaultParams();
@@ -243,6 +247,7 @@ export function mountBiot(
         paramsChanged();
       },
     });
+    singularTurnsScale(sl.element); // "1 spira", not "1 spire" (QA-025)
     sliders.set(key, sl);
     return sl;
   };
@@ -548,7 +553,7 @@ export function mountBiot(
     showArrows,
   }));
 
-  return {
+  const handle: Disposable = {
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -572,8 +577,11 @@ export function mountBiot(
       layout.dispose();
       host.replaceChildren();
       unregisterDebug();
+      if (mountedHosts.get(host) === handle) mountedHosts.delete(host);
     },
   };
+  mountedHosts.set(host, handle);
+  return handle;
 }
 
 const sim: SimModule = {

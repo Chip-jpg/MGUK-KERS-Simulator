@@ -7,6 +7,30 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Corretto
+
+- Teoria 17: la formula della forza MGU-K e il bilancio energetico sono su due righe, senza
+  scorrimento orizzontale a 1280×720; le formule più larghe della colonna diventano regioni
+  raggiungibili da tastiera (WCAG 2.1.1) (QA-020).
+- Test di accessibilità: axe su tutte le sezioni di teoria 01–17 e sull’indice, tema chiaro e
+  scuro; zero violazioni di qualsiasi gravità anche per "pmsm-dq" e "car-dynamics" (QA-021).
+- `docs/PHYSICS.md`: potenze dell’esempio PMSM ricalcolate (≈ 147 kW alla velocità base,
+  ≈ 191–199 kW tra 2 e 3,2 volte) (QA-022).
+- Biot-Savart: le linee di campo partono dal piano x = 0 ma nel solenoide ne escono un poco;
+  descrizione corretta in `docs/PHYSICS.md` e nel modello (QA-023).
+- `pmsmMtpa` con ψₘ = 0 e L_d = L_q restituisce i_d = 0, i_q = ±I invece di NaN (QA-024).
+- Biot-Savart: scala del cursore "1 spira"; virgolette tipografiche nella fonte 2026 dei
+  preset (QA-025).
+- Teoria 17 e "car-dynamics": pedici testuali in tondo (E_freni, F_x,post, P_batt …); niente
+  a capo dopo "(" nella Spiegazione (QA-026).
+- `docs/OPEN_FACTS.md`: colonna "Where used" aggiornata per le sezioni 15–17 e i simulatori
+  (QA-027).
+- Build: soglia di avviso dei chunk a 600 kB, motivata in D12 (il solo chunk grande è three.js,
+  caricato su richiesta) (QA-028).
+- "car-dynamics": rendimento η minimo 0,5 (QA-029).
+- Biot-Savart: un secondo montaggio sullo stesso contenitore sostituisce il primo (un solo
+  Web Worker) (QA-030).
+
 ## [0.3.1] - 2026-10-28
 
 Fase 4, terzo modulo di approfondimento.

@@ -225,7 +225,7 @@ test('fps measurement (headless SwiftShader: informative only)', async ({ page }
 });
 
 for (const theme of ['dark', 'light'] as const) {
-  test(`axe ${theme}: no serious/critical WCAG A/AA violations`, async ({ page }) => {
+  test(`axe ${theme}: no WCAG A/AA violations`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto(URL);
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
@@ -238,9 +238,7 @@ for (const theme of ['dark', 'light'] as const) {
       (v) => `${v.impact} ${v.id}: ${v.nodes.length} × ${v.nodes[0]?.target.join(' ')}`,
     );
     if (summary.length) console.warn(`[axe ${theme}]\n  ${summary.join('\n  ')}`);
-    const serious = results.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-    expect(serious, summary.join('\n')).toEqual([]);
+    // D9: zero violations of any impact (QA-021).
+    expect(results.violations, summary.join('\n')).toEqual([]);
   });
 }

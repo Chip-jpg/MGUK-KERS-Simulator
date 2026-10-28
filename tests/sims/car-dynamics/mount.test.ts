@@ -47,6 +47,10 @@ describe('car-dynamics mount (DOM, no WebGL)', () => {
     for (const f of FORMULA_ITEMS) {
       expect(f.labelIT ?? '').not.toMatch(/[A-Za-z]_[A-Za-z0-9{(]|\^/);
       expect(f.labelIT ?? '').not.toContain("'");
+      // word subscripts upright via \text{} (QA-026): no _{post}, _{batt}, x,post …
+      for (const tex of [f.tex, f.symbolTex ?? '']) {
+        expect(tex).not.toMatch(/_\{(?:[^{}]*,)?[a-z]{3,}/);
+      }
     }
 
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

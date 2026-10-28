@@ -5,6 +5,7 @@ import { createSlideChips } from '../ui/chips';
 import { el, listen } from '../ui/dom';
 import { neighbours, type TheoryDoc } from './content';
 import { renderMarkdown } from './markdown';
+import { watchScrollableMath } from './scrollable';
 
 /** Theory index: intro + ordered list of sections (or an "in preparazione" note). */
 export function renderTheoryIndex(host: HTMLElement, docs: readonly TheoryDoc[]): Disposable {
@@ -139,6 +140,8 @@ export function renderTheoryPage(
       article,
     ]),
   );
+  // Overflowing formulas become focusable scroll regions (QA-020, WCAG 2.1.1).
+  offs.push(watchScrollableMath(body));
 
   return {
     dispose() {

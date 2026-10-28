@@ -239,7 +239,9 @@ stops field lines well before (0,06 R).
 **Simulator choices (`src/sims/field-biot-savart/model.ts`).** Loop and Helmholtz are computed as
 one turn carrying N·I (exactly equivalent for coincident turns); the solenoid is the real helix (36
 segments/turn), so its on-axis profile shows the small ripple of the discrete turns. Field lines are
-traced in a Web Worker in the meridian plane x = 0 from seeds on the mid-plane inside the coil; they
+traced in 3D in a Web Worker from seeds in the meridian plane x = 0, on the mid-plane inside the
+coil. Loop and Helmholtz lines stay in that plane by symmetry; the helix's net axial current makes
+the solenoid lines leave it slightly (up to ≈ 12 mm ≈ 0,4 R at the defaults; drawn as 3D curves). They
 stop 0,06 R from the wire and at the edge of the view box. The dashes move with local speed ∝ \|B\|
 (clamped to 0,15–4 × B_centre) using the flow coordinate φ(s) = ∫ ds / v(s).
 
@@ -300,9 +302,10 @@ motoring one; with $R_s > 0$ braking has slightly more voltage margin ($R_s i_q$
 
 **Envelope example** (illustrative machine of the sim, not the MGU-K: $R_s = 0{,}02\ \Omega$,
 $L_d = 0{,}20$ mH, $L_q = 0{,}35$ mH, $\psi_m = 0{,}08$ Wb, $p = 4$, $I_\max = 400$ A,
-$V_{DC} = 600$ V): MTPA torque 229 N·m up to the base speed ≈ 6130 giri/min (≈ 144 kW); in
-field weakening the power rises to ≈ 185–199 kW between 2 and 3,2 × base speed (within ±5 %
-of the value at 2,5 × base, tested). The characteristic current $\psi_m/L_d = 400$ A equals
+$V_{DC} = 600$ V): MTPA torque 229,3 N·m up to the base speed 641,7 rad/s ≈ 6130 giri/min
+(≈ 147 kW); in field weakening the power rises to ≈ 181 kW at 1,5 × and ≈ 191–199 kW between 2
+and 3,2 × base speed (191,3 kW at 2 ×, 198,6 kW at 3,2 ×; within ±5 % of the value at 2,5 ×
+base, tested). The characteristic current $\psi_m/L_d = 400$ A equals
 $I_\max$, which is why the power stays nearly constant; with $I_\max > \psi_m/L_d$ an MTPV
 region appears at high speed, with $I_\max < \psi_m/L_d$ the machine has a finite maximum
 speed (`infeasible` beyond it).

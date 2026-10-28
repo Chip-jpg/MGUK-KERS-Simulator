@@ -9,8 +9,11 @@
  * - `loop` and `helmholtz`: N coincident turns are computed as ONE turn carrying
  *   N·I (exactly equivalent for coincident turns, N times cheaper);
  * - `solenoid`: the real helix with N turns (pitch l/N), leads not modelled;
- * - field lines are traced in the meridian plane x = 0 (seeds on the mid-plane
- *   z = 0, inside the coil), with RK4 on the unit field direction.
+ * - field lines are seeded in the meridian plane x = 0 (on the mid-plane z = 0,
+ *   inside the coil) and traced in 3D with RK4 on the unit field direction. For
+ *   loop and Helmholtz they stay in that plane (symmetry); for the solenoid the
+ *   helix's net axial current adds an azimuthal field that makes the lines leave
+ *   it slightly (≈ 0,4 R at the defaults). The polylines are real 3D curves.
  */
 import {
   MU_0,

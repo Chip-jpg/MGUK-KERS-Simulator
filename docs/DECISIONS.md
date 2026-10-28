@@ -119,3 +119,16 @@ for now; A11 assesses whether any must be shortened.
   `connect-src 'self' ipc: http://ipc.localhost` ('self' for Vite's modulepreload polyfill); `object-src 'none'`; `base-uri 'self'`;
   `form-action 'none'`. Derived by grepping `dist/` (no `eval`, no `blob:` worker, no remote
   network fetch). Details in `docs/DESKTOP.md`.
+
+## D12 — Chunk-size warning limit and focusable overflowing formulas (2026-10-28, F6)
+
+- `build.chunkSizeWarningLimit = 600` (kB) in `vite.config.ts` (QA-028). The only chunk above
+  Vite's 500 kB default is `three.module` (≈ 511 kB minified, ≈ 130 kB gzip), loaded lazily
+  with the 3D simulators (D4/D9) and not referenced by `dist/index.html`. Any new chunk above
+  600 kB still warns; revisit (e.g. `manualChunks`) if three.js grows past it.
+- Display formulas (`.math-display`, `overflow-x: auto`) that are wider than the column get
+  `tabindex="0"`, `role="group"` and an `aria-label` at runtime, and lose them when they fit
+  again (`src/theory/scrollable.ts`, ResizeObserver; QA-020). This satisfies WCAG 2.1.1 /
+  axe `scrollable-region-focusable` without adding a tab stop to every formula. Authors
+  should still split formulas that overflow at 1280×720; `e2e/a11y.spec.ts` checks every
+  theory section in both themes (QA-021).

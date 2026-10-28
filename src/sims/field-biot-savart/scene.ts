@@ -9,7 +9,7 @@ import type { CoilSetup } from './model';
  *
  * Physics coordinates (coil axis = z) are mapped to the view by a group rotated
  * by +90° about the vertical axis, so the coil axis runs left → right and the
- * meridian plane x = 0 (where the lines are traced) faces the camera.
+ * meridian plane x = 0 (where the lines are seeded) faces the camera.
  *
  * Field lines are `THREE.Line` strips sharing one `ShaderMaterial`: per vertex a
  * flow coordinate `aPhase` (∫ds/v, v ∝ |B|) and a normalised log-strength `aMag`.

@@ -476,7 +476,9 @@ export function pmsmVoltageLimit(vdc: number): number {
  *     = −2 (L_q − L_d) I² / [ψₘ + √(ψₘ² + 8 (L_q − L_d)² I²)]   (form used: stable for L_d → L_q)
  * i_q = ±√(I² − i_d²)
  *
- * For L_d = L_q (surface magnets) it reduces to i_d = 0, i_q = ±I.
+ * For L_d = L_q (surface magnets) it reduces to i_d = 0, i_q = ±I. The degenerate
+ * machine ψₘ = 0 with L_d = L_q produces no torque at all (T ≡ 0); the same
+ * i_d = 0, i_q = ±I is returned instead of the 0/0 of the closed form.
  *
  * @param iAmp - current amplitude I [A], ≥ 0
  * @param m - machine parameters
@@ -495,6 +497,9 @@ export function pmsmMtpa(
   checkParams(fn, m);
   if (iAmp === 0) return { id: 0, iq: 0 };
   const dL = m.Lq - m.Ld;
+  // ψₘ = 0 and L_d = L_q: no torque-producing mechanism, T ≡ 0 for every split;
+  // the closed form would be 0/0. Return the SPM limit i_d = 0, i_q = ±I (QA-024).
+  if (m.psiM === 0 && dL === 0) return { id: 0, iq: mode === 'motor' ? iAmp : -iAmp };
   const root = Math.sqrt(m.psiM * m.psiM + 8 * dL * dL * iAmp * iAmp);
   const id = noNegZero((-2 * dL * iAmp * iAmp) / (m.psiM + root));
   const iq = Math.sqrt(Math.max(0, iAmp * iAmp - id * id));

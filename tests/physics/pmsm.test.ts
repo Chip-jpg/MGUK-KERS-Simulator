@@ -261,6 +261,20 @@ describe('operating limits', () => {
     expect(() => pmsmMtpa(-1, IPM)).toThrow(RangeError);
   });
 
+  it('MTPA: ψ = 0 and Ld = Lq (no torque at all) is defined, not NaN (QA-024)', () => {
+    const m = { Rs: 0.02, Ld: 1e-4, Lq: 1e-4, psiM: 0, p: 4 };
+    expect(pmsmMtpa(100, m)).toEqual({ id: 0, iq: 100 });
+    expect(pmsmMtpa(100, m, 'generator')).toEqual({ id: 0, iq: -100 });
+    expect(pmsmTorque(0, 100, m)).toBe(0);
+    const vMax = pmsmVoltageLimit(600);
+    const wb = pmsmBaseSpeed(m, 100, vMax);
+    expect(Number.isFinite(wb)).toBe(true);
+    expect(wb).toBeGreaterThan(0);
+    const top = pmsmMaxTorque(wb / 2, m, 100, vMax);
+    expect(top.torque).toBe(0);
+    expect(Number.isNaN(top.id) || Number.isNaN(top.iq)).toBe(false);
+  });
+
   it('base speed: the MTPA point at I_max sits exactly on the voltage limit', () => {
     const wb = pmsmBaseSpeed(IPM, IMAX, VMAX);
     const r = pmsmMtpa(IMAX, IPM);

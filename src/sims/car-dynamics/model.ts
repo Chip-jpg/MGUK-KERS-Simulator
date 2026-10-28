@@ -73,7 +73,8 @@ export const params = {
     unit: 'kW',
     labelIT: 'Potenza massima MGU-K Pₘₐₓ (elettrica)',
   },
-  eta: { min: 0, max: 1, step: 0.01, default: 0.9, unit: '', labelIT: 'Rendimento MGU-K η' },
+  // η ≥ 0,5: below it the D8 cap Pₘₐₓ/η is meaningless (η → 0 ⇒ infinite MGU-K force, QA-029).
+  eta: { min: 0.5, max: 1, step: 0.01, default: 0.9, unit: '', labelIT: 'Rendimento MGU-K η' },
   mu: {
     min: 0.8,
     max: 2,

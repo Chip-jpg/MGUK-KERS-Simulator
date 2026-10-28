@@ -58,6 +58,14 @@ describe('field-biot-savart mount (DOM, no WebGL, main-thread fallback)', () => 
     const st = debug();
     expect(st?.service).toBe('main-thread');
     expect(st?.lineCount).toBe(12);
+    // "1 spira" (singular) on the N slider scale (QA-025)
+    const nScale = [
+      ...(host
+        .querySelector('#field-biot-savart-N-range')
+        ?.closest('.slider')
+        ?.querySelectorAll('.slider__scale span') ?? []),
+    ].map((x) => norm(x.textContent));
+    expect(nScale).toEqual(['1 spira', '80 spire']);
     expect(st?.linesDone).toBe(12);
     expect(norm(host.querySelector('[data-testid="b-centre"]')?.textContent)).toMatch(
       /^0,8[0-3]\d\d mT$/,
@@ -94,5 +102,42 @@ describe('field-biot-savart mount (DOM, no WebGL, main-thread fallback)', () => 
     expect(host.childElementCount).toBe(0);
     expect(debug()).toBeUndefined();
     host.remove();
+  });
+
+  it('a second mount on the same host replaces the first: one layout, one Worker (QA-030)', async () => {
+    const terminated: number[] = [];
+    let created = 0;
+    vi.stubGlobal(
+      'Worker',
+      class {
+        readonly n = ++created;
+        addEventListener(): void {}
+        postMessage(): void {}
+        terminate(): void {
+          terminated.push(this.n);
+        }
+      },
+    );
+    try {
+      const { mountBiot, workerCounter } = await import('../../../src/sims/field-biot-savart');
+      const host = document.createElement('div');
+      document.body.append(host);
+      const a = mountBiot(host, ctx, { scene: false });
+      const b = mountBiot(host, ctx, { scene: false });
+      expect(created).toBe(2);
+      expect(terminated).toEqual([1]); // the first mount's Worker was stopped
+      expect(workerCounter.alive).toBe(1);
+      expect(host.querySelectorAll('.sim-layout')).toHaveLength(1);
+      expect(debug()?.mounted).toBe(1);
+      a.dispose(); // stale handle: no effect on the live mount
+      expect(host.querySelectorAll('.sim-layout')).toHaveLength(1);
+      b.dispose();
+      expect(workerCounter.alive).toBe(0);
+      expect(host.childElementCount).toBe(0);
+      expect(debug()).toBeUndefined();
+      host.remove();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

@@ -81,6 +81,8 @@ describe('kers-braking gates', () => {
 
   it('presets reflect OPEN_FACTS status', () => {
     expect(PRESETS.every((p) => p.verified && p.sources.length > 0)).toBe(true);
+    // Italian typography: titles quoted with “ ”, never straight quotes (QA-025)
+    for (const s of PRESETS.flatMap((p) => p.sources)) expect(s.labelIT).not.toContain('"');
     expect(MIN_MASS_2026.kg).toBe(768);
     expect(LAP_LIMIT_2025.joules).toBe(2e6);
     expect(LAP_RANGE_2026.verified).toBe(false);

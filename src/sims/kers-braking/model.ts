@@ -124,7 +124,7 @@ const HONDA_MGUK: Source = {
   url: 'https://global.honda/en/tech/motorsports/Formula-1/Powertrain_MGU-H_MGU-K/',
 };
 const F1_2026: Source = {
-  labelIT: 'Formula 1, "7 things you need to know about the 2026 F1 engine regulations"',
+  labelIT: 'Formula 1, “7 things you need to know about the 2026 F1 engine regulations”',
   url: 'https://www.formula1.com/en/latest/article/more-efficient-less-fuel-and-carbon-net-zero-7-things-you-need-to-know-about.ZhtzvU3cPCv8QO7jtFxQR',
 };
 const HONDA_2026: Source = {
