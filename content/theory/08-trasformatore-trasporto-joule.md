@@ -40,8 +40,8 @@ centrale (alternatore) → trasformatore **elevatore** → linea ad **alta tensi
 
 Linea di resistenza $R = 5{,}0\ \Omega$ che deve trasportare $P = 10\ \text{MW}$ (valori illustrativi).
 
-- A $20\ \text{kV}$: $i = 10^7 / (2{,}0\cdot10^4) = 500\ \text{A}$, $P_J = 5{,}0 \cdot 500^2 = 1{,}25\ \text{MW}$ ($12{,}5\%$).
-- A $200\ \text{kV}$: $i = 50\ \text{A}$, $P_J = 5{,}0 \cdot 50^2 = 12{,}5\ \text{kW}$ ($0{,}125\%$).
+- A $20\ \text{kV}$: $i = 10^7 / (2{,}0\cdot10^4) = 500\ \text{A}$, $P_J = 5{,}0 \cdot 500^2 = 1{,}25\ \text{MW}$ ($12{,}5\ \%$).
+- A $200\ \text{kV}$: $i = 50\ \text{A}$, $P_J = 5{,}0 \cdot 50^2 = 12{,}5\ \text{kW}$ ($0{,}125\ \%$).
 
 Tensione $\times 10$ ⇒ perdite $\div 100$.
 

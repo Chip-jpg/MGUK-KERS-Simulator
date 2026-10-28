@@ -43,7 +43,7 @@ Durante l'ingresso il flusso cresce da 0 a $3{,}0 \cdot 10^{-3}$ Wb ⇒ corrente
 
 ## Collegamento con KERS / MGU-K
 
-L'MGU-K in frenata è l'esperimento 2 "industrializzato": i magneti del rotore girano rispetto agli avvolgimenti fissi, il flusso concatenato varia di continuo e negli avvolgimenti nasce corrente che carica la batteria. Dettagli in [KERS e MGU-K](10-kers-mguk.md).
+L'MGU-K in frenata è l'esperimento 2 "industrializzato": il rotore (di una macchina trifase, generalmente descritta come sincrona a magneti permanenti) gira rispetto agli avvolgimenti fissi, il flusso concatenato varia di continuo e negli avvolgimenti nasce corrente che carica la batteria. Dettagli in [KERS e MGU-K](10-kers-mguk.md).
 
 ## Domande da interrogazione
 

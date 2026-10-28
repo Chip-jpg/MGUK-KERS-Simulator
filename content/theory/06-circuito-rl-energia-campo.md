@@ -28,7 +28,7 @@ $$U_M = \frac{1}{2}\,L\,I_0^2$$
 
 **Perché l'esponenziale.** Per la legge delle maglie: $\text{f.e.m.} - L\,\Delta i/\Delta t = R\,i$. All'inizio $i = 0$: tutta la f.e.m. del generatore serve a "vincere" l'autoinduzione e la corrente cresce rapidamente. Man mano che $i$ aumenta, cresce la caduta $Ri$, resta meno tensione per far crescere la corrente e la crescita rallenta. A regime $\Delta i/\Delta t = 0$ e $i = I_0 = \text{f.e.m.}/R$, come se l'induttanza non ci fosse.
 
-**La costante di tempo** $\tau = L/R$ (in secondi) dice quanto è "lento" il circuito: dopo $t = \tau$ la corrente è al $63{,}2\%$ di $I_0$, dopo $5\tau$ è oltre il $99\%$.
+**La costante di tempo** $\tau = L/R$ (in secondi) dice quanto è "lento" il circuito: dopo $t = \tau$ la corrente è al $63{,}2\ \%$ di $I_0$, dopo $5\tau$ è oltre il $99\ \%$.
 
 **Lettura del bilancio.** Moltiplicando la legge delle maglie per $i\,\Delta t$: a sinistra l'energia fornita dal generatore; a destra il **calore Joule** $R\,i^2\Delta t$ e il termine $L\,i\,\Delta i$, che è energia **non persa** ma accumulata nel campo. Sommando i contributi $L\,i\,\Delta i$ da $0$ a $I_0$ si ottiene l'area di un triangolo nel grafico $L\,i$ in funzione di $i$: $\tfrac12 L I_0^2$.
 
@@ -56,11 +56,11 @@ Il bilancio "energia fornita = Joule + energia accumulata" è lo stesso schema c
 
 **D:** Che significato ha la costante di tempo $\tau = L/R$?
 
-**R:** È il tempo dopo cui la corrente raggiunge circa il $63\%$ del valore finale; dopo circa $5\tau$ il transitorio è praticamente finito.
+**R:** È il tempo dopo cui la corrente raggiunge circa il $63\ \%$ del valore finale; dopo circa $5\tau$ il transitorio è praticamente finito.
 
 **D:** Spiega il bilancio $\text{f.e.m.}\cdot i\,\Delta t = R\,i^2\Delta t + L\,i\,\Delta i$.
 
-**R:** L'energia fornita dal generatore in $\Delta t$ si divide tra calore Joule nella resistenza e energia accumulata nel campo magnetico dell'induttanza.
+**R:** L'energia fornita dal generatore in $\Delta t$ si divide tra calore Joule nella resistenza ed energia accumulata nel campo magnetico dell'induttanza.
 
 **D:** Quanta energia è immagazzinata in un'induttanza?
 

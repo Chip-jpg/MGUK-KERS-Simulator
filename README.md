@@ -40,18 +40,12 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 ## Screenshot
 
-> Le immagini verranno aggiunte con la release v0.1.0 (percorsi riservati in
-> `docs/media/`).
+> Catture generate dai test end-to-end (`e2e/screenshots/`). Altre immagini
+> (frenata `kers-braking`, Interrogazione, animazione generatore ⇄ motore): screenshot in arrivo.
 
-| Teoria                                                            | Simulatore `faraday`                                                                               |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| ![Pagina di teoria con formule KaTeX](docs/media/theory-dark.png) | ![Simulatore Faraday-Neumann: spira rotante e grafici Φ(t), f.e.m.(t)](docs/media/sim-faraday.png) |
-
-| Frenata e recupero (`kers-braking`)                                                              | Interrogazione                                  |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
-| ![Simulatore di frenata: ripartizione di potenza MGU-K / freni](docs/media/sim-kers-braking.png) | ![Modalità interrogazione](docs/media/quiz.png) |
-
-![Animazione: da generatore a motore nel simulatore alternatore ⇄ motore](docs/media/alternator-motor.gif)
+| Teoria                                                                          | Simulatore `faraday`                                                                                                     |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png) | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme e parametri](e2e/screenshots/sim-empty-dark-1280x720.png) |
 
 ## I simulatori
 
@@ -135,7 +129,8 @@ Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 KERS Lab è un **modello didattico**, non un simulatore certificato: ogni simulatore
 dichiara le proprie ipotesi in una nota "Modello semplificato: …" (campo uniforme,
-macchina monofase al posto della reale macchina trifase a magneti permanenti,
+spira singola al posto della reale macchina trifase, generalmente descritta come
+sincrona a magneti permanenti `[DA VERIFICARE]`,
 trasformatore ideale, niente saturazione…). I valori regolamentari citati provengono
 da fonti ufficiali oppure sono marcati `[DA VERIFICARE]`.
 

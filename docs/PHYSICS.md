@@ -58,6 +58,10 @@ value is kept so that numbers match the student's notebook exactly.
 | `kineticEnergyDelta` | none    | **none (extension)** — confirmed                                                   |
 | `kersBrakingEvent`   | 16, 17  | **none (extension)**, builds on 16–17 (energy balance) and 18–19 (alternator)      |
 
+The KERS topic as a whole (sim `kers-braking` and theory `10-kers-mguk`) shows the
+slide chips **[16, 17, 18, 19]** — energy balance and alternator — aligned in QA round 1
+(QA-013); Faraday-Neumann (8) and Lenz (11) are reached through theories 03 and 04.
+
 Slide numbers were derived from the slide summary in the project brief, not from the
 deck file itself (not in the repo). Exact numbering of slides 21–23 should be checked
 against the deck by QA (A11).
@@ -134,8 +138,9 @@ Closed form of `recoverable` (P_b decreasing, cap C = P_max/η):
 C ≥ P₀ ⇒ ΔE_k; C ≤ P₁ ⇒ C·t_brake; otherwise with $t^* = t_{brake}(P_0 - C)/(P_0 - P_1)$:
 $C\,t^* + \tfrac12 (C + P_1)(t_{brake} - t^*)$.
 
-`timeToRecoverAtPmax`: time the MGU-K, running continuously at its cap (mechanical
-intake P_max/η), would need to absorb the whole ΔE_k (storing η·ΔE_k). When it is longer
+`timeToRecoverAtPmax` (despite the name): time the MGU-K, running continuously at its
+cap (mechanical intake P_max/η), would need to **absorb the whole ΔE_k at the maximum
+power** — it stores only η·ΔE_k, not ΔE_k. When it is longer
 than t_brake, part of ΔE_k must go to the discs — this is the "recovery is
 power-limited" message. (For η = 1 it equals ΔE_k/P_max.)
 
@@ -147,10 +152,20 @@ stacked plot pKers + pBrakes is the total braking power, $\int p_{Kers}\,dt$ =
 match the totals within 0.5 % on 60 random parameter sets, and an `rk4Step` integration
 of pKers reproduces `recovered`.
 
-Worked example (800 kg, 300 → 100 km/h, t_brake = 2.5 s, P_max = 120 kW, η = 0.9):
-ΔE_k = 2.469 MJ; peak braking power ≈ 1.48 MW ≫ P_max/η = 133 kW, so the MGU-K is
-saturated for the whole event: recovered = 120 kW × 2.5 s = 0.30 MJ, dissipated ≈ 2.17 MJ;
-timeToRecoverAtPmax = 0.9 × 2.469 MJ / 120 kW ≈ 18.5 s.
+Worked example — the same numbers as theory 10, the quiz and the `kers-braking` defaults
+(800 kg, 300 → 100 km/h, t_brake = 3 s, P_max = 120 kW, η = 0.9), output of
+`kersBrakingEvent` / `kersDissipationSplit`:
+
+- ΔE_k = 2.469 MJ; braking power falls linearly from P₀ ≈ 1.235 MW to P₁ ≈ 0.412 MW,
+  always above P_max/η ≈ 133 kW, so the MGU-K is saturated for the whole event;
+- recoverable (mechanical, absorbed by the MGU-K) = 133.3 kW × 3 s = **0.40 MJ**;
+- recovered (stored) = 120 kW × 3 s = **0.36 MJ** (≈ 14.6 % of ΔE_k);
+- dissipated = 2.109 MJ = 2.069 MJ disc brakes + 0.040 MJ MGU-K / converter losses;
+- timeToRecoverAtPmax = 0.9 × 2.469 MJ / 120 kW ≈ **18.5 s** (time to absorb the whole
+  ΔE_k at the maximum power).
+
+With P_max = 350 kW (2026): recoverable 1.167 MJ, recovered 1.05 MJ (≈ 42.5 %), discs
+1.302 MJ, MGU-K losses 0.117 MJ, timeToRecoverAtPmax ≈ 6.3 s.
 
 ## 5. Slide-10 check (I = 62.5 mA)
 

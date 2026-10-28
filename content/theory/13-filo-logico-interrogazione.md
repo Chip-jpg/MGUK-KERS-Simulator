@@ -15,7 +15,7 @@ Una pagina per ripassare tutto il percorso in sei passaggi, più un **copione di
 
 ## Formule
 
-Le sei formule da saper scrivere alla lavagna, nell'ordine del discorso:
+Le otto formule da saper scrivere alla lavagna, nell'ordine del discorso:
 
 $$\Phi_B = B\,S\cos\alpha \qquad \text{f.e.m.} = -\frac{\Delta\Phi_B}{\Delta t} \qquad i = \frac{\text{f.e.m.}}{R}$$
 
@@ -46,7 +46,7 @@ Il segno meno è la legge di Lenz: la corrente indotta si oppone alla variazione
 
 Se faccio ruotare una bobina in un campo, il flusso varia come un coseno e la forza elettromotrice diventa sinusoidale, con ampiezza $V_0 = NBS\omega$: questo è l'alternatore, la macchina che produce l'energia elettrica nelle centrali. Poi i trasformatori alzano la tensione, così la corrente nelle linee è bassa e le perdite per effetto Joule, che dipendono dal quadrato della corrente, diminuiscono.
 
-A questo punto arrivo alla Formula 1. L'MGU-K è una macchina elettrica collegata al motore. In frenata funziona da generatore: le ruote fanno girare il rotore, il flusso varia, si induce corrente che carica la batteria, e per la legge di Lenz nasce una coppia che frena la macchina. In accelerazione funziona al contrario, da motore: la batteria manda corrente e la forza di Lorentz, $F = BIL$, produce una coppia. È il principio inverso dell'induzione. Devo precisare che la macchina reale è trifase, a magneti permanenti: la spira delle slide è un modello semplificato, ma la fisica è la stessa.
+A questo punto arrivo alla Formula 1. L'MGU-K è una macchina elettrica collegata al motore. In frenata funziona da generatore: le ruote fanno girare il rotore, il flusso varia, si induce corrente che carica la batteria, e per la legge di Lenz nasce una coppia che frena la macchina. In accelerazione funziona al contrario, da motore: la batteria manda corrente e la forza di Lorentz, $F = BIL$, produce una coppia. È il principio inverso dell'induzione. Devo precisare che la macchina reale è trifase, generalmente descritta come sincrona a magneti permanenti: la spira delle slide è un modello semplificato, ma la fisica è la stessa.
 
 Ho fatto un calcolo con una massa illustrativa di 800 chili: frenando da 300 a 100 chilometri orari bisogna togliere circa 2,5 megajoule. Se la frenata dura tre secondi, servirebbero più di 800 kilowatt, ma fino al 2025 l'MGU-K poteva mandare alla batteria al massimo 120 kilowatt di potenza elettrica: quindi in batteria arrivano circa 0,36 megajoule e il resto diventa calore, quasi tutto nei freni a disco e una piccola parte nell'MGU-K stesso. Dal 2026 il limite è salito a circa 350 kilowatt. Il recupero, quindi, è limitato dalla potenza.
 
@@ -76,7 +76,7 @@ Il passaggio 3 della catena è quello su cui il discorso deve "fermarsi" di più
 
 **D:** Perché la spira delle slide è solo un modello?
 
-**R:** Perché l'MGU-K reale è una macchina trifase con magneti permanenti e inverter; la spira singola rende evidente il principio (flusso variabile, f.e.m. sinusoidale, coppia di Lenz) senza i dettagli costruttivi.
+**R:** Perché l'MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti, con inverter; la spira singola rende evidente il principio (flusso variabile, f.e.m. sinusoidale, coppia di Lenz) senza i dettagli costruttivi.
 
 **D:** Qual è il passaggio dall'efficienza all'Art. 32?
 

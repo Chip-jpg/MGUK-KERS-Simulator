@@ -46,7 +46,7 @@ Raddoppiando la velocità di rotazione raddoppia anche $V_0$.
 
 ## Collegamento con KERS / MGU-K
 
-In frenata l'MGU-K è un alternatore: il rotore, collegato meccanicamente al motore e quindi alle ruote, gira e induce f.e.m. alternate negli avvolgimenti dello statore. Un convertitore elettronico (inverter) le trasforma in continua per caricare la batteria. **Attenzione:** la macchina reale è **trifase** (tre gruppi di avvolgimenti sfasati di 120°), con magneti permanenti sul rotore; la spira singola delle slide è un modello semplificato dello stesso principio. Vedi [Motore elettrico](09-motore-elettrico-lorentz.md) e [KERS e MGU-K](10-kers-mguk.md).
+In frenata l'MGU-K è un alternatore: il rotore, collegato meccanicamente al motore e quindi alle ruote, gira e induce f.e.m. alternate negli avvolgimenti dello statore. Un convertitore elettronico (inverter) le trasforma in continua per caricare la batteria. **Attenzione:** la macchina reale è **trifase** (tre gruppi di avvolgimenti sfasati di 120°), generalmente descritta come sincrona a magneti permanenti (tipo esatto `[DA VERIFICARE]`); la spira singola delle slide è un modello semplificato dello stesso principio. Vedi [Motore elettrico](09-motore-elettrico-lorentz.md) e [KERS e MGU-K](10-kers-mguk.md).
 
 ## Domande da interrogazione
 

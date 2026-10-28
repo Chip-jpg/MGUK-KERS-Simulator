@@ -50,7 +50,7 @@ Ruotando la spira da $0$ a $90^\circ$ il flusso passa da $1{,}0 \cdot 10^{-2}$ W
 
 ## Collegamento con KERS / MGU-K
 
-Nell'MGU-K il rotore porta dei magneti e ruota davanti agli avvolgimenti dello statore: l'angolo tra campo e avvolgimenti cambia continuamente, quindi il flusso concatenato varia in modo periodico. È lo stesso meccanismo della spira che ruota (caso 3), su cui si basa il [modello del KERS / MGU-K](10-kers-mguk.md). Più veloce gira il rotore, più rapidamente varia $\Phi_B$.
+Nell'MGU-K (una macchina trifase, generalmente descritta come sincrona a magneti permanenti) il rotore ruota davanti agli avvolgimenti dello statore: l'angolo tra campo e avvolgimenti cambia continuamente, quindi il flusso concatenato varia in modo periodico. È lo stesso meccanismo della spira che ruota (caso 3), su cui si basa il [modello del KERS / MGU-K](10-kers-mguk.md). Più veloce gira il rotore, più rapidamente varia $\Phi_B$.
 
 ## Domande da interrogazione
 
