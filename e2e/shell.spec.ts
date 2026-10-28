@@ -91,6 +91,10 @@ test.describe('keyboard navigation', () => {
     await expect(page.getByRole('link', { name: 'KERS Lab' })).toBeFocused();
     await page.keyboard.press('Tab'); // theme toggle
     await expect(page.locator('.theme-toggle')).toBeFocused();
+    await page.keyboard.press('Tab'); // "Qualità grafica" radio group (one tab stop, D14)
+    await expect(
+      page.getByRole('group', { name: 'Qualità grafica' }).locator('input:checked'),
+    ).toBeFocused();
     await page.keyboard.press('Tab'); // "Teoria"
     await expect(page.getByRole('link', { name: 'Teoria', exact: true })).toBeFocused();
     // Tab until the "Simulatori" section link.

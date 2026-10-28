@@ -25,13 +25,14 @@ import { singularTurnsScale } from '../shared/turns';
 import { toDegrees360 } from './format';
 import { defaultParams, FaradaySim, params, type FaradayMode, type FaradayParams } from './model';
 import { formulaItems, panelScales, scalesKey } from './panel';
+import { createResetViewButton, snapshotRenderStats } from '../../render';
 import { createFaradayScene, sceneStats, type FaradayScene } from './scene';
 
 export { params, defaultParams, FaradaySim } from './model';
 export type { FaradayParams, FaradayMode } from './model';
 
 export const MODEL_NOTE_IT =
-  'campo B uniforme, spira rigida monofase, nessuna resistenza/autoinduzione della spira; ω e v sono imposte (la coppia/forza di Lenz non è modellata); l’MGU-K reale è una macchina trifase.';
+  'campo B uniforme, spira rigida monofase, nessuna resistenza/autoinduzione della spira; ω e v sono imposte (la coppia/forza di Lenz non è modellata); l’MGU-K reale è una macchina trifase. Nella scena le linee di campo sono calcolate per due espansioni polari affacciate (uniformi al centro, con frange ai bordi); lampadina e particelle di corrente usano un carico resistivo illustrativo: velocità delle particelle ∝ f.e.m., luminosità ∝ f.e.m.² (solo P/Pₘₐₓ, nessun valore assoluto).';
 
 let liveMounts = 0;
 let totalMounts = 0;
@@ -44,6 +45,9 @@ function debugSnapshot(): Record<string, unknown> {
     totalMounts,
     ...sceneStats,
     rendererMemory: currentScene?.memory() ?? null,
+    render: currentScene?.info() ?? null,
+    tier: currentScene?.stage.tier ?? null,
+    foundation: snapshotRenderStats(),
     canvases: document.querySelectorAll('.sim-scene canvas').length,
   };
 }
@@ -62,7 +66,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   // --- scene (skipped gracefully where WebGL is unavailable, e.g. jsdom) ---------
   let scene: FaradayScene | null = null;
   try {
-    scene = createFaradayScene(layout.scene, layout.sceneOverlay, ctx.theme);
+    scene = createFaradayScene(layout.scene, layout.sceneOverlay, ctx);
     currentScene = scene;
   } catch {
     layout.scene.append(
@@ -190,6 +194,24 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     emfPlot?.clear();
   };
 
+  // --- scene labels (same display scales as the formula panel) -------------------
+  const fmt = (v: number, sc: { scale: number; unit: string; digits: number }): string =>
+    ctx.formatIT(v * sc.scale, sc.digits, sc.unit);
+  const sceneLabels = (r: ReturnType<FaradaySim['readout']>) => {
+    const rotating = r.mode === 'rotating';
+    const emfRef = rotating ? r.V0 : r.emfMotional;
+    const pRel = emfRef === 0 ? 0 : (r.emf / emfRef) ** 2;
+    return {
+      b: `B = ${ctx.formatIT(sim.params.B, 2, 'T')}`,
+      phi: rotating
+        ? `Φ = B·S·cos α = ${fmt(r.phi, scales.phi)}`
+        : `Φ = B·l·x = ${fmt(r.phi, scales.phi)}`,
+      emf: `f.e.m. = ${fmt(r.emf, scales.emf)}`,
+      alpha: `α = ${ctx.formatIT(toDegrees360(r.alpha), 0, '°')}`,
+      load: `lampada: P/Pₘₐₓ = ${ctx.formatIT(pRel * 100, 0, '%')} · N = ${ctx.formatIT(sim.params.N, 0)} spire`,
+    };
+  };
+
   // --- drawing -------------------------------------------------------------------
   const draw = (): void => {
     const r = sim.readout();
@@ -202,6 +224,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       emfRatio: emfRef === 0 ? 0 : r.emf / emfRef,
       x: r.x,
       dir: Math.sign(r.vx) || 1,
+      labels: sceneLabels(r),
     });
     panel?.update(
       r.mode === 'rotating'
@@ -254,6 +277,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     },
   });
   disposers.push(() => toolbar.dispose());
+  if (scene) {
+    const resetView = createResetViewButton(scene.stage);
+    layout.toolbar.append(resetView.element);
+    disposers.push(() => resetView.dispose());
+  }
 
   disposers.push(
     onThemeChange((th) => {

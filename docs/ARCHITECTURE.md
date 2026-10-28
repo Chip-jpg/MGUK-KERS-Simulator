@@ -418,3 +418,140 @@ without camera motion).
 Until v0.4.1 the shell lazy-loaded an optional quiz module (`src/quiz/`) on
 `#/interrogazione`. The quiz, its route and the extension point were removed in v0.5.0
 (D13); the sidebar has only **Teoria** and **Simulatori**.
+
+## 10. Render foundation (`src/render/`, D14)
+
+Shared Three.js layer for every 3D simulator (v0.6). Sims import from the barrel
+**`src/render/index.ts`** (`import { createStage, createFieldLines, … } from '../../render';`).
+The app shell imports only `src/render/quality.ts` (no Three.js in the initial bundle).
+Dependency rule: `render` → `core`, `ui` (colors, controls), `physics`, `three`; sims → `render`.
+Pure parts stay testable in Node: `quality.ts` (no Three), `trace.ts` (no Three/DOM),
+`src/physics/fields.ts` and `src/physics/thermal.ts` (pure physics, coverage ≥ 95 %).
+Reference implementation: `src/sims/faraday/scene.ts`.
+
+### 10.1 Quality tiers (`quality.ts`)
+
+`type QualityTier = 'alta' | 'bilanciata' | 'base'`. Active tier = `?quality=` URL override →
+user choice (sidebar "Qualità grafica", `localStorage['kers-lab.quality']`) → auto-detection
+(`classifyQuality`): software renderer (SwiftShader / llvmpipe / Microsoft Basic Render) or no
+WebGL2 → `base`; Tauri desktop or discrete GPU → `alta`; integrated / unknown GPU → `bilanciata`.
+API: `getQuality()`, `setQuality(t)` (persists, notifies), `onQualityChange(cb) → off`,
+`tierSettings(t)` / `TIER_SETTINGS`, `detectQuality()`, `urlQuality()`, `qualitySource()`.
+
+| | alta | bilanciata | base |
+|---|---|---|---|
+| post-processing | EffectComposer: Render → UnrealBloom → Output | Render → Bloom (lighter) → SMAA → Output | none (direct render) |
+| anti-aliasing | MSAA ×4 composer target | SMAA | context `antialias` |
+| shadows | PCFSoft 2048 | PCFSoft 1024 | none |
+| IBL | RoomEnvironment → PMREM | yes | no (hemisphere light) |
+| materials | PBR (clearcoat, normal maps) | PBR | Lambert |
+| pixel-ratio cap | 2 | 1,5 | 1,25 |
+| `lineDensity` / `particleDensity` / `tessellation` | 1 / 1 / 1 | 0,7 / 0,6 / 0,6 | 0,45 / 0,35 / 0,4 |
+| fat lines (`LineSegments2`) | yes | yes | no (1-px GL lines) |
+
+Tone mapping is ACES Filmic in every tier (`OutputPass` applies it after bloom). In the light
+theme the bloom threshold is raised above 1, so only HDR emissives bloom, never the white
+backdrop.
+
+### 10.2 Stage (`stage.ts`)
+
+```ts
+const stage = createStage(layout.scene, ctx, {
+  ariaLabel: 'Scena 3D: …',                                   // canvas role="img"
+  camera: { position: [x, y, z], target: [x, y, z], fov?: 36 },
+  controls?: { minDistance, maxDistance, maxPolarAngle, enablePan },
+  floorY?: -2, shadowRadius?: 6, tier?: QualityTier /* force */, intro?: true,
+});
+stage.scene · camera · renderer · controls (damped OrbitControls) · canvas · materials (kit)
+stage.tier · settings · theme · width · height
+stage.onResize(cb) · onTierChange(cb) · onThemeChange(cb)       // each returns off()
+stage.addUpdatable({ update(dt) })   // per-frame animation hook (dt = 0 while paused)
+stage.castShadows(root) · stage.occluders.push(mesh) · stage.track(disposable)
+stage.setView(pos, target, animate?) // new home view, eased unless reduced motion
+stage.resetView() · stage.setTier(t) · stage.setTheme(t)
+stage.render()                       // call from the sim's loop render()
+stage.info()                         // tier, passes, shadows, ibl, renderer.info (debug hooks)
+stage.dispose()                      // releases everything (§10.6), idempotent
+```
+
+The stage follows the global theme and quality by itself (it subscribes to `onThemeChange` /
+`onQualityChange`); sims react through `stage.onThemeChange` / `stage.onTierChange`. While the
+sim loop is paused, orbiting, resizing and tier/theme changes self-render (no need to resume
+the loop). `createResetViewButton(stage)` returns the "Ripristina vista" toolbar button. A gentle
+intro flight runs on mount, skipped with reduced motion.
+
+### 10.3 Materials and geometry (`materials.ts`, `textures.ts`, `geometry.ts`)
+
+`stage.materials.assign(mesh, kind, key?)` / `.get(kind, key?)`: cached per (kind, key) and
+tier, rebuilt and re-assigned on tier/theme change, disposed with the stage. Never dispose kit
+materials yourself, and re-`get` a material you animate every frame (a tier/theme switch
+replaces the instance). Kinds: `copper`, `enamel` (enamelled wire, clearcoat), `brass`, `iron`
+(laminated: procedural normal map), `steel` (brushed), `darkSteel`, `magnet`, `magnetN` /
+`magnetS` (engraved nameplate texture), `rubber`, `carbon` (procedural 2×2 twill), `glass`,
+`ceramic`, `plastic`, `filament`, and the quantity glows `glowB`, `glowEmf`, `glowI`, `glowF`,
+`glowEnergy` (emissive in the §4.5 colour; drive `emissiveIntensity`). Procedural canvases are
+generated once per page (`textures.ts`), GPU textures once per stage. Geometry helpers:
+`chamferBox(w, h, d, r)` (bevelled box, UVs box-projected to [0, 1] per face) and
+`roundedRectPoints(a, b, rc)` (coil outlines; counter-clockwise about +x for (u, v) = (z, y)).
+
+### 10.4 Field lines (`fieldLines.ts`, `trace.ts`, `physics/fields.ts`)
+
+Field models (pure, SI, `@slide none`): `dipoleField(m, r)`, `loopField(R, I, p)` (exact,
+complete elliptic integrals `ellipK` / `ellipE` by AGM), `solenoidField(R, L, N, I, p)` (sum of
+loops), `createGapField(geom, B0)` / `gapField` (two facing pole faces: two-sheet magnetic
+surface-charge model, uniform in the core, fringing at the edges).
+
+```ts
+const lines = createFieldLines(stage, { linewidth?, spacing?, speed?, base?, gain? });
+await lines.setJob({
+  field: { kind: 'gap', geometry, B0: 1 } | { kind: 'dipole', m, at } | { kind: 'loop', R, I, at, axis }
+        | { kind: 'solenoid', … } | { kind: 'uniform', B } | { kind: 'sum', parts },
+  seeds: seedRect(…) | seedDisc(…) | seedByFlux(field, candidates, normal, n),  // flux-proportional
+  options: { bounds, stopBoxes?, stopSpheres?, maxAngle?, direction?: 1 | -1 | 0, … },
+});
+lines.setFlow(B / Bmax);   // global speed/brightness factor; 0 freezes the pulses
+```
+
+Tracer: RK4 on dr/ds = B̂, step adaptive by curvature (halved when B̂ turns more than
+`maxAngle`, grown on straight stretches); stops on bounds, closure, stop regions ("sources"),
+field reversal (charged sheet / sink), weak field or budget. Put stop boxes slightly IN FRONT of
+pole faces. Animation: per-vertex travel coordinate τ = ∫ ds·B_ref/|B|, so the pulses move with
+speed ∝ |B|; colour = B-blue ramp by |B|. One draw call (`LineSegments2` with a patched
+`LineMaterial`, or `LineSegments` in base). When a synchronous trace took more than 4 ms, later
+traces run in the module worker `fieldTrace.worker.ts` (stale results dropped). Trace once per
+geometry change, never per frame; if only the field magnitude changes keep the lines and call
+`setFlow`.
+
+### 10.5 Current, heat, energy, labels
+
+- `createCurrentFlow(stage, { path, closed?, count?, radius?, speedPerAmp, vMax?, smooth? })` →
+  `setCurrent(i)` (sign = direction along `path`; speed = min(|i|·speedPerAmp, vMax); still at
+  0), `setPath`, `setVisible`, `object` (re-parent it into a moving group if the conductor
+  moves). Count × `particleDensity`. State the visual speed scale in the sim's model note.
+- Heat: `thermalStep(T, P, C, hA, Tamb, dt)` (exact exponential), `thermalStepLoss`,
+  `thermalSteadyState`, `blackbodyRGB(T)` (Planck × CIE 1931 → linear sRGB, LUT 300–2500 K),
+  `blackbodyLuminance(T)`; render side `createHeatBody({ C, hA, Tamb })` → `step(P, dt)` in the
+  physics step, `apply(material)` in render (no glow below 700 K, log-luminance mapping above).
+- `createEnergyRibbon(stage, { path, widthPerWatt, minRadius?, maxRadius?, pRef?, speed? })` →
+  `setPower(P)`: purple tube with radius ∝ |P| (in the shader, no rebuild), chevrons flowing
+  with sign(P).
+- `createLabelLayer(stage, layout.sceneOverlay)` → `add({ text, anchor: Vector3, quantity?,
+  priority?, offset?, occlude?, size? })` → `setText`, `setVisible`, `setOffset`. Labels are
+  projected every frame, nudged vertically to avoid overlaps (higher priority placed first) and
+  faded when hidden by `stage.occluders`; quantity colours via `.r-label--b|emf|i|f|energy|accent`.
+
+### 10.6 Disposal and performance rules
+
+- Create resources through the stage, the kit and the helpers; call each helper's `dispose()`
+  and finally `stage.dispose()` from the sim's `dispose()`. The stage disposes composer passes
+  and render targets, the PMREM environment, the shadow map, kit materials/textures, studio
+  floor/backdrop, controls and the renderer (+ `forceContextLoss`). `renderStats`
+  (`window.__kersDebug.render()`) counts live stages, renderers, composers, render targets,
+  PMREM, materials, textures, geometries and workers: all must be 0 after an unmount (e2e leak
+  tests read them after leaving the sim).
+- No per-frame allocations in `render`/`update` (reuse vectors); no geometry rebuild per frame
+  (rebuild on a parameter change only, compare a key); instancing for repeated parts; one draw
+  call per field-line set; shared kit materials.
+- Read `stage.settings` for counts (`lineDensity`, `particleDensity`, `tessellation`) and rebuild
+  them in `stage.onTierChange`. `base` must stay usable on SwiftShader (all e2e run there).
+- The render layer only reads simulation state; physics stays in the fixed-step model.

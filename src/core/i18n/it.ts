@@ -29,6 +29,17 @@ export const it = {
     switchToLight: 'Passa al tema chiaro',
     switchToDark: 'Passa al tema scuro',
   },
+  render: {
+    quality: 'Qualità grafica',
+    qualityHint:
+      'Alta: luci, ombre ed effetti completi (GPU dedicata). Bilanciata: effetti ridotti. Base: grafica essenziale, per computer lenti.',
+    qualityAlta: 'Alta',
+    qualityBilanciata: 'Bilanciata',
+    qualityBase: 'Base',
+    resetView: 'Ripristina vista',
+    resetViewHint:
+      'Riporta la telecamera alla vista iniziale (trascina per ruotare, rotella per zoom)',
+  },
   controls: {
     reset: 'Reimposta',
     pause: 'Pausa',

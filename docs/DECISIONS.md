@@ -161,3 +161,34 @@ The app is reduced to what supports the owner’s own presentation of the topic.
 Result: 15 theory sections (five fixed headings each, §4.4), 7 simulators, two sidebar
 areas (Teoria, Simulatori). Unknown routes, including the former `#/interrogazione`, fall
 back to `#/teoria`.
+
+## D14 — Render foundation & quality tiers (2026-10-28, V0)
+
+- **Shared render layer** `src/render/` (ARCHITECTURE §10): one `createStage` (renderer, damped
+  OrbitControls, procedural IBL `RoomEnvironment` + PMREM, studio backdrop/floor, key/rim/fill
+  lights, shadows, ACES tone mapping, EffectComposer chain) plus helpers for computed field
+  lines, current particles, heat glow, energy ribbons and HTML labels. Only three r169's own
+  `examples/jsm` modules are used: **no new npm dependency**, no downloaded assets (every
+  texture is a procedural canvas).
+- **Three tiers** `alta` / `bilanciata` / `base` (`src/render/quality.ts`). Auto-detection from
+  `WEBGL_debug_renderer_info`: software GL → `base`; Tauri or discrete GPU → `alta`;
+  integrated/unknown → `bilanciata`. Override order: `?quality=` URL (tests, demos; not stored)
+  → sidebar choice (persisted in `localStorage['kers-lab.quality']`) → auto. A switch applies
+  live (composer, shadows, IBL and materials rebuilt; no remount). Tauri counts as `alta` even on
+  an integrated GPU (WebView2 on a hybrid laptop may report the iGPU); the user can step down.
+- **Physics-driven visuals.** New pure modules `src/physics/fields.ts` (exact dipole; circular
+  loop via complete elliptic integrals K/E by AGM; solenoid as a sum of loops; gap field of
+  rectangular pole faces by the two-sheet magnetic-charge model) and `src/physics/thermal.ts`
+  (exact lumped thermal step; black-body colour from Planck × the Wyman–Sloan–Shirley 2013 fit of
+  the CIE 1931 functions, within ≈ 0,01 in chromaticity at 1000 K). They feed only the
+  visualisation (`@slide none`); the simulators' induction models keep their stated assumptions.
+- **Field-line flow speed ∝ |B|** via a per-vertex travel coordinate τ = ∫ ds·B_ref/|B| and a
+  uniformly advancing pulse phase (no per-frame CPU work).
+- **Illustrative loads.** Where a model has no resistance (Faraday), current particles and lamp
+  brightness use an illustrative resistive load: speed ∝ f.e.m./V₀, P ∝ (f.e.m./V₀)²; the
+  scene shows only P/Pₘₐₓ, never an invented absolute current or power.
+- **Testing.** e2e runs on SwiftShader → `base` by auto-detection; dedicated tests force `alta`
+  with `?quality=alta`, switch tiers live from the sidebar (keyboard) and run the ×20
+  mount/unmount leak check in `alta` (composer, render targets, PMREM, textures, workers back to
+  0). Real-GPU frame rates cannot be measured in CI; the performance rules are in
+  ARCHITECTURE §10.6.

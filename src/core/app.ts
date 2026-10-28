@@ -1,6 +1,8 @@
 import '../styles/index.css';
 import { getTheory, findTheoryDoc, type TheoryDoc } from '../theory/content';
 import { renderTheoryIndex, renderTheoryPage } from '../theory/page';
+import { getQuality, onQualityChange, setQuality, type QualityTier } from '../render/quality';
+import { createSegmented } from '../ui/controls';
 import { el, listen } from '../ui/dom';
 import { createSimHeader, createSimLayout } from '../ui/simLayout';
 import { formatIT } from './format';
@@ -118,6 +120,22 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
   offs.push(listen(themeButton, 'click', () => toggleTheme()));
   offs.push(onThemeChange(syncThemeButton));
 
+  // Graphics quality (D14): applies live to the open simulator, persisted.
+  const quality = createSegmented<QualityTier>({
+    labelIT: t.render.quality,
+    options: [
+      { value: 'alta', labelIT: t.render.qualityAlta },
+      { value: 'bilanciata', labelIT: t.render.qualityBilanciata },
+      { value: 'base', labelIT: t.render.qualityBase },
+    ],
+    value: getQuality(),
+    onChange: (v) => setQuality(v),
+  });
+  quality.element.classList.add('quality-control');
+  quality.element.title = t.render.qualityHint;
+  offs.push(() => quality.dispose());
+  offs.push(onQualityChange((v) => quality.set(v)));
+
   const sidebar = el('aside', { class: 'sidebar' }, [
     el('div', { class: 'brand' }, [
       el('a', {
@@ -127,7 +145,7 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
       }),
       el('p', { class: 'brand__tagline', text: t.app.tagline }),
     ]),
-    el('div', { class: 'sidebar__theme' }, [themeButton]),
+    el('div', { class: 'sidebar__theme' }, [themeButton, quality.element]),
     el('nav', { class: 'nav', attrs: { 'aria-label': t.nav.label } }, [
       el('ul', { class: 'nav__sections' }, [
         el('li', {}, [

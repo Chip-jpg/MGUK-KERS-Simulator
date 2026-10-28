@@ -13,6 +13,25 @@ const debug = (page: Page): Promise<Debug> =>
     return w.__kersDebug?.faraday?.() ?? {};
   });
 
+/** Render-foundation counters (module singleton, readable after an unmount). */
+type Foundation = Record<string, number>;
+const foundation = (page: Page): Promise<Foundation> =>
+  page.evaluate(() => {
+    const w = window as unknown as { __kersDebug?: { render?: () => Foundation } };
+    return w.__kersDebug?.render?.() ?? {};
+  });
+
+type RenderInfo = {
+  tier: string;
+  post: boolean;
+  passes: string[];
+  shadows: boolean;
+  ibl: boolean;
+  fieldLines: number;
+};
+const renderInfo = async (page: Page): Promise<RenderInfo> =>
+  (await debug(page))['render'] as RenderInfo;
+
 /** "1.234,5 V" → { value: 1234.5, unit: 'V' }. */
 function parseIT(text: string): { value: number; unit: string } {
   // \s also matches the NBSP that formatIT puts before the unit.
@@ -65,6 +84,13 @@ test.describe('sim faraday', () => {
     const d = await debug(page);
     expect(d['liveScenes']).toBe(1);
     expect(d['liveRenderers']).toBe(1);
+    // SwiftShader is detected as a software renderer → quality tier "base" (no post-processing).
+    expect(d['tier']).toBe('base');
+    const info = await renderInfo(page);
+    expect(info.post).toBe(false);
+    expect(info.shadows).toBe(false);
+    await expect.poll(async () => (await renderInfo(page)).fieldLines).toBeGreaterThan(10);
+    await expect(page.getByRole('button', { name: /Ripristina vista/ })).toBeVisible();
     // default V0 = 50·0,5·0,02·6,3 = 3,15 V
     await expect(row(page, 'V0')).toHaveText(/^3,15\sV$/);
     expect(errors).toEqual([]);
@@ -119,6 +145,60 @@ test.describe('sim faraday', () => {
       .toBeCloseTo(0.275, 3);
   });
 
+  test('quality "alta" via ?quality=: post-processing chain, shadows, IBL; no errors', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const errors = collectErrors(page);
+    await page.goto('./?quality=alta#/sim/faraday');
+    await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
+    await expect.poll(async () => (await debug(page))['tier'], { timeout: 30_000 }).toBe('alta');
+    const info = await renderInfo(page);
+    expect(info.post).toBe(true);
+    expect(info.passes).toEqual(['render', 'bloom', 'output']);
+    expect(info.shadows).toBe(true);
+    expect(info.ibl).toBe(true);
+    const f = await foundation(page);
+    expect(f['liveComposers']).toBe(1);
+    expect(f['liveRenderTargets']).toBeGreaterThan(2);
+    await page.getByText('Moto traslatorio', { exact: true }).click();
+    await page.waitForTimeout(300);
+    expect(errors).toEqual([]);
+  });
+
+  test('sidebar "Qualità grafica" switches the tier live without remounting', async ({ page }) => {
+    // Rebuilding alta/bilanciata (PBR shaders, PMREM, composer) is slow on SwiftShader.
+    test.setTimeout(150_000);
+    const errors = collectErrors(page);
+    await page.goto('./#/sim/faraday');
+    await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
+    const group = page.getByRole('group', { name: 'Qualità grafica' });
+    await expect(group.getByRole('radio', { name: 'Base' })).toBeChecked();
+    // keyboard: focus the checked radio, arrow to the previous option (Bilanciata)
+    await group.getByRole('radio', { name: 'Base' }).focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(group.getByRole('radio', { name: 'Bilanciata' })).toBeChecked();
+    await expect
+      .poll(async () => (await debug(page))['tier'], { timeout: 40_000 })
+      .toBe('bilanciata');
+    let info = await renderInfo(page);
+    expect(info.passes).toEqual(['render', 'bloom', 'smaa', 'output']);
+    await group.getByText('Alta', { exact: true }).click();
+    await expect.poll(async () => (await debug(page))['tier'], { timeout: 40_000 }).toBe('alta');
+    const d = await debug(page);
+    expect(d['totalMounts']).toBe(1); // applied live, no remount
+    expect(d['canvases']).toBe(1);
+    expect(await page.evaluate(() => localStorage.getItem('kers-lab.quality'))).toBe('alta');
+    await group.getByText('Base', { exact: true }).click();
+    await expect.poll(async () => (await debug(page))['tier'], { timeout: 40_000 }).toBe('base');
+    info = await renderInfo(page);
+    expect(info.post).toBe(false);
+    const f = await foundation(page);
+    expect(f['liveComposers']).toBe(0);
+    expect(f['liveRenderTargets']).toBe(0); // composer, bloom mips, SMAA and the PMREM env all released
+    expect(errors).toEqual([]);
+  });
+
   test('fps sample (headless, software GL)', async ({ page }) => {
     await page.goto('./#/sim/faraday');
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
@@ -149,8 +229,20 @@ test.describe('sim faraday', () => {
     expect(sceneFps).toBeLessThanOrEqual(62); // 60 fps cap respected
   });
 
+  const FOUNDATION_KEYS = [
+    'liveStages',
+    'liveRenderers',
+    'liveComposers',
+    'liveRenderTargets',
+    'livePmrem',
+    'liveMaterials',
+    'liveTextures',
+    'liveGeometries',
+    'liveWorkers',
+  ];
+
   test('mount/unmount ×20 without leaks', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     const errors = collectErrors(page);
     const cdp = await page.context().newCDPSession(page);
     const heapAfterGc = async (): Promise<number> => {
@@ -175,10 +267,14 @@ test.describe('sim faraday', () => {
       expect(d['liveMounts']).toBe(1);
       expect(d['liveGeometries']).toBe(first['liveGeometries']);
       expect(d['liveMaterials']).toBe(first['liveMaterials']);
+      expect((await foundation(page))['liveStages']).toBe(1);
       await page.evaluate(() => (location.hash = '#/teoria'));
       await expect(page.locator('.prose, .theory-index').first()).toBeVisible();
       // QA-005: the debug hook is removed together with the sim.
       expect(await debug(page)).toEqual({});
+      // Render-foundation counters (stage, kit materials/textures, helper geometries…) back to 0.
+      const fu = await foundation(page);
+      for (const key of FOUNDATION_KEYS) expect(fu[key], key).toBe(0);
       expect(await page.locator('canvas').count()).toBe(0);
       heaps.push(await heapAfterGc());
     }
@@ -198,6 +294,34 @@ test.describe('sim faraday', () => {
       `[faraday leak] heap after GC per unmount (MB): ${series}; Δ(#10→#20) ${(growth / 1e6).toFixed(2)} MB`,
     );
     expect(growth).toBeLessThan(1e6);
+    expect(errors).toEqual([]);
+  });
+
+  test('alta: composer, render targets, PMREM and shadow resources are released (×4)', async ({
+    page,
+  }) => {
+    // A full ×20 in alta takes minutes on SwiftShader (PBR shader compilation); the
+    // ×20 base loop above covers heap growth, this one the post-processing resources.
+    test.setTimeout(240_000);
+    const errors = collectErrors(page);
+    await page.goto('./?quality=alta#/teoria');
+    let firstTargets: number | null = null;
+    for (let k = 0; k < 4; k++) {
+      await page.evaluate(() => (location.hash = '#/sim/faraday'));
+      await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
+      await expect.poll(async () => (await debug(page))['tier'], { timeout: 30_000 }).toBe('alta');
+      const fm = await foundation(page);
+      expect(fm['liveStages']).toBe(1);
+      expect(fm['liveComposers']).toBe(1);
+      firstTargets ??= fm['liveRenderTargets'] as number;
+      expect(fm['liveRenderTargets']).toBe(firstTargets);
+      expect(firstTargets).toBeGreaterThan(2); // composer ×2 + bloom mips + PMREM env
+      await page.evaluate(() => (location.hash = '#/teoria'));
+      await expect(page.locator('.prose, .theory-index').first()).toBeVisible();
+      const fu = await foundation(page);
+      for (const key of FOUNDATION_KEYS) expect(fu[key], key).toBe(0);
+      expect(await page.locator('canvas').count()).toBe(0);
+    }
     expect(errors).toEqual([]);
   });
 });

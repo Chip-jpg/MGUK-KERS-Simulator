@@ -130,6 +130,28 @@
   justify-content: flex-start;
 }
 
+.quality-control {
+  margin-top: var(--space-3);
+}
+
+.quality-control .segmented__legend {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+
+.quality-control .segmented__options {
+  display: flex;
+  width: 100%;
+}
+
+.quality-control .segmented__label {
+  flex: 1 1 0;
+  padding: var(--space-1) var(--space-2);
+  text-align: center;
+  font-size: var(--fs-xs);
+}
+
 .main {
   min-width: 0;
   padding: var(--space-6) var(--space-6) var(--space-7);

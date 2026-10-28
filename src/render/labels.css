@@ -1,0 +1,64 @@
+/* Scene labels of the render foundation (src/render/labels.ts). */
+.r-label {
+  --r-q: var(--color-text-muted);
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 0.18rem 0.5rem 0.2rem 0.45rem;
+  border-radius: 0.35rem;
+  border-left: 3px solid var(--r-q);
+  background: color-mix(in srgb, var(--color-surface-2) 88%, transparent);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.22);
+  color: var(--color-text);
+  font: 600 0.82rem/1.15 var(--font-sans, system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  will-change: transform;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(4px);
+}
+
+.r-label--sm {
+  font-size: 0.74rem;
+  padding: 0.12rem 0.4rem 0.14rem 0.35rem;
+}
+
+.r-label--lg {
+  font-size: 0.95rem;
+}
+
+.r-label--b {
+  --r-q: var(--q-b);
+  color: var(--q-b);
+}
+
+.r-label--emf {
+  --r-q: var(--q-emf);
+  color: var(--q-emf);
+}
+
+.r-label--i {
+  --r-q: var(--q-i);
+  color: var(--q-i);
+}
+
+.r-label--f {
+  --r-q: var(--q-f);
+  color: var(--q-f);
+}
+
+.r-label--energy {
+  --r-q: var(--q-energy);
+  color: var(--q-energy);
+}
+
+.r-label--accent {
+  --r-q: var(--color-accent);
+  color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r-label {
+    transition: none;
+  }
+}

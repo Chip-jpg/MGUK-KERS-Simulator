@@ -81,3 +81,31 @@ export type {
   CarBrakingSample,
   BrakingZoneResult,
 } from './vehicle-dynamics';
+
+// Field models and lumped thermal model (extension: visualisation, v0.6)
+export {
+  ellipK,
+  ellipE,
+  dipoleField,
+  loopField,
+  solenoidField,
+  SOLENOID_MAX_LOOPS,
+  createGapField,
+  gapField,
+  norm3,
+  divergence,
+} from './fields';
+export type { Vec3, ReadonlyVec3, FieldFn, GapGeometry } from './fields';
+export {
+  thermalStep,
+  thermalStepLoss,
+  thermalSteadyState,
+  planckRadiance,
+  cie1931,
+  blackbodyXYZ,
+  xyzToLinearSRGB,
+  blackbodyRGB,
+  blackbodyLuminance,
+  BLACKBODY_LUT_MIN,
+  BLACKBODY_LUT_MAX,
+} from './thermal';
