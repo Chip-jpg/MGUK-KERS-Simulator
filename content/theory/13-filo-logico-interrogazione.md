@@ -1,6 +1,6 @@
 ---
 id: 13-filo-logico-interrogazione
-titleIT: Filo logico per l'interrogazione
+titleIT: Filo logico per l’interrogazione
 slideRefs: [7, 8, 10, 11, 17, 18, 19, 20, 23]
 goal: '9'
 order: 13

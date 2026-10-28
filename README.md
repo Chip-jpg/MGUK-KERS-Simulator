@@ -118,12 +118,31 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
 - [ ] **v0.2.0 — Rifinitura**: correzioni dalla revisione indipendente, accessibilità,
       prestazioni, sito pubblicato su GitHub Pages.
 - [ ] **v0.3.x — Fase 4 (avanzata, facoltativa)**, un modulo per release:
-  1. `field-biot-savart` — linee di campo animate sulla GPU per bobine reali (Biot-Savart);
+  1. `field-biot-savart` — linee di campo animate sulla GPU per bobine reali (Biot-Savart).
+     **Fase 4 in corso: campo di Biot-Savart (v0.3.0)**;
   2. `pmsm-dq` — modello d-q della macchina sincrona a magneti permanenti, mappe coppia/potenza;
   3. `car-dynamics` — dinamica del veicolo (pneumatici Pacejka, aerodinamica, frenata combinata MGU-K + freni);
   4. app desktop Windows (`.exe`) con Tauri 2.
 
 Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
+
+## Come pubblicare una release
+
+1. Una sola volta: in **Settings → Pages → Build and deployment → Source** scegli
+   **GitHub Actions**.
+2. Aggiorna `CHANGELOG.md` (sposta le voci di `[Unreleased]` in una nuova sezione
+   `## [X.Y.Z] - AAAA-MM-GG`) e la versione in `package.json`, poi fai il merge su `main`.
+3. Crea e pubblica il tag annotato: il push del tag `v*` avvia il workflow
+   [`pages.yml`](.github/workflows/pages.yml), che compila e pubblica il sito su GitHub Pages.
+
+   ```bash
+   git tag -a vX.Y.Z -m "KERS Lab vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+4. Crea la **GitHub Release** dal tag (`Releases → Draft a new release`, oppure
+   `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file note.md`), copiando come note
+   il testo della sezione corrispondente di `CHANGELOG.md`.
 
 ## Modello semplificato
 

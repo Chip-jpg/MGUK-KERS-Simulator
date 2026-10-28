@@ -7,6 +7,14 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Corretto
+
+- QA-016 completato: apostrofo tipografico ’ al posto di quello dritto `'` nei testi
+  delle domande numeriche generate (testo e soluzione passo passo), nel titolo statico
+  della pagina e nella meta-descrizione (`index.html`), nella descrizione di
+  `package.json` e nei titoli delle schede di teoria 01–14 (es. "dell’induzione"), con
+  test che impediscono regressioni.
+
 ## [0.1.0] - 2026-10-28
 
 Prima release: Fasi 1–3 complete.

@@ -198,6 +198,21 @@ describe('no ASCII pseudo-notation outside KaTeX (QA-016)', () => {
     }
     expect(JSON.stringify(TEXT).includes("'")).toBe(false);
   });
+
+  it('generated numeric prompts and solutions use the typographic apostrophe ’ (QA-016)', () => {
+    for (const g of GENERATORS) {
+      for (const seed of [1, 7, 42, 12345, 987654321]) {
+        const q = instantiate(g, seed);
+        for (const txt of texts(q)) {
+          // No mis-encoded UTF-8 (e.g. "â\u0080\u0099" instead of "’").
+          expect(/[\u0080-\u009f]/.test(txt), `${q.id}#${seed}: "${txt}"`).toBe(false);
+          for (const part of splitMath(txt).filter((p) => !p.math)) {
+            expect(part.text.includes("'"), `${q.id}#${seed}: "${part.text}"`).toBe(false);
+          }
+        }
+      }
+    }
+  });
 });
 
 describe('KERS wording consistent with D8 and theory 10', () => {

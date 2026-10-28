@@ -68,7 +68,7 @@ const flux = gen({
   }),
   promptIT: (p) =>
     `Una spira piana di area $S = ${tex(p.S, 'm}^2\\text{')}$ è immersa in un campo magnetico uniforme $B = ${tex(p.B, 'T')}$. ` +
-    `L'angolo tra $\\vec B$ e la normale alla spira è $\\alpha = ${p.alphaDeg}^\\circ$. Calcola il flusso $\\Phi_B$ attraverso la spira (in mWb).`,
+    `L’angolo tra $\\vec B$ e la normale alla spira è $\\alpha = ${p.alphaDeg}^\\circ$. Calcola il flusso $\\Phi_B$ attraverso la spira (in mWb).`,
   solve: (p) => fluxUniform(p.B, p.S, degToRad(p.alphaDeg)),
   solution: (p, a) => [
     {
@@ -149,9 +149,9 @@ const slide10 = gen({
     };
   },
   promptIT: (p) =>
-    `Come nell'esempio della slide 10: una spira di area $S = ${tex(p.S, 'm}^2\\text{')}$ e resistenza $R = ${tex(p.R * 1e3, 'm}\\Omega\\text{')}$ ` +
+    `Come nell’esempio della slide 10: una spira di area $S = ${tex(p.S, 'm}^2\\text{')}$ e resistenza $R = ${tex(p.R * 1e3, 'm}\\Omega\\text{')}$ ` +
     `è perpendicolare a un campo che passa da $${tex(p.B1 * 1e3, 'mT')}$ a $${tex(p.B2 * 1e3, 'mT')}$ in $\\Delta t = ${tex(p.dt, 's')}$. ` +
-    `Calcola l'intensità della corrente indotta (in mA).`,
+    `Calcola l’intensità della corrente indotta (in mA).`,
   solve: (p) =>
     Math.abs(
       inducedCurrent(emfFaraday(fluxUniform(p.B2, p.S, 0) - fluxUniform(p.B1, p.S, 0), p.dt), p.R),
@@ -195,7 +195,7 @@ const motional = gen({
   solve: (p) => emfMotional(p.B, p.l, p.v),
   solution: (p, a) => [
     {
-      textIT: "In un tempo Δt l'area del circuito aumenta di l·v·Δt, quindi:",
+      textIT: 'In un tempo Δt l’area del circuito aumenta di l·v·Δt, quindi:',
       tex: '\\text{f.e.m.} = B\\,l\\,v',
     },
     { tex: `\\text{f.e.m.} = ${tex(p.B)} \\cdot ${tex(p.l)} \\cdot ${tex(p.v)} = ${res(a, 'V')}` },
@@ -366,7 +366,7 @@ const rlI = gen({
   }),
   promptIT: (p) =>
     `Un generatore con f.e.m. $${tex(p.emf, 'V')}$ alimenta un circuito con $R = ${tex(p.R, '}\\Omega\\text{')}$ e $L = ${tex(p.L, 'H')}$. ` +
-    `L'interruttore si chiude all'istante $t = 0$. Calcola la corrente all'istante $t = ${tex(p.t * 1e3, 'ms')}$ (in A).`,
+    `L’interruttore si chiude all’istante $t = 0$. Calcola la corrente all’istante $t = ${tex(p.t * 1e3, 'ms')}$ (in A).`,
   solve: (p) => rlCurrent(p.emf, p.R, p.L, p.t),
   solution: (p, a) => {
     const I0 = inducedCurrent(p.emf, p.R);
@@ -400,7 +400,7 @@ const magEnergy = gen({
     I: pickGrid(r, 0.5, 10, 0.5),
   }),
   promptIT: (p) =>
-    `In un'induttanza $L = ${tex(p.L, 'H')}$ circola a regime una corrente $I_0 = ${tex(p.I, 'A')}$. ` +
+    `In un’induttanza $L = ${tex(p.L, 'H')}$ circola a regime una corrente $I_0 = ${tex(p.I, 'A')}$. ` +
     `Quanta energia è immagazzinata nel campo magnetico (in J)?`,
   solve: (p) => magneticEnergy(p.L, p.I),
   solution: (p, a) => [
@@ -593,7 +593,7 @@ const lorentz = gen({
   }),
   promptIT: (p) =>
     `Un filo rettilineo lungo $L = ${tex(p.L, 'm')}$, percorso da una corrente $I = ${tex(p.I, 'A')}$, è immerso in un campo $B = ${tex(p.B, 'T')}$. ` +
-    `L'angolo tra filo e campo è $\\theta = ${p.thetaDeg}^\\circ$. Calcola il modulo della forza di Lorentz sul filo (in N).`,
+    `L’angolo tra filo e campo è $\\theta = ${p.thetaDeg}^\\circ$. Calcola il modulo della forza di Lorentz sul filo (in N).`,
   solve: (p) => lorentzForce(p.B, p.I, p.L, degToRad(p.thetaDeg)),
   solution: (p, a) => [
     {
@@ -622,8 +622,8 @@ const kinetic = gen({
     v2: pickGrid(r, 50, 150, 10),
   }),
   promptIT: (p) =>
-    `Un'auto di massa $m = ${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}\\ \\text{km/h}$ a $${p.v2}\\ \\text{km/h}$. ` +
-    `Calcola l'energia cinetica $\\Delta E_k$ da smaltire (in MJ).`,
+    `Un’auto di massa $m = ${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}\\ \\text{km/h}$ a $${p.v2}\\ \\text{km/h}$. ` +
+    `Calcola l’energia cinetica $\\Delta E_k$ da smaltire (in MJ).`,
   solve: (p) => kineticEnergyDelta(p.m, kmhToMs(p.v1), kmhToMs(p.v2)),
   solution: (p, a) => [
     {
@@ -698,8 +698,8 @@ const kersRecovered = gen({
   tolerance: DEFAULT_TOLERANCE,
   sample: sampleSaturatedKers,
   promptIT: (p) =>
-    `Un'auto di massa $${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}$ a $${p.v2}\\ \\text{km/h}$ in $t_f = ${tex(p.tBrake, 's')}$. ` +
-    `L'MGU-K può inviare alla batteria al massimo $P_{\\max} = ${p.PmaxKW}\\ \\text{kW}$ di potenza elettrica (${pmaxNote(p.PmaxKW)}), ` +
+    `Un’auto di massa $${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}$ a $${p.v2}\\ \\text{km/h}$ in $t_f = ${tex(p.tBrake, 's')}$. ` +
+    `L’MGU-K può inviare alla batteria al massimo $P_{\\max} = ${p.PmaxKW}\\ \\text{kW}$ di potenza elettrica (${pmaxNote(p.PmaxKW)}), ` +
     `con un rendimento illustrativo $\\eta = ${tex(p.eta)}$. Quanta energia arriva al massimo in batteria (in MJ)?`,
   solve: (p) => kersEvent(p).recovered,
   solution: (p, a) => {
@@ -749,8 +749,8 @@ const kersTime = gen({
     eta: pickOne(r, ETAS),
   }),
   promptIT: (p) =>
-    `Un'auto di massa $${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}$ a $${p.v2}\\ \\text{km/h}$. ` +
-    `L'MGU-K ha rendimento $\\eta = ${tex(p.eta)}$ e invia alla batteria al massimo $P_{\\max} = ${p.PmaxKW}\\ \\text{kW}$ (${pmaxNote(p.PmaxKW)}). ` +
+    `Un’auto di massa $${p.m}\\ \\text{kg}$ (valore illustrativo) frena da $${p.v1}$ a $${p.v2}\\ \\text{km/h}$. ` +
+    `L’MGU-K ha rendimento $\\eta = ${tex(p.eta)}$ e invia alla batteria al massimo $P_{\\max} = ${p.PmaxKW}\\ \\text{kW}$ (${pmaxNote(p.PmaxKW)}). ` +
     `Quanto vale il tempo per assorbire tutta $\\Delta E_k$ alla potenza massima (in s)? In batteria arriva $\\eta\\,\\Delta E_k$.`,
   solve: (p) => kersEvent(p).timeToRecoverAtPmax,
   solution: (p, a) => {

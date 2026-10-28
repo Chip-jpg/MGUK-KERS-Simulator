@@ -1,6 +1,6 @@
 ---
 id: 02-esperimenti-e-principio-induzione
-titleIT: Esperimenti e principio dell'induzione elettromagnetica
+titleIT: Esperimenti e principio dell’induzione elettromagnetica
 slideRefs: [2, 3, 4, 5, 6, 7]
 order: 2
 level: base

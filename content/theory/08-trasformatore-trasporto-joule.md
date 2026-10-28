@@ -1,6 +1,6 @@
 ---
 id: 08-trasformatore-trasporto-joule
-titleIT: Trasformatore, trasporto dell'energia ed effetto Joule
+titleIT: Trasformatore, trasporto dell’energia ed effetto Joule
 slideRefs: [20, 21, 22, 23]
 order: 8
 level: base
