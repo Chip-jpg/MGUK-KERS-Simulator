@@ -1,5 +1,134 @@
 # QA report — A11 independent verification
 
+## Phase 4 round — v0.3.0 / v0.3.1 (Biot-Savart, PMSM d-q, car dynamics)
+
+Date: 2026-10-28 · Base: `claude/new-session-u560qi` @ `8aa9aae` (v0.3.1) · Branch: `qa/A11-p4`.
+Scope: everything changed since v0.2.0 (`a2e2fad..8aa9aae`): `src/physics/{biotSavart,pmsm,vehicle-dynamics}.ts`
+and tests, the three new simulators, theory 15–17, the 9 new quiz questions and `src/quiz/{options,richText,sections}.ts`,
+registry/i18n, plus a regression sweep of all 27 routes. Read-only on source; scripts, numbers and
+screenshots in the scratchpad `a11p4/` (not committed).
+
+### P4.1 Verdict
+
+| Item                                                   | Result | Notes                                                                         |
+| ------------------------------------------------------ | ------ | ----------------------------------------------------------------------------- |
+| Physics `biotSavart.ts`                                | PASS   | formula, regularisation, Helmholtz, tracing re-derived; nit QA-023            |
+| Physics `pmsm.ts`                                      | PASS   | Clarke/Park, torque, MTPA, ellipse, PI re-derived; nit QA-024                 |
+| Physics `vehicle-dynamics.ts`                          | PASS   | Pacejka, load transfer, axle limits, D8 cap, energy re-derived; nit QA-029    |
+| Physics coverage                                       | PASS   | 100 % stmts/funcs/lines, 99,2 % branches                                      |
+| Sim `field-biot-savart`                                | PASS   | numbers match; worker terminated; nits QA-025, QA-030                         |
+| Sim `pmsm-dq`                                          | PASS   | readouts recomputed by hand; axe 0                                            |
+| Sim `car-dynamics`                                     | PASS   | 1,83 s / 93 m / 0,22 / 0,55 MJ reproduced independently; axe 0                |
+| Theory 15 campo-biot-savart                            | PASS   | numbers, hedges, 6 headings, 4 Q&A                                            |
+| Theory 16 pmsm-dq                                      | PASS   | numbers (180 N·m, 75,4 kW, 96,5 %, 5750 giri/min) verified                    |
+| Theory 17 dinamica-frenata                             | FAIL   | **QA-020** axe serious violation at 1280×720; nit QA-026                      |
+| Quiz additions (15–17)                                 | PASS   | 9 questions, answerable from theory, no duplicates, numbers consistent        |
+| Registry / i18n / sim index                            | PASS   | 9 cards, sidebar and titles consistent                                        |
+| Docs (PHYSICS §7–§9, OPEN_FACTS, CHANGELOG)            | PASS   | minor QA-022 (PHYSICS example numbers), nit QA-027                            |
+| Regressions (6 Phase 1–3 sims, theory 01–14, quiz, CI) | PASS   | 0 axe / console / cross-origin findings; nit QA-028 (chunk-size warning back) |
+| e2e coverage of the new pages                          | PASS   | 93/93 green, but gaps → minor QA-021                                          |
+
+**Overall: FAIL** for v0.3.1 — one open major defect (QA-020: theory 17 fails the project's own
+axe gate, D9 "zero violations", at the 1280×720 minimum resolution). It is a one-formula fix;
+everything else passes. After QA-020 (and ideally QA-021/QA-022) the release can be re-marked PASS
+without a full re-run (re-run the axe sweep of `#/teoria/17-dinamica-frenata` in both themes).
+
+### P4.2 Defects
+
+| ID     | Sev   | Owner           | File:line                                                                                                    | Defect                                                                                                                                                                                                                                                                                                                                                                                   | Evidence                                                                                                                                                                                                                                                                      | Suggested fix                                                                                                                                                                                                  |
+| ------ | ----- | --------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| QA-020 | major | A2 (theory)     | `content/theory/17-dinamica-frenata.md:25`                                                                   | The third display formula (F_MGU-K = min(…) together with the energy balance on one line) is 673 px wide in a 672 px column at 1280×720: the `.math-display` becomes a horizontal scroll region that is not keyboard-focusable → axe **serious** `scrollable-region-focusable` (WCAG 2.1.1) in dark and light. The last term E_aero touches the column edge. Not caught by e2e (QA-021). | Own axe sweep: `serious scrollable-region-focusable x1 .math-display:nth-child(9)` on `#/teoria/17-dinamica-frenata`, both themes; `scrollWidth 673 > clientWidth 672` (none at 1440/1920; theory 01–16 clean). Screenshot `a11p4/shots/t-17-dinamica-frenata-dark-full.png`. | Split into two `$$…$$` (MGU-K force; energy balance). Optionally make the renderer give overflowing `.math-display` `tabindex="0"` + `role="region"`/`aria-label`, and add theory 15–17 to `e2e/a11y.spec.ts`. |
+| QA-021 | minor | A3 / sim owners | `e2e/a11y.spec.ts:11-13`; `e2e/sims/pmsm-dq.spec.ts:253-256`; `e2e/sims/car-dynamics.spec.ts:228-243`        | e2e gaps: the route-level axe spec covers only `#/teoria`, theory 03 and 14 (so QA-020 slipped through); the `pmsm-dq` and `car-dynamics` axe tests fail only on serious/critical, weaker than the D9 gate (zero violations) used by every other sim.                                                                                                                                    | Code reading; e2e 93/93 green while QA-020 exists. (Today both sims have 0 violations in my sweep, so the gate is not currently masking anything.)                                                                                                                            | Add `#/teoria/15…17` (or all theory routes) to `a11y.spec.ts`; assert `violations` is `[]` in the two sim specs.                                                                                               |
+| QA-022 | minor | A1 (docs)       | `docs/PHYSICS.md:303-304`                                                                                    | PMSM envelope example: "base speed ≈ 6130 giri/min (≈ 144 kW)" and "power ≈ 185–199 kW between 2 and 3,2 × base". With the code and by hand: 229,33 N·m × 641,73 rad/s = **147,2 kW** at base; 191,3 kW at 2× and 198,6 kW at 3,2×.                                                                                                                                                      | `a11p4/nums.ts`: base 641,734 rad/s = 6128 giri/min, T 229,33 N·m; 1,5×: 181,4 kW; 2×: 191,3; 2,5×: 195,7; 3×: 198,0; 3,2×: 198,6. Brute-force grid at 2,5× base: 121,85 N·m vs 122,0 (code).                                                                                 | "≈ 147 kW"; "≈ 191–199 kW".                                                                                                                                                                                    |
+| QA-023 | nit   | A1 / sim owner  | `docs/PHYSICS.md:242`; `src/sims/field-biot-savart/model.ts:12`                                              | "Field lines are traced in the meridian plane x = 0": true for loop and Helmholtz (drift < 1e-16 m) but not for the solenoid — the helix carries a net current I along z, whose azimuthal field moves the lines out of the plane by up to 11,8 mm (0,39 R) at the defaults. The 3D drawing is correct (real 3D polylines); only the wording is inaccurate.                               | `a11p4/biot.ts`: max \|x\| of solenoid lines 0,01176 m; loop 1,3e-17, Helmholtz 5,6e-18.                                                                                                                                                                                      | Say "seeded in the plane x = 0 (the helix's axial current makes solenoid lines leave it slightly)".                                                                                                            |
+| QA-024 | nit   | A1              | `src/physics/pmsm.ts:497-499` (`pmsmMtpa`)                                                                   | ψₘ = 0 is accepted (`nonNegative`) but with ψₘ = 0 and L_d = L_q the closed form is 0/0 → `{ id: NaN, iq: NaN }` (and `pmsmBaseSpeed`/`pmsmMaxTorque` inherit it). Not reachable from the sim presets.                                                                                                                                                                                   | `pmsmMtpa(100, {Rs:0.02, Ld:1e-4, Lq:1e-4, psiM:0, p:4})` → NaN.                                                                                                                                                                                                              | `if (dL === 0) return { id: 0, iq: ±I }` (any split gives T = 0), or require ψₘ > 0; add a test.                                                                                                               |
+| QA-025 | nit   | sim owner       | `src/sims/field-biot-savart/params.ts:32`; `src/sims/kers-braking/model.ts:127` (also shown by car-dynamics) | Italian: slider scale reads "1 spire" (QA-016 fixed the same in faraday/lenz to "1 spira"); preset source label uses straight quotes `"7 things …"`.                                                                                                                                                                                                                                     | Rendered scale: `1 spire \| 80 spire`; screenshot `s-car-dynamics-light.png` (preset sources).                                                                                                                                                                                | Singular unit for value 1 as in faraday/lenz; « » or “ ” in the label.                                                                                                                                         |
+| QA-026 | nit   | A2 / sim owner  | `content/theory/17-dinamica-frenata.md:25`; car-dynamics formula panel                                       | Word subscripts in math italic: `E_{freni}`, `E_{aero}`, `F_{x,post}`, `E_{batt}`, `P_{batt}` render as italic letter products; the rest of the project uses `\text{}` (e.g. `B_{\text{rif}}`, `P_{\text{Cu}}`). Inline `($\Delta F_z = F_x h/L$)` in Spiegazione wraps right after "(".                                                                                                 | Screenshot `t-17-dinamica-frenata-dark-full.png`, car-dynamics formula panel.                                                                                                                                                                                                 | `E_{\text{freni}}`, `F_{x,\text{post}}`, …; keep the parenthesis with the formula (non-breaking or rephrase).                                                                                                  |
+| QA-027 | nit   | A2              | `docs/OPEN_FACTS.md:16, 20, 23`                                                                              | "Where used" not updated for Phase 4: #1 and #5 (120 / 350 kW) are now also used in theory 17 and the car-dynamics presets; #8 (MGU-K machine type) in 15, 16 and the pmsm-dq note.                                                                                                                                                                                                      | grep of content/ and src/sims/.                                                                                                                                                                                                                                               | Add 15/16/17 and the sims to the column.                                                                                                                                                                       |
+| QA-028 | nit   | A10             | build output                                                                                                 | `npm run build` again prints Vite's "Some chunks are larger than 500 kB" warning: `three.module` 511,43 kB (496,51 kB without warning at v0.2.0), as the new scenes use more of Three.js. Lazy-loaded, so no first-load impact.                                                                                                                                                          | `a11p4/gate.log`.                                                                                                                                                                                                                                                             | Accept and set `build.chunkSizeWarningLimit` with a comment, or split via `manualChunks`.                                                                                                                      |
+| QA-029 | nit   | sim owner       | `src/sims/car-dynamics/model.ts:76`                                                                          | η slider goes down to 0. With η = 0 the D8 cap Pₘₐₓ/η is infinite: the MGU-K takes the whole rear-axle force (0,94 MJ at the defaults), stores 0 and the bar shows it all as "Perdite MGU-K". Consistent with `kersBrakingEvent` (D8) but physically meaningless.                                                                                                                        | `simulateBrakingZone({…, eta: 0})`: eMguk 0,940 MJ, eStored 0, eBrakes 1,298 MJ.                                                                                                                                                                                              | Slider min 0,5 (or treat η = 0 as "MGU-K spenta") — also for kers-braking if wanted.                                                                                                                           |
+| QA-030 | nit   | sim owner       | `src/sims/field-biot-savart/index.ts:198` (`mountBiot`)                                                      | No host-level idempotency guard (`mounted.get(host)?.dispose()`) unlike pmsm-dq, car-dynamics and alternator-motor: two `mount()` calls on the same host without `dispose()` would keep two Workers. The router always disposes, so no leak in practice.                                                                                                                                 | Browser: 11 route cycles → 22 worker `open`/`close` events balanced, 0 workers alive afterwards; e2e ×20 leak test green.                                                                                                                                                     | Same `WeakMap` guard as the other Phase 4 sims.                                                                                                                                                                |
+
+### P4.3 Physics audit (check 1)
+
+**Biot-Savart.** `addSegmentField`: with c = L × r₁ (\|c\| = \|L\|d) and t₁ − t₂ = \|L\|(cos θ₁ − cos θ₂),
+B = K I (t₁ − t₂) c / (\|c\|² + \|L\|² r_c²) = μ₀I/(4π) · (cos θ₁ − cos θ₂) · d/(d² + r_c²) · ĉ — the
+textbook segment formula with d² → d² + r_c², direction dl × r̂. Correct. Helmholtz: two N-turn rings at
+∓s/2 (s = R), same sense, lead up + lead back cancel; `nearWire` uses ±R/2, consistent. Tracing:
+RK4 on B/\|B\| with arc-length step, close/bounds/nearWire/null stops sensible. Independent check
+(own 80 000-element midpoint helix sum, not the project code): **0,82149 mT** at the centre vs code
+0,82141 mT; ideal μ₀NI/l = **0,83776 mT**; current-sheet 0,82149 mT; Δ = −1,95 %;
+L = μ₀N²πR²/l = **18,950 µH**. Loop centre 4,1891 mT vs μ₀NI/2R 4,1888; Helmholtz 5,9940 vs
+(4/5)^{3/2}μ₀NI/R 5,9945 mT. End of the solenoid: 0,417 mT = 51 % (theory 15 ✓).
+
+**PMSM.** Amplitude-invariant Clarke + Park verified numerically (balanced set X = 10 at θ = 0,7 →
+d = 10, q = 0). Voltage equations, torque ½·3·p[ψi_q + (L_d − L_q)i_di_q], power balance and the
+current derivatives are mutually consistent (v = R i + L di/dt + ω×ψ). MTPA closed form equals the
+standard i_d = [ψ − √(ψ² + 8ΔL²I²)]/(4ΔL) after rationalising (−179,361 A both ways; also valid for
+L_d > L_q). Voltage ellipse with R_s: exact inverse of A = [[R_s, −ωL_q],[ωL_d, R_s]]. Envelope logic
+(MTPA if feasible, else best of circle ∩ ellipse boundaries, region = on-circle → field-weakening,
+else MTPV) is sound; brute-force grid at 2,5× base agrees within the grid step. PI k_p = Lω_c,
+k_i = R_sω_c gives a first-order loop ω_c/(s + ω_c) with decoupling — correct. Base speed
+641,73 rad/s = 6128 giri/min, T = 229,33 N·m (QA-022 for the kW). Theory 16 example: 180 N·m,
+75,40 kW, 2,70 kW, 96,5 %, SPM base speed 5751 giri/min — all ✓. Sim readouts at defaults
+(I = 300 A MTPA, 4000 giri/min): i_d −117,2 A, i_q 276,2 A, T 161,7 N·m, 67,73 kW, P_Cu 2,70 kW — ✓.
+
+**Vehicle dynamics.** Pacejka peak φ(Bκ*) = tan(π/2C) and inverse branch correct (φ monotone for
+E < 1). Axle limits: front βF ≤ μ(F_zf0 + Fh/L), rear (1 − β)F ≤ μ(F_zr0 − Fh/L) → the two
+denominators in the code ✓; β_id = w_f + μh/L ✓; drag at CoG height gives no extra pitch moment
+(inertial − drag = F_x at height h) ✓. MGU-K: min(F_x,rear, (Pₘₐₓ/η)/v), stored = η·E_MGU-K — D8
+consistent; `kersBrakingEvent` cross-check reproduced (0,2196 MJ at 1,83 s, 120 kW). End of zone:
+bisection on the last RK4 step, v set to v₂ ✓. Energy balance error −1,1·10⁻¹². Independent
+explicit integration (dt = 10⁻⁵ s, own formulas): **1,8290 s, 93,41 m; 120 kW: 0,2195 MJ stored,
+1,994 MJ brakes, 0,231 MJ aero; 350 kW: 0,5498 MJ**, rear-axle-limited below **167,4 km/h**; without
+aero 3,562 s / 197,9 m — identical to the code and to PHYSICS §9 / theory 17. Peak deceleration
+5,26 g at 300 km/h (ClA 3,5 m², μ 1,6) → 2,0 g at 100 km/h: plausible for a high-downforce single
+seater (commonly reported 5–6 g) and labelled illustrative in the sim ("Dati fissi della vettura
+(illustrativi)", preset note); no change needed.
+
+### P4.4 Theory and quiz (checks 2, 4, 5)
+
+- KaTeX checker: 17 files, 487 formulas, **0 errors**; 15/16/17: 526/431/449 words, 4 Q&A each, six
+  headings in order. MGU-K machine type hedged with `[DA VERIFICARE]` in 15 and 16; 17 cites the
+  120/350 kW values with the same FIA/formula1.com sources as theory 10; all other F1-like numbers
+  are stated as illustrative. No unsourced regulation figures.
+- Consistency theory ↔ sim ↔ PHYSICS: 0,8378 / 0,8214 mT, −1,95 %, 18,95 µH (15 = sim readouts);
+  1,83 s, 93 m, 0,22 MJ (≈ 9 %), 1,99 / 0,23 / 0,02 MJ, 0,55 vs 0,64 MJ, 167 km/h (17 = sim table);
+  notation C_x A / C_z A in theory 17 matches the sim labels (PHYSICS uses C_dA/C_lA, documented in
+  `model.ts`).
+- Italian: decimal commas, spaced units, typographic apostrophes and Unicode subscripts (Pₘₐₓ, v₁,
+  ωₑψₘ) correct in theory 15–17, quiz additions and the three sims; only QA-025/QA-026.
+- Quiz: 82 items (73 + 9: 3 per section 15/16/17), each answerable from its theory page, no
+  duplicate ids or prompts, numbers (0,84 mT, −1,95 %, 51 %) consistent; options with formulas get a
+  plain-text `aria-label` (`options.ts`) — axe 0 on the quiz page.
+
+### P4.5 Runs (check 3)
+
+```
+npm ci                  → ok
+npm run lint            → clean
+npm run format:check    → All matched files use Prettier code style!
+npm run typecheck       → clean
+npm test                → Test Files 49 passed (49) · Tests 681 passed (681)
+npm run build           → ✓ built in 4.48s (warning: three.module 511.43 kB > 500 kB, QA-028)
+vitest tests/physics --coverage → 100 % stmts · 99.2 % branch · 100 % funcs · 100 % lines
+                          (pmsm.ts branch 99.1 %, vehicle-dynamics.ts 97.93 %)
+PW_PORT=4520 … npm run e2e -- --workers=2 → 93 passed (4.2m)
+git status --short (after e2e) → empty
+```
+
+Own sweep on the production preview (1280×720, 27 routes × dark + light, 54 viewport + 16 full-page
+screenshots in `a11p4/shots/`): horizontal page scroll 0 everywhere; axe WCAG 2.0/2.1 A+AA 0
+violations on 52/54 (the 2 = QA-020); **0** cross-origin requests; **0** console errors/warnings and
+page errors. Canvases non-empty on all 9 sims (scene 510×446 + plots). Web Worker: 22 `open`/`close`
+events balanced over 11 visits to `field-biot-savart`, 0 workers alive after leaving. Render loop:
+rAF calls per second visible / hidden / visible again = biot 55/0/57, pmsm 94/0/93, car 102/0/89.
+JS heap after GC: 8,76 → 9,60 MB after 60 mounts of the new sims (no growth trend); e2e ×20 leak
+tests: GPU geometries/programs constant (pmsm 8/1, car 23/4), biot worker count 1. Informative
+headless fps (SwiftShader): biot 31, pmsm 30, car 47. Visual review (both themes) of the three sims,
+theory 15–17, the sim index (9 cards) and the quiz: no overlaps, clipping or empty canvases; only
+QA-020 (formula touching the edge) and the QA-025/026 typography nits.
+
 ## Round 2 — re-verification of QA-001…QA-018
 
 Date: 2026-10-28 · Base: `claude/new-session-u560qi` @ `3c0c1ed` · Branch: `qa/A11-r2`.
