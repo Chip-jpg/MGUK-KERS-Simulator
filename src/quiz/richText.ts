@@ -22,6 +22,37 @@ export function richHtml(s: string): string {
     .join('');
 }
 
+/**
+ * Plain-text reading of an element filled by `setRich`: normal text as is, KaTeX
+ * replaced by the tokens of its MathML (no TeX annotation, no visual HTML copy),
+ * e.g. "$L = R\,i$" → "L = R i". Used as an explicit accessible name where axe-core
+ * cannot derive one from KaTeX output (it ignores MathML content, so a label made
+ * only of a formula counts as empty).
+ */
+export function plainText(node: Element): string {
+  const parts: string[] = [];
+  const walk = (n: Node): void => {
+    if (n.nodeType === 3) {
+      parts.push(n.textContent ?? '');
+      return;
+    }
+    if (!(n instanceof Element)) return;
+    if (n.classList.contains('katex-html') || n.localName === 'annotation') return;
+    if (n.localName === 'math') {
+      const tokens: string[] = [];
+      for (const leaf of n.querySelectorAll('mi, mn, mo, mtext, ms')) {
+        const s = leaf.textContent?.trim();
+        if (s) tokens.push(s);
+      }
+      parts.push(tokens.join(' '));
+      return;
+    }
+    n.childNodes.forEach(walk);
+  };
+  walk(node);
+  return parts.join('').replace(/\s+/g, ' ').trim();
+}
+
 /** Fill `target` with rich text and return it. */
 export function setRich<T extends HTMLElement>(target: T, s: string): T {
   target.innerHTML = richHtml(s);

@@ -12,6 +12,7 @@ import { renderTex } from '../ui/math';
 import { BANK, materialize } from './bank';
 import { checkNumeric } from './generators';
 import { mulberry32, type Rng } from './prng';
+import { buildMcOptions } from './options';
 import { setRich } from './richText';
 import { boxCounts, emptyState, pickNext, recordAnswer } from './scheduler';
 import { SECTIONS, sectionLabel } from './sections';
@@ -290,22 +291,7 @@ export function mountQuiz(host: HTMLElement, _ctx: AppContext): Disposable {
   }
 
   function renderMc(q: MultipleChoiceQuestion): void {
-    const name = uniqueId('quiz-opt');
-    const fs = el('fieldset', { class: 'quiz__options' }, [
-      el('legend', { class: 'visually-hidden', text: TEXT.options }),
-    ]);
-    const inputs: HTMLInputElement[] = [];
-    q.options.forEach((opt, i) => {
-      const id = `${name}-${i}`;
-      const input = el('input', { attrs: { type: 'radio', name, id, value: String(i) } });
-      inputs.push(input);
-      fs.append(
-        el('div', { class: 'quiz__option' }, [
-          input,
-          setRich(el('label', { attrs: { for: id } }), opt),
-        ]),
-      );
-    });
+    const { fieldset: fs, inputs } = buildMcOptions(q.options, uniqueId('quiz-opt'));
     qBody.append(fs);
     const check = button({
       labelIT: t.quiz.check,

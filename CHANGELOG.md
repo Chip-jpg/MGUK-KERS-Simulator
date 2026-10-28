@@ -7,6 +7,28 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-28
+
+Fase 4, primi due moduli di approfondimento.
+
+### Aggiunto
+
+- Simulatore "Campo magnetico di bobine reali (Biot-Savart)": spira, solenoide e bobine di
+  Helmholtz; linee di campo calcolate in un Web Worker (RK4) e animate su GPU; confronto con il
+  solenoide ideale della slide 14 (B = μ₀NI/l, L = μ₀N²S/l). Nuova scheda di teoria 15.
+- Simulatore "Macchina sincrona a magneti permanenti: modello d-q": trasformate di
+  Clarke/Park, coppia, limiti di corrente e tensione, MTPA e deflussaggio, mappe coppia/potenza-
+  velocità in motore e in frenata; parametri illustrativi (il tipo reale dell’MGU-K resta
+  [DA VERIFICARE]). Nuova scheda di teoria 16.
+- Funzioni di fisica `biotSavart.ts` e `pmsm.ts` con test (copertura 100 % righe).
+- Domande del quiz per le sezioni 15 e 16.
+
+### Corretto
+
+- Test di accessibilità del quiz instabile: le opzioni composte solo da una formula non avevano
+  un nome accessibile per axe; ora hanno un `aria-label` in testo semplice, con test
+  deterministici per ogni domanda.
+
 ## [0.2.0] - 2026-10-28
 
 Rifinitura dopo la verifica di qualità (QA round 2).
@@ -110,6 +132,7 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/releases/tag/v0.1.0

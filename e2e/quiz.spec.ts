@@ -219,3 +219,53 @@ test('interrogazione: a simulated exam ends with oral flashcards and a summary',
   await expect(page.locator('.quiz__score')).toContainText('su 10');
   expect(errors).toEqual([]);
 });
+
+/**
+ * Flaky `axe … #/interrogazione` (rule `label`): a radio whose label is only a
+ * KaTeX formula had no accessible name for axe. Drive the quiz to each such
+ * question deterministically (section + type filters, unseen questions first) and
+ * run axe on it.
+ */
+const FORMULA_ONLY = [...MC.values()].filter((q) =>
+  q.options.some((o) => /^\$[^$]+\$$/.test(o.trim())),
+);
+
+test('interrogazione: formula-only options have an accessible name (axe label)', async ({
+  page,
+}) => {
+  expect(FORMULA_ONLY.length).toBeGreaterThan(0);
+  const sectionOf = new Map(
+    (bank.questions as Array<{ id: string; section: string }>).map((q) => [q.id, q.section]),
+  );
+  for (const target of FORMULA_ONLY) {
+    await page.goto('./#/interrogazione');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.getByLabel('Sezione').selectOption(sectionOf.get(target.id) ?? '');
+    await selectType(page, 'Scelta multipla');
+    for (let k = 0; k < 20; k++) {
+      if ((await card(page).getAttribute('data-question-id')) === target.id) break;
+      await card(page).locator('.quiz__options label').first().click();
+      await card(page).getByRole('button', { name: 'Verifica' }).click();
+      await page.getByRole('button', { name: 'Prossima domanda' }).click();
+    }
+    await expect(card(page)).toHaveAttribute('data-question-id', target.id);
+    const radios = card(page).getByRole('radio');
+    await expect(radios).toHaveCount(target.options.length);
+    for (let i = 0; i < target.options.length; i++) {
+      const name = await radios.nth(i).getAttribute('aria-label');
+      const label = await radios
+        .nth(i)
+        .evaluate((e) => (e as HTMLInputElement).labels?.[0]?.innerText ?? '');
+      expect((name ?? label).trim(), `${target.id} option ${i}`).not.toBe('');
+    }
+    const results = await new AxeBuilder({ page })
+      .include('.quiz__card')
+      .withRules(['label', 'aria-input-field-name', 'button-name'])
+      .analyze();
+    expect(
+      results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' '))}`),
+      target.id,
+    ).toEqual([]);
+  }
+});

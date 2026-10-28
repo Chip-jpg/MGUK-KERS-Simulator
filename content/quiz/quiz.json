@@ -799,6 +799,52 @@
         "potenza alla batteria meno perdite nel rame",
         "limiti di corrente e di tensione"
       ]
+    },
+    {
+      "id": "sm-biot-savart-solenoide-reale",
+      "type": "scelta-multipla",
+      "section": "15-campo-biot-savart",
+      "difficulty": 2,
+      "promptIT": "Un solenoide reale con $N = 40$, $R = 3{,}0$ cm, $l = 30$ cm e $I = 5{,}0$ A: il modello ideale dà $B = \\mu_0 N I/l \\approx 0{,}84$ mT. Che cosa mostra il calcolo con Biot-Savart?",
+      "options": [
+        "Il campo è uguale a $\\mu_0 N I/l$ in ogni punto, anche fuori dal solenoide",
+        "Al centro il campo è circa il doppio del valore ideale",
+        "Al centro il campo è poco più basso (circa $-2$ %) e agli estremi scende a circa metà",
+        "Il campo è nullo al centro e massimo agli estremi"
+      ],
+      "answer": 2,
+      "explanationIT": "Sommando i contributi dell’elica reale si ottiene al centro circa $0{,}82$ mT ($-1{,}95$ %), perché il solenoide non è infinitamente lungo. Agli estremi ($z = \\pm l/2$) il campo è circa il 51 % di quello al centro e fuori non è nullo.",
+      "slideRefs": [14]
+    },
+    {
+      "id": "sm-biot-savart-linee-chiuse",
+      "type": "scelta-multipla",
+      "section": "15-campo-biot-savart",
+      "difficulty": 1,
+      "promptIT": "Perché le linee del campo magnetico di una bobina sono sempre chiuse?",
+      "options": [
+        "Perché la corrente nella bobina è continua",
+        "Perché non esistono cariche magnetiche isolate: il flusso di $\\vec B$ attraverso una superficie chiusa è nullo",
+        "Perché la bobina è avvolta su un nucleo di ferro",
+        "Perché il campo è uniforme dentro la bobina"
+      ],
+      "answer": 1,
+      "explanationIT": "Non esistono «monopoli» magnetici: ogni linea di $\\vec B$ che esce da una superficie chiusa deve rientrarvi, quindi il flusso totale è zero e le linee non hanno inizio né fine.",
+      "slideRefs": [7]
+    },
+    {
+      "id": "av-biot-savart-idealizzazione",
+      "type": "a-voce",
+      "section": "15-campo-biot-savart",
+      "difficulty": 3,
+      "promptIT": "Spiega a voce che cosa dice la legge di Biot-Savart e quando il campo uniforme delle slide è una buona approssimazione.",
+      "answerIT": "Ogni tratto di filo $\\Delta\\vec l$ percorso da corrente $I$ genera un campo $\\Delta\\vec B = \\frac{\\mu_0 I}{4\\pi}\\frac{\\Delta\\vec l\\times\\hat r}{r^2}$; il campo della bobina è la somma di tutti i contributi. In un solenoide lungo ($l \\gg R$) il campo interno è quasi uniforme e vale $\\mu_0 N I/l$, ma agli estremi scende a circa metà e fuori non è nullo. Una spira singola non dà un campo uniforme; due bobine di Helmholtz sì, al centro. Per questo $L = \\mu_0 N^2 S/l$ è precisa solo per solenoidi lunghi.",
+      "slideRefs": [7, 14],
+      "keyPointsIT": [
+        "somma dei contributi dei tratti di filo",
+        "solenoide lungo: campo quasi uniforme $\\mu_0 N I/l$",
+        "agli estremi circa metà, fuori non nullo"
+      ]
     }
   ]
 }

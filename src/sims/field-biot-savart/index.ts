@@ -582,7 +582,7 @@ const sim: SimModule = {
   summaryIT:
     'Approfondimento (Fase 4): linee di campo calcolate con la legge di Biot-Savart per una spira, un solenoide e le bobine di Helmholtz. Mostra quando il campo uniforme B = μ₀NI/l delle slide è una buona approssimazione e dove la bobina reale se ne discosta.',
   slideRefs: [7, 14],
-  theoryId: '05-autoinduzione-induttanza',
+  theoryId: '15-campo-biot-savart',
   mount: (host, ctx) => mountBiot(host, ctx),
 };
 

@@ -181,7 +181,7 @@ I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted 
 
 ## 6. Global validity limits
 
-- **Uniform B** over the circuit surface (no Biot-Savart geometry; Phase 4 extension).
+- **Uniform B** over the circuit surface in the slide-based functions above; the field of real, finite coils (Biot-Savart) is covered in §7.
 - **Single-phase simplification**: the rotating loop is a simplified model of the real
   MGU-K, a three-phase permanent-magnet synchronous machine.
 - **Ideal transformer** and **linear materials** (no saturation, no hysteresis, no eddy

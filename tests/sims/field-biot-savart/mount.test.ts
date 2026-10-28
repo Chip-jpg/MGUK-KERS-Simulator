@@ -42,7 +42,7 @@ describe('field-biot-savart mount (DOM, no WebGL, main-thread fallback)', () => 
       MODEL_NOTE_IT,
     } = await import('../../../src/sims/field-biot-savart');
     expect(sim.id).toBe('field-biot-savart');
-    expect(sim.theoryId).toBe('05-autoinduzione-induttanza');
+    expect(sim.theoryId).toBe('15-campo-biot-savart');
     expect(sim.slideRefs).toEqual([7, 14]);
     expect(sim.summaryIT).toContain('Approfondimento (Fase 4)');
     expect(MODEL_NOTE_IT).toContain('RK4');
