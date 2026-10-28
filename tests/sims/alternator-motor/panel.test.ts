@@ -113,7 +113,7 @@ describe('readouts', () => {
 
   it('three-phase note is hedged on the PMSM topology (QA-007)', () => {
     expect(THREE_PHASE_NOTE_IT).toBe(
-      'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo una sola spira (modello monofase delle slide 18–19).',
+      'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo un modello monofase a una spira.',
     );
   });
 
@@ -136,7 +136,7 @@ describe('module metadata and formulas', () => {
     const sim = mod.default;
     expect(sim.id).toBe('alternator-motor');
     expect(sim.theoryId).toBe('10-kers-mguk');
-    expect(sim.slideRefs).toEqual([16, 17, 18, 19]);
+    expect(sim).not.toHaveProperty('slideRefs');
     for (const m of ['generator', 'motor'] as const) {
       for (const f of mod.formulaItems(m)) {
         expect(renderTex(f.tex).error, f.tex).toBeUndefined();

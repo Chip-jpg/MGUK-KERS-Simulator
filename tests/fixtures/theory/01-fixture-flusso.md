@@ -1,7 +1,6 @@
 ---
 id: 01-fixture-flusso
 titleIT: 'Flusso del campo magnetico (fixture)'
-slideRefs: [7]
 order: 1
 level: base
 ---
@@ -27,7 +26,3 @@ Con $B = 0{,}50\ \mathrm{T}$ e $S = 0{,}10\ \mathrm{m^2}$: $\Phi_B = 0{,}050\ \m
 ## Collegamento con KERS / MGU-K
 
 Nel rotore il flusso varia nel tempo.
-
-## Domande da interrogazione
-
-1. **Che cos'è il flusso?** Il prodotto scalare tra $\vec B$ e $\vec S$.

@@ -162,7 +162,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scale: 1e-6,
       digits: 2,
       quantity: 'energy',
-      slide: 17,
     },
     {
       key: 'eDiss',
@@ -172,7 +171,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       unit: 'MJ',
       scale: 1e-6,
       digits: 2,
-      slide: 16,
     },
     {
       key: 'tRec',
@@ -365,7 +363,6 @@ const sim: SimModule = {
   titleIT: 'Frenata e recupero di energia',
   summaryIT:
     'Un’auto frena da v₁ a v₂: l’MGU-K recupera energia elettrica fino alla potenza massima Pₘₐₓ, il resto diventa calore nei freni a disco.',
-  slideRefs: [16, 17, 18, 19],
   theoryId: '10-kers-mguk',
   mount,
 };

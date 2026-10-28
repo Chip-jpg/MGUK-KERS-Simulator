@@ -26,8 +26,6 @@ export interface FormulaItem {
   scale?: number;
   /** Colour-code the row with a physical-quantity colour. */
   quantity?: Quantity;
-  /** Slide reference shown as a chip, e.g. 8. */
-  slide?: number;
   /** TeX symbol shown before the live value (default: none → "= value"). */
   symbolTex?: string;
 }
@@ -91,12 +89,6 @@ export function createFormulaPanel(
       const out = el('span', { class: 'formula-row__number', text: '—' });
       dd.append(out);
       outputs.set(item.key, { node: out, item, text: '—' });
-    }
-    if (item.slide !== undefined) {
-      dd.append(
-        ' ',
-        el('span', { class: 'chip chip--slide', text: `${t.theory.slides} ${item.slide}` }),
-      );
     }
     row.append(dd);
     list.append(row);

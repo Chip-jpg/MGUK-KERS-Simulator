@@ -8,7 +8,7 @@ import type { Disposable } from '../../core/types';
 import type { MachineMode } from './model';
 
 export const THREE_PHASE_NOTE_IT =
-  'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo una sola spira (modello monofase delle slide 18–19).';
+  'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo un modello monofase a una spira.';
 
 /** In-panel links to the theory sections behind the two halves of the sim (QA-006). */
 export const THEORY_LINKS_IT: ReadonlyArray<{ labelIT: string; id: string }> = [

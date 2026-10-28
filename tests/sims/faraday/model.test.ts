@@ -208,12 +208,13 @@ describe('display helpers', () => {
     expect(toDegrees360(2 * Math.PI)).toBe(0);
   });
 
-  it('formula items carry slide refs and quantity colours', () => {
+  it('formula items carry quantity colours and no slide refs', () => {
     const rot = formulaItems('rotating', panelScales('rotating', defaultParams()));
-    expect(rot.find((i) => i.key === 'phi')).toMatchObject({ quantity: 'b', slide: 7 });
+    expect(rot.find((i) => i.key === 'phi')).toMatchObject({ quantity: 'b' });
     expect(rot.find((i) => i.key === 'V0')).toMatchObject({ quantity: 'emf', unit: 'V' });
     expect(rot.map((i) => i.key)).toContain('peak');
     const mot = formulaItems('motional', panelScales('motional', defaultParams()));
-    expect(mot.find((i) => i.key === 'emfMot')).toMatchObject({ slide: 8 });
+    expect(mot.find((i) => i.key === 'emfMot')).toBeDefined();
+    for (const i of [...rot, ...mot]) expect(i).not.toHaveProperty('slide');
   });
 });

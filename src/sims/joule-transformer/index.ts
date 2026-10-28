@@ -73,7 +73,6 @@ export function mountTransformer(
       scale: 1e-3,
       digits: 1,
       quantity: 'emf',
-      slide: 20,
       labelIT: 'Trasformatore statico ideale',
     },
     {
@@ -83,7 +82,6 @@ export function mountTransformer(
       unit: 'A',
       digits: 1,
       quantity: 'i',
-      slide: 20,
       labelIT: 'La corrente scala al contrario della tensione',
     },
     {
@@ -94,7 +92,6 @@ export function mountTransformer(
       scale: 1e-6,
       digits: 3,
       quantity: 'energy',
-      slide: 20,
       labelIT: 'Conservazione della potenza (ideale)',
     },
     {
@@ -104,7 +101,6 @@ export function mountTransformer(
       unit: 'A',
       digits: 1,
       quantity: 'i',
-      slide: 23,
       labelIT: 'Corrente di linea',
     },
     {
@@ -115,7 +111,6 @@ export function mountTransformer(
       scale: 1e-3,
       digits: 2,
       quantity: 'energy',
-      slide: 23,
       labelIT: 'Perdita per effetto Joule',
     },
     {
@@ -226,7 +221,6 @@ const sim: SimModule = {
   titleIT: 'Trasformatore e perdite Joule',
   summaryIT:
     'Catena di trasporto centrale → elevatore → linea AT → abbassatore → utenze: con il trasformatore ideale la potenza si conserva, e alzando la tensione di 10 volte le perdite R·I² in linea calano di 100 volte.',
-  slideRefs: [20, 21, 22, 23],
   theoryId: '08-trasformatore-trasporto-joule',
   mount: (host, ctx) => mountTransformer(host, ctx),
 };

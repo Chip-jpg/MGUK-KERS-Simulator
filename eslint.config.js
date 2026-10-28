@@ -27,10 +27,8 @@ const PHYSICS_FORBIDDEN_IMPORTS = {
         '**/sims/*',
         '**/theory',
         '**/theory/*',
-        '**/quiz',
-        '**/quiz/*',
       ],
-      message: 'src/physics must not depend on app layers (core/ui/sims/theory/quiz).',
+      message: 'src/physics must not depend on app layers (core/ui/sims/theory).',
     },
   ],
 };

@@ -16,16 +16,16 @@ const THEORY = readdirSync(theoryDir)
   .sort()
   .map((f) => `#/teoria/${f.slice(0, -3)}`);
 
-const PAGES = ['#/teoria', ...THEORY, '#/sim', '#/sim/faraday', '#/interrogazione'];
+const PAGES = ['#/teoria', ...THEORY, '#/sim', '#/sim/faraday'];
 
 test('the sweep covers all theory sections', () => {
-  expect(THEORY.length).toBeGreaterThanOrEqual(17);
+  expect(THEORY.length).toBeGreaterThanOrEqual(15);
 });
 
 test('overflowing display formulas are focusable scroll regions (QA-020)', async ({ page }) => {
-  // On a phone-width viewport several formulas of theory 17 are wider than the column.
+  // On a phone-width viewport several formulas of theory 15 are wider than the column.
   await page.setViewportSize({ width: 360, height: 720 });
-  await page.goto('./#/teoria/17-dinamica-frenata');
+  await page.goto('./#/teoria/15-dinamica-frenata');
   await expect(page.locator('main h1')).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   const states = await page.locator('.math-display').evaluateAll((els) =>

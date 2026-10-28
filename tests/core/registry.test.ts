@@ -13,13 +13,12 @@ const fake = (id: string): SimModule => ({
   id,
   titleIT: id,
   summaryIT: '',
-  slideRefs: [],
   theoryId: '',
   mount: () => ({ dispose() {} }),
 });
 
 describe('registry', () => {
-  it('lists the six phase-1 simulator ids, then the Phase 4 modules', () => {
+  it('lists the six phase-1 simulator ids, then car-dynamics (the only Phase 4 module kept)', () => {
     expect(SIM_IDS).toEqual([
       'faraday',
       'lenz',
@@ -27,8 +26,6 @@ describe('registry', () => {
       'kers-braking',
       'joule-transformer',
       'rl-energy',
-      'field-biot-savart',
-      'pmsm-dq',
       'car-dynamics',
     ]);
   });
@@ -54,6 +51,9 @@ describe('registry', () => {
     const loaded = await loadSimModules(r);
     expect(loaded.map((m) => m.id).every((id) => r.has(id))).toBe(true);
     expect(availableSimIds()).toEqual(loaded.map((m) => m.id));
+    // All seven simulators exist; slide references are no longer shown (v0.5.0).
+    expect(loaded.map((m) => m.id)).toEqual([...SIM_IDS]);
+    for (const m of loaded) expect(m, m.id).not.toHaveProperty('slideRefs');
   });
 
   it('loadSim loads once, registers, and validates the folder id', async () => {

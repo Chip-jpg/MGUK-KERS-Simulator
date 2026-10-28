@@ -7,7 +7,7 @@
 // --- §4.3 verbatim -----------------------------------------------------------
 export interface SimModule {
   id: string; titleIT: string; summaryIT: string;
-  slideRefs: number[]; theoryId: string;       // links to content/theory/<theoryId>.md
+  theoryId: string;                            // links to content/theory/<theoryId>.md
   mount(host: HTMLElement, ctx: AppContext): Disposable;   // must be idempotent & leak-free
 }
 export interface AppContext { theme: 'dark'|'light'; reducedMotion: boolean; formatIT(n:number, digits?:number, unit?:string): string; }

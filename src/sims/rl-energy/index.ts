@@ -137,7 +137,6 @@ export function mountRl(
       unit: 'A',
       digits: 3,
       quantity: 'i',
-      slide: 15,
     },
     {
       key: 'tau',
@@ -145,7 +144,6 @@ export function mountRl(
       symbolTex: '\\tau',
       unit: 's',
       digits: 4,
-      slide: 15,
     },
     {
       key: 'i',
@@ -154,7 +152,6 @@ export function mountRl(
       unit: 'A',
       digits: 3,
       quantity: 'i',
-      slide: 15,
       labelIT: 'Extracorrente di chiusura (valore simulato)',
     },
     {
@@ -165,7 +162,6 @@ export function mountRl(
       scale: 100,
       digits: 1,
       quantity: 'i',
-      slide: 15,
     },
     {
       key: 'emfSelf',
@@ -174,7 +170,6 @@ export function mountRl(
       unit: 'V',
       digits: 3,
       quantity: 'emf',
-      slide: 13,
       labelIT: 'F.e.m. autoindotta: si oppone alla variazione di i',
     },
     {
@@ -184,7 +179,6 @@ export function mountRl(
       unit: 'H',
       digits: 4,
       quantity: 'b',
-      slide: 14,
       labelIT: 'Induttanza (solenoide se attivato)',
     },
     {
@@ -194,7 +188,6 @@ export function mountRl(
       unit: 'J',
       digits: 4,
       quantity: 'energy',
-      slide: 17,
     },
     {
       key: 'gen',
@@ -203,7 +196,6 @@ export function mountRl(
       unit: 'J',
       digits: 4,
       quantity: 'energy',
-      slide: 16,
       labelIT: 'Bilancio energetico: generatore = Joule + campo',
     },
   ]);
@@ -385,7 +377,6 @@ const sim: SimModule = {
   titleIT: 'Autoinduzione, circuito RL, energia',
   summaryIT:
     'Chiudi l’interruttore: l’autoinduzione frena la corrente, che cresce come i(t) = I₀·(1 − exp(−t/τ)) con τ = L/R. L’energia del generatore si divide tra calore Joule ed energia del campo magnetico ½LI².',
-  slideRefs: [12, 13, 14, 15, 16, 17],
   theoryId: '06-circuito-rl-energia-campo',
   mount: (host, ctx) => mountRl(host, ctx),
 };

@@ -18,10 +18,9 @@ vi.hoisted(() => {
 });
 
 describe('lenz module metadata', () => {
-  it('cites only the slides the sim shows (QA-013)', async () => {
+  it('links its theory section and cites no slides (v0.5.0: no slide refs in the UI)', async () => {
     const sim = (await import('../../../src/sims/lenz/index')).default;
-    // magnet toward coil (s4), flux (s7), Faraday-Neumann (s8–9), Lenz (s11)
-    expect(sim.slideRefs).toEqual([4, 7, 8, 9, 11]);
+    expect(sim).not.toHaveProperty('slideRefs');
     expect(sim.theoryId).toBe('04-lenz');
   });
 });

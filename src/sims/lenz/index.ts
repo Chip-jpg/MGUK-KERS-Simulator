@@ -227,7 +227,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scale: 1e6,
       digits: 3,
       quantity: 'b',
-      slide: 7,
       symbolTex: '\\Phi_B',
     },
     {
@@ -238,7 +237,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scale: 1e3,
       digits: 3,
       quantity: 'emf',
-      slide: 8,
       symbolTex: '\\text{f.e.m.}',
     },
     {
@@ -249,7 +247,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scale: 1e3,
       digits: 3,
       quantity: 'i',
-      slide: 9,
       symbolTex: 'i',
     },
     {
@@ -260,7 +257,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scale: 1e6,
       digits: 3,
       quantity: 'b',
-      slide: 11,
       symbolTex: 'B_{\\text{ind}}',
     },
     {
@@ -496,7 +492,6 @@ const sim: SimModule = {
   titleIT: 'Legge di Lenz',
   summaryIT:
     'Un magnete si avvicina o si allontana da una bobina: la corrente indotta crea un campo che si oppone alla variazione del flusso e una forza che si oppone al moto.',
-  slideRefs: [4, 7, 8, 9, 11],
   theoryId: '04-lenz',
   mount,
 };

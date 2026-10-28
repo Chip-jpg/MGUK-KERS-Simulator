@@ -7,10 +7,10 @@ import type { Disposable } from './types';
  *   #/teoria/<id>       theory section, <id> = theory file id
  *   #/sim               simulator index
  *   #/sim/<id>          simulator page
- *   #/interrogazione    quiz / oral-exam trainer
+ * Any other hash (including the removed `#/interrogazione`) maps to the default
+ * route `#/teoria`.
  */
-export type Route =
-  { kind: 'teoria'; id?: string } | { kind: 'sim'; id?: string } | { kind: 'interrogazione' };
+export type Route = { kind: 'teoria'; id?: string } | { kind: 'sim'; id?: string };
 
 export const DEFAULT_ROUTE: Route = { kind: 'teoria' };
 export const DEFAULT_HASH = '#/teoria';
@@ -29,8 +29,6 @@ export function parseRoute(hash: string): Route {
       return validId ? { kind: 'teoria', id: validId } : { kind: 'teoria' };
     case 'sim':
       return validId ? { kind: 'sim', id: validId } : { kind: 'sim' };
-    case 'interrogazione':
-      return validId ? DEFAULT_ROUTE : { kind: 'interrogazione' };
     default:
       return DEFAULT_ROUTE;
   }
@@ -38,7 +36,6 @@ export function parseRoute(hash: string): Route {
 
 /** Build the hash for a {@link Route}. Inverse of {@link parseRoute}. */
 export function formatRoute(route: Route): string {
-  if (route.kind === 'interrogazione') return '#/interrogazione';
   return route.id ? `#/${route.kind}/${route.id}` : `#/${route.kind}`;
 }
 
@@ -60,16 +57,26 @@ export interface Router extends Disposable {
 
 /**
  * Start listening to `hashchange`, call `onChange` immediately with the current
- * route and on every change. An empty hash is normalised to {@link DEFAULT_HASH}.
+ * route and on every route change. A hash that is not the canonical form of its
+ * route (empty, unknown such as the removed `#/interrogazione`, trailing slash…)
+ * is rewritten to the canonical hash, so unknown routes redirect to
+ * {@link DEFAULT_HASH}. The rewrite's own `hashchange` does not re-render.
  */
 export function createRouter(onChange: (route: Route) => void, win: RouterWindow = window): Router {
-  let route = parseRoute(win.location.hash);
+  const canonicalize = (): Route => {
+    const next = parseRoute(win.location.hash);
+    const hash = formatRoute(next);
+    if (win.location.hash !== hash) win.location.hash = hash;
+    return next;
+  };
+  let route = canonicalize();
   const handler = (): void => {
-    route = parseRoute(win.location.hash);
+    const next = canonicalize();
+    if (routesEqual(next, route)) return;
+    route = next;
     onChange(route);
   };
   win.addEventListener('hashchange', handler);
-  if (win.location.hash === '' || win.location.hash === '#') win.location.hash = DEFAULT_HASH;
   onChange(route);
   return {
     current: () => route,

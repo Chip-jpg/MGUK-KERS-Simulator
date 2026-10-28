@@ -58,7 +58,7 @@
     "publisher": "KERS Lab",
     "category": "Education",
     "shortDescription": "Laboratorio interattivo sull’induzione elettromagnetica e l’MGU-K",
-    "longDescription": "KERS Lab: dalla legge di Faraday-Neumann-Lenz all’MGU-K. Simulatori, teoria e quiz, interamente offline.",
+    "longDescription": "KERS Lab: dalla legge di Faraday-Neumann-Lenz all’MGU-K. Simulatori e teoria, interamente offline.",
     "license": "MIT",
     "icon": [
       "icons/32x32.png",

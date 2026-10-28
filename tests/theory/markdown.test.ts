@@ -85,6 +85,10 @@ describe('helpers', () => {
   it('rewriteTheoryLink', () => {
     expect(rewriteTheoryLink('03-faraday-neumann.md')).toBe('#/teoria/03-faraday-neumann');
     expect(rewriteTheoryLink('./10-kers-mguk.md#x')).toBe('#/teoria/10-kers-mguk');
+    expect(rewriteTheoryLink('13-filo-logico.md')).toBe('#/teoria/13-filo-logico');
+    expect(rewriteTheoryLink('./15-dinamica-frenata.md#bilancio')).toBe(
+      '#/teoria/15-dinamica-frenata',
+    );
     expect(rewriteTheoryLink('https://example.org/a.md')).toBe('https://example.org/a.md');
   });
 });

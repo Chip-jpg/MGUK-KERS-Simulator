@@ -19,7 +19,6 @@ describe('parseRoute', () => {
     ['#/sim', { kind: 'sim' }],
     ['#/sim/faraday', { kind: 'sim', id: 'faraday' }],
     ['#/sim/alternator-motor', { kind: 'sim', id: 'alternator-motor' }],
-    ['#/interrogazione', { kind: 'interrogazione' }],
   ])('%s', (hash, expected) => {
     expect(parseRoute(hash)).toEqual(expected);
   });
@@ -29,6 +28,7 @@ describe('parseRoute', () => {
     '#/sim/Faraday',
     '#/sim/a/b',
     '#/teoria/../x',
+    '#/interrogazione',
     '#/interrogazione/x',
     '#/sim/<script>',
   ])('falls back to the default route for %s', (hash) => {
@@ -43,7 +43,6 @@ describe('formatRoute', () => {
       { kind: 'teoria', id: '10-kers-mguk' },
       { kind: 'sim' },
       { kind: 'sim', id: 'kers-braking' },
-      { kind: 'interrogazione' },
     ];
     for (const r of routes) expect(parseRoute(formatRoute(r))).toEqual(r);
   });
@@ -51,7 +50,6 @@ describe('formatRoute', () => {
   it('produces the documented hashes', () => {
     expect(formatRoute({ kind: 'sim', id: 'lenz' })).toBe('#/sim/lenz');
     expect(formatRoute({ kind: 'teoria', id: '04-lenz' })).toBe('#/teoria/04-lenz');
-    expect(formatRoute({ kind: 'interrogazione' })).toBe('#/interrogazione');
   });
 });
 
@@ -84,13 +82,43 @@ describe('createRouter', () => {
     const router = createRouter(onChange, win);
     expect(router.current()).toEqual({ kind: 'sim', id: 'faraday' });
 
-    router.navigate({ kind: 'interrogazione' });
-    expect(win.location.hash).toBe('#/interrogazione');
+    router.navigate({ kind: 'teoria', id: '13-filo-logico' });
+    expect(win.location.hash).toBe('#/teoria/13-filo-logico');
     win.fire();
-    expect(onChange).toHaveBeenLastCalledWith({ kind: 'interrogazione' });
+    expect(onChange).toHaveBeenLastCalledWith({ kind: 'teoria', id: '13-filo-logico' });
 
     expect(win.listeners).toBe(1);
     router.dispose();
     expect(win.listeners).toBe(0);
+  });
+
+  it('redirects unknown and removed routes (e.g. #/interrogazione) to the canonical hash', () => {
+    for (const [initial, canonical] of [
+      ['#/interrogazione', DEFAULT_HASH],
+      ['#/unknown', DEFAULT_HASH],
+      ['#/teoria/', '#/teoria'],
+    ] as const) {
+      const win = fakeWindow(initial);
+      const onChange = vi.fn();
+      const router = createRouter(onChange, win);
+      expect(win.location.hash).toBe(canonical);
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith({ kind: 'teoria' });
+      // The rewrite's own hashchange does not render the same route twice.
+      win.fire();
+      expect(onChange).toHaveBeenCalledTimes(1);
+      router.dispose();
+    }
+  });
+
+  it('redirects #/interrogazione reached by hashchange', () => {
+    const win = fakeWindow('#/sim');
+    const onChange = vi.fn();
+    const router = createRouter(onChange, win);
+    win.location.hash = '#/interrogazione';
+    win.fire();
+    expect(win.location.hash).toBe(DEFAULT_HASH);
+    expect(onChange).toHaveBeenLastCalledWith({ kind: 'teoria' });
+    router.dispose();
   });
 });

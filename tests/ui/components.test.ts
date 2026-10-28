@@ -40,7 +40,6 @@ describe('FormulaPanel', () => {
           unit: 'V',
           digits: 2,
           quantity: 'emf',
-          slide: 8,
         },
         {
           key: 'i',
@@ -56,7 +55,7 @@ describe('FormulaPanel', () => {
     );
     expect(host.querySelectorAll('.katex').length).toBeGreaterThanOrEqual(3);
     expect(host.querySelector('.q-emf')).not.toBeNull();
-    expect(host.textContent).toContain('Slide 8');
+    expect(host.textContent).not.toMatch(/slide/i);
 
     panel.update({ emf: 1.234 });
     panel.update({ i: 0.0625, unknown: 3 });
@@ -176,15 +175,15 @@ describe('createSimLayout + toolbar', () => {
     layout.dispose();
   });
 
-  it('createSimHeader links the theory section and lists slide chips', () => {
+  it('createSimHeader links the theory section and shows no slide chips', () => {
     const h = createSimHeader({
       titleIT: 'Legge di Lenz',
       summaryIT: 'Magnete e bobina.',
-      slideRefs: [11],
       theoryId: '04-lenz',
     });
     expect(h.querySelector('h1')?.textContent).toBe('Legge di Lenz');
     expect(h.querySelector('a')?.getAttribute('href')).toBe('#/teoria/04-lenz');
-    expect(h.querySelector('.chip')?.textContent).toBe('Slide 11');
+    expect(h.querySelector('.chip')).toBeNull();
+    expect(h.textContent).not.toMatch(/slide/i);
   });
 });

@@ -1,7 +1,6 @@
 import { t } from '../core/i18n/it';
 import { formatRoute } from '../core/router';
 import type { Disposable, SimModule } from '../core/types';
-import { createSlideChips } from './chips';
 import { createButton } from './controls';
 import { el, uniqueId } from './dom';
 
@@ -17,7 +16,7 @@ import { el, uniqueId } from './dom';
  * └ note: "Modello semplificato: …" ───────────────────────────────────────────┘
  * ```
  *
- * The page header (title, summary, theory link, slide chips) is rendered by the
+ * The page header (title, summary, theory link) is rendered by the
  * shell from the SimModule metadata, outside `host`.
  */
 export interface SimLayoutOptions {
@@ -138,9 +137,9 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
 }
 
 /** Metadata the header needs (a SimModule satisfies it). */
-export type SimHeaderMeta = Pick<SimModule, 'titleIT' | 'summaryIT' | 'slideRefs' | 'theoryId'>;
+export type SimHeaderMeta = Pick<SimModule, 'titleIT' | 'summaryIT' | 'theoryId'>;
 
-/** Page header used by the shell: h1, summary, "Vai alla teoria" link, slide chips. */
+/** Page header used by the shell: h1, summary, "Vai alla teoria" link. */
 export function createSimHeader(meta: SimHeaderMeta, badgeIT?: string): HTMLElement {
   const title = el('h1', { class: 'page-title', text: meta.titleIT, attrs: { tabindex: -1 } });
   if (badgeIT) title.append(' ', el('span', { class: 'badge', text: badgeIT }));
@@ -154,7 +153,6 @@ export function createSimHeader(meta: SimHeaderMeta, badgeIT?: string): HTMLElem
       }),
     );
   }
-  if (meta.slideRefs.length > 0) links.append(createSlideChips(meta.slideRefs));
   return el('header', { class: 'sim-header' }, [
     title,
     meta.summaryIT ? el('p', { class: 'lead', text: meta.summaryIT }) : null,

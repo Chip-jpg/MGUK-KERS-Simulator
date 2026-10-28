@@ -5,7 +5,6 @@
  * initial bundle); it imports the individual files it needs.
  */
 export * from './colors';
-export * from './chips';
 export * from './controls';
 export * from './dom';
 export * from './formulaPanel';

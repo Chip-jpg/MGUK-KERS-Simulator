@@ -16,7 +16,7 @@ test.describe('navigation smoke', () => {
     const theoryLinks = nav.getByRole('list', { name: 'Sezioni di teoria' }).getByRole('link');
     expect(await theoryLinks.count()).toBeGreaterThan(0);
 
-    // First theory section: TOC, math, slide chips, next link.
+    // First theory section: TOC, math, next link.
     await theoryLinks.first().click();
     await expect(page).toHaveURL(/#\/teoria\/[a-z0-9-]+$/);
     await expect(page.locator('.prose')).toBeVisible();
@@ -32,18 +32,23 @@ test.describe('navigation smoke', () => {
 
     await nav.getByRole('link', { name: 'Simulatori', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Simulatori' })).toBeVisible();
-    await expect(page.locator('.sim-index > li')).toHaveCount(9);
+    await expect(page.locator('.sim-index > li')).toHaveCount(7);
 
     await page.goto('./#/sim/faraday');
     await expect(page.locator('.sim-scene')).toBeVisible();
     await expect(page.getByRole('group', { name: 'Comandi della simulazione' })).toBeVisible();
 
-    await nav.getByRole('link', { name: 'Interrogazione', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 1, name: /Interrogazione/ })).toBeVisible();
+    // Only Teoria and Simulatori: the Interrogazione mode was removed (v0.5.0).
+    await expect(nav.locator('.nav__section')).toHaveCount(2);
+    await expect(nav.getByRole('link', { name: 'Interrogazione', exact: true })).toHaveCount(0);
+    await expect(page.locator('.chip')).toHaveCount(0);
 
-    await page.goto('./#/qualcosa/che/non/esiste');
-    await expect(page).toHaveURL(/#\/qualcosa/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Teoria' })).toBeVisible();
+    // Removed and unknown routes redirect to the theory index.
+    for (const hash of ['#/interrogazione', '#/qualcosa/che/non/esiste']) {
+      await page.goto(`./${hash}`);
+      await expect(page).toHaveURL(/#\/teoria$/);
+      await expect(page.getByRole('heading', { level: 1, name: 'Teoria' })).toBeVisible();
+    }
 
     expect(errors).toEqual([]);
   });

@@ -1,7 +1,6 @@
 import { t } from '../core/i18n/it';
 import { formatRoute } from '../core/router';
 import type { Disposable } from '../core/types';
-import { createSlideChips } from '../ui/chips';
 import { el, listen } from '../ui/dom';
 import { neighbours, type TheoryDoc } from './content';
 import { renderMarkdown } from './markdown';
@@ -25,7 +24,6 @@ export function renderTheoryIndex(host: HTMLElement, docs: readonly TheoryDoc[])
           d.level === 'approfondimento'
             ? el('span', { class: 'badge', text: t.theory.levelAdvanced })
             : null,
-          d.slideRefs.length > 0 ? createSlideChips(d.slideRefs) : null,
         ]),
       ]),
     );
@@ -61,7 +59,6 @@ export function renderTheoryPage(
         text: doc.level === 'approfondimento' ? t.theory.levelAdvanced : t.theory.levelBase,
       }),
       doc.goal ? el('span', { class: 'badge', text: `${t.theory.goal}: ${doc.goal}` }) : null,
-      doc.slideRefs.length > 0 ? createSlideChips(doc.slideRefs) : null,
     ]),
   ]);
 

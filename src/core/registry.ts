@@ -9,8 +9,6 @@ export const SIM_IDS = [
   'joule-transformer',
   'rl-energy',
   // Phase 4 (optional, advanced)
-  'field-biot-savart',
-  'pmsm-dq',
   'car-dynamics',
 ] as const;
 

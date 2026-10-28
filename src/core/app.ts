@@ -1,10 +1,8 @@
 import '../styles/index.css';
 import { getTheory, findTheoryDoc, type TheoryDoc } from '../theory/content';
 import { renderTheoryIndex, renderTheoryPage } from '../theory/page';
-import { createSlideChips } from '../ui/chips';
 import { el, listen } from '../ui/dom';
 import { createSimHeader, createSimLayout } from '../ui/simLayout';
-import { loadQuiz, quizLoader } from './extensions';
 import { formatIT } from './format';
 import { t } from './i18n/it';
 import { availableSimIds, isSimId, loadSim, SIM_IDS, type SimId } from './registry';
@@ -13,10 +11,9 @@ import { currentTheme, initTheme, onThemeChange, prefersReducedMotion, toggleThe
 import type { AppContext, Disposable } from './types';
 
 /**
- * App shell (A3): skip link, sidebar (Teoria / Simulatori / Interrogazione +
- * theme toggle), and the route → page wiring. Simulators and the quiz are
- * lazy-loaded chunks; the previous page is always disposed before the next one
- * renders.
+ * App shell (A3): skip link, sidebar (Teoria / Simulatori + theme toggle), and
+ * the route → page wiring. Simulators are lazy-loaded chunks; the previous page
+ * is always disposed before the next one renders.
  */
 
 /**
@@ -138,7 +135,6 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
           docs.length > 0 ? theoryItems : null,
         ]),
         el('li', {}, [link({ kind: 'sim' }, [t.nav.simulators], 'nav__section'), simItems]),
-        el('li', {}, [link({ kind: 'interrogazione' }, [t.nav.quiz], 'nav__section')]),
       ]),
     ]),
   ]);
@@ -207,14 +203,12 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
       }
       const summary = el('span', { class: 'card__summary', text: t.app.loading });
       const titleNode = el('span', { class: 'card__title', text: title });
-      const meta = el('div', { class: 'card__meta' });
       cards.append(
         el('li', { class: 'card' }, [
           el('a', { class: 'card__link', attrs: { href: formatRoute({ kind: 'sim', id }) } }, [
             titleNode,
             summary,
           ]),
-          meta,
         ]),
       );
       loadSim(id)
@@ -222,7 +216,6 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
           if (myToken !== token || !sim) return;
           titleNode.textContent = sim.titleIT;
           summary.textContent = sim.summaryIT;
-          if (sim.slideRefs.length > 0) meta.append(createSlideChips(sim.slideRefs));
         })
         .catch((err: unknown) => {
           console.error(err);
@@ -236,7 +229,7 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
     const host = el('section', { class: 'sim-host', attrs: { 'aria-label': t.sim.titles[id] } });
     p.append(
       createSimHeader(
-        { titleIT: t.sim.titles[id], summaryIT: t.sim.comingSoonBody, slideRefs: [], theoryId: '' },
+        { titleIT: t.sim.titles[id], summaryIT: t.sim.comingSoonBody, theoryId: '' },
         t.app.comingSoon,
       ),
       host,
@@ -270,36 +263,6 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
     } catch (err) {
       console.error(err);
       if (myToken === token) message(t.sim.titles[id], t.sim.loadError);
-    }
-  };
-
-  const renderQuiz = async (myToken: number): Promise<void> => {
-    setTitle(t.quiz.title);
-    if (!quizLoader) {
-      const p = page();
-      p.append(
-        el('header', { class: 'page-header' }, [
-          el('h1', { class: 'page-title', attrs: { tabindex: -1 } }, [
-            t.quiz.title,
-            ' ',
-            el('span', { class: 'badge', text: t.app.comingSoon }),
-          ]),
-          el('p', { class: 'lead', text: t.quiz.intro }),
-        ]),
-        el('p', { class: 'empty-state', text: t.quiz.comingSoon }),
-      );
-      return;
-    }
-    message(t.quiz.title, t.app.loading, false);
-    try {
-      const quiz = await loadQuiz();
-      if (myToken !== token || !quiz) return;
-      const host = el('section', { class: 'quiz-host', attrs: { 'aria-label': t.quiz.title } });
-      page().append(host);
-      current = quiz.mount(host, createAppContext());
-    } catch (err) {
-      console.error(err);
-      if (myToken === token) message(t.quiz.title, t.errors.generic);
     }
   };
 
@@ -341,9 +304,6 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
           setTitle(t.sim.indexTitle);
           renderSimIndex(myToken);
         }
-        break;
-      case 'interrogazione':
-        pending = renderQuiz(myToken);
         break;
     }
     const wasFirst = firstRender;

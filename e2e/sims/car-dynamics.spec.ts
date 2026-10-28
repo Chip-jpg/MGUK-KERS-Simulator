@@ -71,7 +71,7 @@ test('loads without errors; displayed energies add up and match the physics', as
   await expect(page.locator('.sim-note')).toContainText(
     'Modello semplificato: vettura puntiforme con trasferimento di carico longitudinale, pneumatici Pacejka semplificati al picco di aderenza (ABS ideale), MGU-K solo sull’asse posteriore, parametri illustrativi.',
   );
-  await expect(page.locator('.cd-links a[href="#/teoria/17-dinamica-frenata"]')).toBeVisible();
+  await expect(page.locator('.cd-links a[href="#/teoria/15-dinamica-frenata"]')).toBeVisible();
 
   const d = await debug(page);
   expect(Math.abs(d.balanceError)).toBeLessThan(1e-6);

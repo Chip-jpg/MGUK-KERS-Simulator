@@ -284,7 +284,6 @@ const sim: SimModule = {
   titleIT: 'Flusso e legge di Faraday-Neumann',
   summaryIT:
     'Una bobina di N spire ruota in un campo magnetico uniforme: il flusso Φ = B·S·cos α varia e induce la f.e.m. N·B·S·ω·sin(ωt). In alternativa, una sbarretta scorre su due binari: f.e.m. = B·l·v.',
-  slideRefs: [7, 8, 18, 19],
   theoryId: '03-faraday-neumann',
   mount,
 };

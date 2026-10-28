@@ -68,7 +68,6 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       unit: 'Wb',
       digits: 4,
       quantity: 'b',
-      slide: 7,
     },
     {
       key: 'emf',
@@ -78,7 +77,6 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       unit: 'V',
       digits: 2,
       quantity: 'emf',
-      slide: 18,
     },
     {
       key: 'i',
@@ -92,7 +90,6 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       unit: 'A',
       digits: 2,
       quantity: 'i',
-      slide: 9,
     },
     {
       key: 'F',
@@ -122,7 +119,6 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       unit: 'W',
       digits: 2,
       quantity: 'energy',
-      slide: 16,
     },
     {
       key: 'pJ',
@@ -132,7 +128,6 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       unit: 'W',
       digits: 2,
       quantity: 'energy',
-      slide: 16,
     },
     {
       key: 'E',
@@ -144,7 +139,6 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       unit: 'J',
       digits: 2,
       quantity: 'energy',
-      slide: 17,
     },
   ];
 }
@@ -431,7 +425,6 @@ const sim: SimModule = {
   titleIT: 'Alternatore ⇄ motore (MGU-K)',
   summaryIT:
     'La stessa macchina in due modi: in frenata è un generatore (la coppia di Lenz si oppone al moto e l’energia cinetica va in batteria), in accelerazione è un motore (la corrente della batteria produce la forza di Lorentz F = B·I·L e quindi una coppia).',
-  slideRefs: [16, 17, 18, 19],
   theoryId: '10-kers-mguk',
   mount,
 };

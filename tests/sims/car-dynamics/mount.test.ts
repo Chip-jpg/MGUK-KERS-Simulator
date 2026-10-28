@@ -40,8 +40,8 @@ describe('car-dynamics mount (DOM, no WebGL)', () => {
   it('shows note, links, consistent readouts; presets, aero toggle and ideal balance work', async () => {
     const { default: sim, FORMULA_ITEMS } = await import('../../../src/sims/car-dynamics');
     expect(sim.id).toBe('car-dynamics');
-    expect(sim.theoryId).toBe('17-dinamica-frenata');
-    expect(sim.slideRefs).toEqual([16, 17]);
+    expect(sim.theoryId).toBe('15-dinamica-frenata');
+    expect(sim).not.toHaveProperty('slideRefs');
     expect(sim.summaryIT).toMatch(/^Approfondimento \(Fase 4\)/);
     expect(FORMULA_ITEMS.length).toBeGreaterThanOrEqual(6);
     for (const f of FORMULA_ITEMS) {
@@ -62,7 +62,8 @@ describe('car-dynamics mount (DOM, no WebGL)', () => {
       'Modello semplificato: vettura puntiforme con trasferimento di carico longitudinale, pneumatici Pacejka semplificati al picco di aderenza (ABS ideale), MGU-K solo sull’asse posteriore, parametri illustrativi.',
     );
     expect(text).not.toContain("'");
-    for (const id of ['17-dinamica-frenata', '10-kers-mguk', '06-circuito-rl-energia-campo']) {
+    expect(text).not.toMatch(/slide/i);
+    for (const id of ['15-dinamica-frenata', '10-kers-mguk', '06-circuito-rl-energia-campo']) {
       expect(host.querySelector(`.cd-links a[href="#/teoria/${id}"]`)).not.toBeNull();
     }
     // sources next to the presets

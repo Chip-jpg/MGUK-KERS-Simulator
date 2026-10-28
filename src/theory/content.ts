@@ -16,7 +16,6 @@ export interface TheoryDoc {
   /** Route id (`#/teoria/<id>`), e.g. `03-faraday-neumann`. */
   id: string;
   titleIT: string;
-  slideRefs: number[];
   goal?: string;
   order: number;
   level: TheoryLevel;
@@ -43,7 +42,11 @@ function asString(v: FrontmatterValue | undefined): string | undefined {
   return undefined;
 }
 
-/** Validate one file against the §4.4 frontmatter schema. Throws on error. */
+/**
+ * Validate one file against the frontmatter schema (`id?`, `titleIT`, `order`,
+ * `level?`, `goal?`). Throws on error. Since v0.5.0 slide references are not part
+ * of the schema: a leftover `slideRefs` key is ignored (never rendered).
+ */
 export function toTheoryDoc(path: string, source: string): TheoryDoc {
   const { data, body } = parseFrontmatter(source);
   const slug = fileSlug(path);
@@ -53,10 +56,6 @@ export function toTheoryDoc(path: string, source: string): TheoryDoc {
   if (!titleIT) throw new FrontmatterError('titleIT mancante');
   const order = data['order'];
   if (typeof order !== 'number') throw new FrontmatterError('order mancante o non intero');
-  const refs = data['slideRefs'] ?? [];
-  if (!Array.isArray(refs) || !refs.every((n) => typeof n === 'number' && n > 0)) {
-    throw new FrontmatterError('slideRefs deve essere una lista di interi positivi');
-  }
   const level = data['level'] ?? 'base';
   if (level !== 'base' && level !== 'approfondimento') {
     throw new FrontmatterError('level deve essere "base" o "approfondimento"');
@@ -65,7 +64,6 @@ export function toTheoryDoc(path: string, source: string): TheoryDoc {
   return {
     id,
     titleIT,
-    slideRefs: refs as number[],
     ...(goal ? { goal } : {}),
     order,
     level,

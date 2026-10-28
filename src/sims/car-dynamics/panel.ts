@@ -79,9 +79,9 @@ export function createPresets(onPreset: (p: CarPreset) => void): Handle {
 /** Links to the theory sections this simulator builds on. */
 export function createTheoryLinks(): HTMLElement {
   const links: Array<[string, string]> = [
-    ['17-dinamica-frenata', 'Dinamica della frenata'],
+    ['15-dinamica-frenata', 'Dinamica della frenata'],
     ['10-kers-mguk', 'KERS e MGU-K'],
-    ['06-circuito-rl-energia-campo', 'Bilancio energetico (slide 16–17)'],
+    ['06-circuito-rl-energia-campo', 'Bilancio energetico'],
     ['08-trasformatore-trasporto-joule', 'Effetto Joule'],
   ];
   const p = el('p', { class: 'cd-small cd-links' }, ['Teoria: ']);

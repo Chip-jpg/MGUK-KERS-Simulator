@@ -149,7 +149,6 @@ export const FORMULA_ITEMS: FormulaItem[] = [
     scale: 1e-6,
     digits: 2,
     quantity: 'energy',
-    slide: 16,
   },
   {
     key: 'eBatt',
@@ -160,7 +159,6 @@ export const FORMULA_ITEMS: FormulaItem[] = [
     scale: 1e-6,
     digits: 2,
     quantity: 'energy',
-    slide: 17,
   },
 ];
 
@@ -586,8 +584,7 @@ const sim: SimModule = {
   titleIT: 'Dinamica della vettura: frenata combinata MGU-K + freni',
   summaryIT:
     'Approfondimento (Fase 4): una vettura con pneumatici, resistenza aerodinamica e deportanza frena al limite da v₁ a v₂. L’MGU-K frena l’asse posteriore fino al suo limite di potenza, i freni a disco fanno il resto: la quota recuperata dipende da velocità, aderenza e Pₘₐₓ.',
-  slideRefs: [16, 17],
-  theoryId: '17-dinamica-frenata',
+  theoryId: '15-dinamica-frenata',
   mount,
 };
 

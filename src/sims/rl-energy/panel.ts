@@ -62,7 +62,7 @@ export function createEnergyBars(container: HTMLElement): EnergyBars {
   const element = el('figure', { class: 'plot rl-energy' }, [
     el('figcaption', {
       class: 'plot__title',
-      text: 'Bilancio energetico (slide 16–17): generatore = Joule + campo',
+      text: 'Bilancio energetico: generatore = Joule + campo',
     }),
     el('div', { class: 'rl-bar' }, [
       el('span', { class: 'rl-bar__label', text: 'Generatore ∫E·i dt' }),

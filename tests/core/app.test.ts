@@ -28,7 +28,7 @@ describe('createApp (jsdom smoke)', () => {
     localStorage.clear();
   });
 
-  it('renders sidebar, theory index/page, sim index, coming-soon sim and quiz placeholder', async () => {
+  it('renders sidebar, theory index/page, sim index, coming-soon sim; #/interrogazione redirects', async () => {
     const root = document.createElement('div');
     document.body.append(root);
     window.location.hash = '';
@@ -38,7 +38,8 @@ describe('createApp (jsdom smoke)', () => {
     const nav = root.querySelector('nav[aria-label="Navigazione principale"]')!;
     expect(nav.textContent).toContain('Teoria');
     expect(nav.textContent).toContain('Simulatori');
-    expect(nav.textContent).toContain('Interrogazione');
+    expect(nav.textContent).not.toContain('Interrogazione');
+    expect(nav.querySelectorAll('.nav__section')).toHaveLength(2);
     expect(nav.querySelectorAll('.nav__item--soon')).toHaveLength(SIM_IDS.length);
     expect(root.querySelector('h1')?.textContent).toBe('Teoria');
     expect(root.querySelectorAll('.theory-index .card')).toHaveLength(2);
@@ -48,6 +49,9 @@ describe('createApp (jsdom smoke)', () => {
     expect(root.querySelector('.toc')?.textContent).toContain('In breve');
     expect(root.querySelector('.pager__link--next')?.getAttribute('href')).toBe('#/teoria/02-b');
     expect(root.querySelector('.prose a')?.getAttribute('href')).toBe('#/teoria/02-b');
+    // A leftover `slideRefs` frontmatter key is ignored: no slide chips anywhere.
+    expect(root.querySelector('.chip, .chips')).toBeNull();
+    expect(root.querySelector('main')?.textContent).not.toMatch(/slide/i);
     expect(root.querySelector('a[aria-current=page]')?.textContent).toContain('Primo');
     expect(document.title).toBe('Primo — KERS Lab');
     expect(document.activeElement?.tagName).toBe('H1');
@@ -63,10 +67,10 @@ describe('createApp (jsdom smoke)', () => {
     expect(root.querySelector('.sim-scene')).not.toBeNull();
     expect(root.querySelector('.sim-placeholder')?.textContent).toBe('In arrivo');
 
+    // The Interrogazione mode was removed in v0.5.0: its old route redirects to Teoria.
     await go('#/interrogazione');
-    expect(root.querySelector('main h1')?.textContent).toContain('Interrogazione');
-    // src/quiz now exists, so the page mounts the quiz instead of "In arrivo".
-    expect(root.querySelector('main')?.textContent).toMatch(/In arrivo|Caricamento|Domanda/);
+    expect(window.location.hash).toBe('#/teoria');
+    expect(root.querySelector('main h1')?.textContent).toBe('Teoria');
 
     await go('#/teoria/99-nope');
     expect(root.querySelector('main')?.textContent).toContain('Sezione di teoria non trovata.');

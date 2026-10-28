@@ -53,65 +53,6 @@ export type KersBrakingParams = Parameters<typeof kersBrakingEvent>[0];
 /** Output of {@link kersBrakingEvent}. */
 export type KersBrakingResult = ReturnType<typeof kersBrakingEvent>;
 
-// Biot-Savart field of real coils (Phase 4 extension)
-export {
-  WIRE_CORE_RADIUS,
-  biotSavartSegment,
-  coilPolyline,
-  createFieldEvaluator,
-  fieldAt,
-  fieldOnAxisLoop,
-  fieldInfiniteSolenoid,
-  fieldOnAxisFiniteSolenoid,
-  distanceToPolyline,
-  traceFieldLine,
-} from './biotSavart';
-export type {
-  Vec3,
-  Polyline,
-  CoilSpec,
-  FieldEvaluator,
-  Bounds,
-  TraceOptions,
-  TraceStop,
-  FieldLine,
-  FieldFn,
-} from './biotSavart';
-// PMSM d-q model (Phase 4 extension)
-export {
-  clarke,
-  inverseClarke,
-  park,
-  inversePark,
-  dqToAbc,
-  pmsmVoltages,
-  pmsmTorque,
-  pmsmCopperLoss,
-  pmsmElectricalPower,
-  pmsmOperatingPoint,
-  pmsmEfficiency,
-  pmsmVoltageLimit,
-  pmsmMtpa,
-  pmsmBaseSpeed,
-  pmsmMaxTorque,
-  pmsmTorqueSpeedEnvelope,
-  pmsmCurrentDerivatives,
-  pmsmCurrentControllerGains,
-  pmsmControllerVoltages,
-  pmsmDynamicsStep,
-  pmsmSteadyDynState,
-} from './pmsm';
-export type {
-  PmsmParams,
-  PmsmMode,
-  PmsmRegion,
-  PmsmMaxTorquePoint,
-  PmsmEnvelopePoint,
-  PmsmOperatingPoint,
-  PmsmCurrentController,
-  PmsmDynState,
-  PmsmDynInputs,
-} from './pmsm';
 // Car dynamics in a braking zone (Phase 4 extension)
 export {
   G_STANDARD,
