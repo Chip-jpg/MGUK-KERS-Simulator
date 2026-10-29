@@ -9,6 +9,7 @@ interface Dbg {
   renderer: {
     memory: { geometries: number; textures: number };
     programs: number;
+    frames: number;
     post: boolean;
     shadows: boolean;
     ibl: boolean;
@@ -174,10 +175,14 @@ test('no horizontal scroll at 1280×720 in both themes', async ({ page }) => {
 test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async ({ page }) => {
   test.setTimeout(150_000);
   const errors = collectErrors(page);
+  // Sample only once the scene has drawn a few frames (lazy chunk + first renders done).
+  const settled = async (): Promise<Dbg> => {
+    await expect.poll(async () => (await debug(page))?.renderer?.frames ?? 0).toBeGreaterThan(3);
+    return debug(page);
+  };
   await page.goto(URL);
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
-  await page.waitForTimeout(300);
-  const first = await debug(page);
+  const first = await settled();
   for (let k = 0; k < 20; k++) {
     await page.goto('./#/teoria');
     await expect(page.locator('canvas')).toHaveCount(0);
@@ -202,8 +207,7 @@ test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async (
     await page.goto(URL);
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   }
-  await page.waitForTimeout(300);
-  const last = await debug(page);
+  const last = await settled();
   expect(last.liveMounts).toBe(1);
   expect(last.canvases).toBe(1);
   expect(first.renderer).not.toBeNull();

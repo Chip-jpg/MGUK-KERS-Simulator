@@ -85,6 +85,8 @@ export interface Car {
   /** World-space anchors (updated by `update`). */
   readonly anchors: CarAnchors;
   readonly ribbons: { mech: EnergyRibbon; elec: EnergyRibbon; loss: EnergyRibbon };
+  /** Own textures (pre-uploaded on mount for deterministic GPU counters). */
+  readonly textures: readonly THREE.Texture[];
   update(f: CarFrame): void;
   /** Number of meshes (debug). */
   meshCount(): number;
@@ -793,6 +795,7 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
     body,
     anchors,
     ribbons: { mech, elec, loss },
+    textures,
     update,
     meshCount: () => meshes,
     dispose() {

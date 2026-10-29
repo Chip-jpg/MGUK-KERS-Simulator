@@ -4,6 +4,7 @@
  * energy, disc temperatures, braking point / end of the zone). Each sim adds its
  * own extras (car-dynamics: force arrows) on `core.stage` / `core.labels`.
  */
+import * as THREE from 'three';
 import type { AppContext } from '../../../core/types';
 import {
   createLabelLayer,
@@ -37,7 +38,14 @@ export interface CarSceneCore {
   readonly track: Track;
   readonly labels: LabelLayer;
   frame(f: CoreFrame): void;
-  info(): StageInfo & { labels: ReturnType<LabelLayer['stats']>; meshes: number };
+  /** Compile every program and upload every texture now (call again after adding objects). */
+  prewarm(): void;
+  info(): StageInfo & {
+    labels: ReturnType<LabelLayer['stats']>;
+    meshes: number;
+    /** Frames drawn since mount (tests wait for a few before sampling counters). */
+    frames: number;
+  };
   dispose(): void;
 }
 
@@ -128,12 +136,49 @@ export function createCarSceneCore(
   const c = car;
   const t = track;
   const l = labels;
+  let frames = 0;
+  /**
+   * Deterministic GPU state on mount: objects that are hidden at first (boards, lines,
+   * spin blur, patches…) would otherwise compile their programs and upload their textures
+   * only when they first come into view, so renderer counters would depend on the playback
+   * time. Make everything visible, compile, upload every texture of the set, and let the
+   * first `frame()` restore the real visibility (it sets all of it every frame).
+   */
+  const prewarm = (): void => {
+    const hidden: THREE.Object3D[] = [];
+    stage.scene.traverse((o) => {
+      if (!o.visible) {
+        hidden.push(o);
+        o.visible = true;
+      }
+    });
+    stage.renderer.compile(stage.scene, stage.camera);
+    const seen = new Set<THREE.Texture>();
+    stage.scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      for (const mat of Array.isArray(m) ? m : m ? [m] : []) {
+        for (const v of Object.values(mat)) {
+          if (v instanceof THREE.Texture && !seen.has(v)) {
+            seen.add(v);
+            stage.renderer.initTexture(v);
+          }
+        }
+      }
+    });
+    for (const tx of [...c.textures, ...t.textures]) {
+      if (!seen.has(tx)) stage.renderer.initTexture(tx);
+    }
+    for (const o of hidden) o.visible = false;
+  };
+  prewarm();
   return {
     stage,
+    prewarm,
     car: c,
     track: t,
     labels: l,
     frame(f) {
+      frames++;
       const now = performance.now();
       const dt = lastMs === 0 ? 0 : Math.min(0.1, (now - lastMs) / 1000);
       lastMs = now;
@@ -146,7 +191,7 @@ export function createCarSceneCore(
       L.start.setVisible(t.visible.start);
       L.end.setVisible(t.visible.end);
     },
-    info: () => ({ ...stage.info(), labels: l.stats(), meshes: c.meshCount() }),
+    info: () => ({ ...stage.info(), labels: l.stats(), meshes: c.meshCount(), frames }),
     dispose() {
       if (disposed) return;
       disposed = true;

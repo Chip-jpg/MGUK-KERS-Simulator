@@ -8,7 +8,7 @@ const URL = './#/sim/kers-braking';
 interface KersDebug {
   liveMounts: number;
   mountsTotal: number;
-  scene: () => { memory: { geometries: number; textures: number } } | null;
+  scene: () => { memory: { geometries: number; textures: number }; frames: number } | null;
   car: () => Record<string, number>;
 }
 
@@ -205,8 +205,12 @@ test('mount/unmount ×20 without leaks', async ({ page }) => {
         canvases: document.querySelectorAll('canvas').length,
       };
     });
-  await page.waitForTimeout(300);
-  const first = await read();
+  // sample only after a few drawn frames (first renders done), for both samples
+  const settled = async (): Promise<Awaited<ReturnType<typeof read>>> => {
+    await expect.poll(async () => (await read()).scene?.frames ?? 0).toBeGreaterThan(3);
+    return read();
+  };
+  const first = await settled();
   expect(first.live).toBe(1);
 
   for (let k = 0; k < 20; k++) {
@@ -225,8 +229,7 @@ test('mount/unmount ×20 without leaks', async ({ page }) => {
     await page.goto(URL);
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   }
-  await page.waitForTimeout(300);
-  const last = await read();
+  const last = await settled();
   process.stdout.write(
     `[kers-braking] leak check first=${JSON.stringify(first)} last=${JSON.stringify(last)}\n`,
   );

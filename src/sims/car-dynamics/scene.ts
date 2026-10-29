@@ -139,6 +139,7 @@ export function createCarScene(
     offset: [0, 34],
   });
   stage.castShadows(group);
+  core.prewarm(); // arrows: compile their program before the first sample
 
   let disposed = false;
   return {

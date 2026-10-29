@@ -26,6 +26,8 @@ export const BOARD_DISTANCES = [150, 100, 50] as const;
 
 export interface Track {
   readonly group: THREE.Group;
+  /** Own textures (pre-uploaded on mount for deterministic GPU counters). */
+  readonly textures: readonly THREE.Texture[];
   /**
    * Place the track for a car whose front axle is at distance `x` from the braking
    * point; `distance` = length of the braking zone; `v` = speed (streaks).
@@ -248,6 +250,7 @@ export function createTrack(stage: Stage): Track {
 
   return {
     group,
+    textures,
     anchors,
     visible,
     update(x, distance, v, dt) {
