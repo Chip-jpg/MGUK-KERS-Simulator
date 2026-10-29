@@ -32,8 +32,7 @@ import {
   type Pole,
 } from './model';
 import { defaultParams, params, type LenzParams } from './params';
-import { createResetViewButton, snapshotRenderStats } from '../../render';
-import { autoRange, holdPeak } from '../../render/scale';
+import { autoRange, createResetViewButton, holdPeak, snapshotRenderStats } from '../../render';
 import { createLenzScene, liveResources, PARTICLE_SPEED_FS, type LenzScene } from './scene';
 import { describeStatus } from './status';
 import './lenz.css';

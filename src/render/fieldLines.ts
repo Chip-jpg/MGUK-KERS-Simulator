@@ -8,8 +8,16 @@
  * Animation: bright pulses travel along +B. Each vertex carries a "travel
  * coordinate" τ = ∫ ds · (B_ref / |B|); pulses advance uniformly in τ, so their
  * spatial speed is ∝ |B| locally (fast where lines crowd, slow where the field is
- * weak), times a global factor set by the sim (`setFlow(k)`, e.g. B / B_max).
+ * weak), times a global factor set by the sim (`setFlow(k)`, e.g. B / B_max;
+ * a negative k reverses the pulses — alternating flux).
  * Colour: the B-blue ramp, brighter where |B| is larger.
+ *
+ * Line count ∝ flux: `setFraction(f)` draws only the first ⌈f·n⌉ traced lines
+ * (no rebuild, a draw range). With seeds ordered so that every prefix is an
+ * even subset ({@link spreadOrder}), the number of lines on screen follows the
+ * total flux when the field SHAPE is fixed and only its magnitude changes
+ * (e.g. a solenoid while its current grows). `setLines` shows lines computed
+ * elsewhere (e.g. flux confined in an ideal transformer core).
  *
  * If a synchronous trace takes longer than {@link WORKER_THRESHOLD_MS}, the
  * following traces run in a module Web Worker (results are versioned: stale
@@ -43,8 +51,14 @@ export interface FieldLines {
   readonly object: THREE.Group;
   /** Trace (sync or in the worker) and show the lines. Resolves when visible. */
   setJob(job: TraceJob): Promise<void>;
-  /** Global flow/brightness factor (e.g. B / B_max); 0 freezes the pulses. */
+  /** Global flow/brightness factor (e.g. B / B_max); 0 freezes the pulses, < 0 reverses them. */
   setFlow(k: number): void;
+  /** Show only the first ⌈f · count⌉ lines (f in [0, 1], default 1). */
+  setFraction(f: number): void;
+  /** Show precomputed lines (no tracing). */
+  setLines(lines: TracedLine[]): void;
+  /** Lines drawn after the fraction is applied. */
+  readonly shown: number;
   setVisible(v: boolean): void;
   /** Number of traced lines currently drawn. */
   readonly count: number;
@@ -98,6 +112,29 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
+/**
+ * Order 0…n−1 so that every prefix is spread evenly over the original order
+ * (bit-reversal / van der Corput): use it on flux-sorted seeds before
+ * `setFraction`, so a partial set is a uniform thinning, not one side only.
+ */
+export function spreadOrder(n: number): number[] {
+  let bits = 0;
+  while (1 << bits < n) bits++;
+  const out: number[] = [];
+  for (let k = 0; k < 1 << bits; k++) {
+    let r = 0;
+    for (let b = 0; b < bits; b++) if (k & (1 << b)) r |= 1 << (bits - 1 - b);
+    if (r < n) out.push(r);
+  }
+  return out;
+}
+
+/** Number of lines drawn for a fraction f of n (0 → 0, any f > 0 → at least 1). */
+export function linesForFraction(f: number, n: number): number {
+  if (!(f > 0) || n <= 0) return 0;
+  return Math.min(n, Math.max(1, Math.ceil(Math.min(1, f) * n - 1e-9)));
+}
+
 export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}): FieldLines {
   const group = new THREE.Group();
   group.name = 'field-lines';
@@ -109,6 +146,10 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
   const opacity = options.opacity ?? 0.95;
   let flow = 1;
   let offset = 0;
+  let fraction = 1;
+  let shown = 0;
+  /** Cumulative segment count before line k (prefix draw ranges). */
+  let segStart: number[] = [0];
   let lines: TracedLine[] = [];
   let lastTrace: { ms: number; where: 'main' | 'worker' } = { ms: 0, where: 'main' };
   let version = 0;
@@ -194,12 +235,29 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
     else out.copy(bCol).lerp(white, (r - 1) * 0.6);
   };
 
+  const applyFraction = (): void => {
+    shown = linesForFraction(fraction, lines.length);
+    if (!mesh) return;
+    const segs = segStart[shown] ?? 0;
+    const g = mesh.geometry as THREE.BufferGeometry & { instanceCount?: number };
+    if (fatMat) g.instanceCount = segs;
+    else g.setDrawRange(0, segs * 2);
+    mesh.visible = segs > 0;
+  };
+
   const build = (): void => {
     disposeMesh();
     ensureMaterial();
-    if (!lines.length) return;
+    segStart = [0];
+    if (!lines.length) {
+      shown = 0;
+      return;
+    }
     let segs = 0;
-    for (const l of lines) segs += l.count - 1;
+    for (const l of lines) {
+      segs += l.count - 1;
+      segStart.push(segs);
+    }
     const pos = new Float32Array(segs * 6);
     const col = new Float32Array(segs * 6);
     const tau = new Float32Array(segs * 2);
@@ -258,6 +316,7 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
       group.add(mesh);
       renderStats.liveGeometries++;
     }
+    applyFraction();
   };
 
   const traceInWorker = (job: TraceJob, id: number): Promise<TracedLine[]> => {
@@ -284,7 +343,7 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
       if (offset < -1e4) offset = 0;
       if (fatMat) fatMat.dashOffset = offset;
       if (plainMat) (plainMat.uniforms['uOffset'] as { value: number }).value = offset;
-      const k = Math.max(0, Math.min(1.2, flow));
+      const k = Math.min(1.2, Math.abs(flow));
       if (fatMat) fatMat.opacity = opacity * (0.55 + 0.45 * Math.min(1, k));
       if (plainMat)
         (plainMat.uniforms['uOpacity'] as { value: number }).value =
@@ -306,6 +365,20 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
     },
     setFlow(k) {
       flow = Number.isFinite(k) ? k : 0;
+    },
+    setFraction(f) {
+      const x = Number.isFinite(f) ? Math.min(1, Math.max(0, f)) : 0;
+      if (x === fraction) return;
+      fraction = x;
+      applyFraction();
+    },
+    setLines(ls) {
+      version++; // drop any trace still running
+      lines = ls.filter((l) => l.count >= 2);
+      build();
+    },
+    get shown() {
+      return shown;
     },
     setVisible(v) {
       group.visible = v;

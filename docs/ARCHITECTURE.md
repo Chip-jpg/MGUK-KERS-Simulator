@@ -426,8 +426,12 @@ Shared Three.js layer for every 3D simulator (v0.6). Sims import from the barrel
 The app shell imports only `src/render/quality.ts` (no Three.js in the initial bundle).
 Dependency rule: `render` → `core`, `ui` (colors, controls), `physics`, `three`; sims → `render`.
 Pure parts stay testable in Node: `quality.ts` (no Three), `trace.ts` (no Three/DOM),
-`src/physics/fields.ts` and `src/physics/thermal.ts` (pure physics, coverage ≥ 95 %).
-Reference implementation: `src/sims/faraday/scene.ts`.
+`scale.ts` (1-2-5 ranges), `src/physics/fields.ts`, `src/physics/thermal.ts` and
+`src/physics/powerline.ts` (pure physics, coverage ≥ 95 %). The barrel also re-exports the
+studio helpers `radialFade` and `studioBackgroundColor`; sims never import `render/*` or
+`physics/*` files by path (D15).
+Reference implementations: `src/sims/faraday/scene.ts`, `src/sims/joule-transformer/scene.ts`
+(a large diorama with instanced lattice towers) and `src/sims/rl-energy/scene.ts`.
 
 ### 10.1 Quality tiers (`quality.ts`)
 
@@ -461,6 +465,7 @@ const stage = createStage(layout.scene, ctx, {
   camera: { position: [x, y, z], target: [x, y, z], fov?: 36 },
   controls?: { minDistance, maxDistance, maxPolarAngle, enablePan },
   floorY?: -2, shadowRadius?: 6, tier?: QualityTier /* force */, intro?: true,
+  floor?: { visible?: boolean; radius?: 16 },  // hide the studio disc, or widen it (grid pitch kept)
 });
 stage.scene · camera · renderer · controls (damped OrbitControls) · canvas · materials (kit)
 stage.tier · settings · theme · width · height
@@ -478,7 +483,9 @@ The stage follows the global theme and quality by itself (it subscribes to `onTh
 `onQualityChange`); sims react through `stage.onThemeChange` / `stage.onTierChange`. While the
 sim loop is paused, orbiting, resizing and tier/theme changes self-render (no need to resume
 the loop). `createResetViewButton(stage)` returns the "Ripristina vista" toolbar button. A gentle
-intro flight runs on mount, skipped with reduced motion.
+intro flight runs on mount, skipped with reduced motion. A hidden floor is never added to the
+scene; a wider one keeps the grid pitch (the texture repeats) and fades into the scene fog — the
+car scenes use `floor: { radius: 64 }` so no disc edge shows beside the track.
 
 ### 10.3 Materials and geometry (`materials.ts`, `textures.ts`, `geometry.ts`)
 
@@ -509,8 +516,16 @@ await lines.setJob({
   seeds: seedRect(…) | seedDisc(…) | seedByFlux(field, candidates, normal, n),  // flux-proportional
   options: { bounds, stopBoxes?, stopSpheres?, maxAngle?, direction?: 1 | -1 | 0, … },
 });
-lines.setFlow(B / Bmax);   // global speed/brightness factor; 0 freezes the pulses
+lines.setFlow(B / Bmax);   // global speed/brightness factor; 0 freezes, < 0 reverses (AC flux)
+lines.setFraction(i / Iref); // draw only the first ⌈f·n⌉ lines (draw range, no rebuild)
+lines.setLines(traced);      // show lines computed elsewhere (e.g. flux confined in a core)
+lines.shown                  // lines drawn after the fraction
 ```
+
+**Line count ∝ flux.** When the field SHAPE is fixed and only its magnitude changes (a
+solenoid while its current grows), trace once with flux-proportional seeds reordered by
+`spreadOrder(n)` (bit reversal: every prefix is an even thinning, not one side) and call
+`setFraction(Φ/Φ_ref)`: each line carries the same flux, so the number on screen follows Φ.
 
 Tracer: RK4 on dr/ds = B̂, step adaptive by curvature (halved when B̂ turns more than
 `maxAngle`, grown on straight stretches); stops on bounds, closure, stop regions ("sources"),
@@ -532,13 +547,23 @@ geometry change, never per frame; if only the field magnitude changes keep the l
   `thermalSteadyState`, `blackbodyRGB(T)` (Planck × CIE 1931 → linear sRGB, LUT 300–2500 K),
   `blackbodyLuminance(T)`; render side `createHeatBody({ C, hA, Tamb })` → `step(P, dt)` in the
   physics step, `apply(material)` in render (no glow below 700 K, log-luminance mapping above).
-- `createEnergyRibbon(stage, { path, widthPerWatt, minRadius?, maxRadius?, pRef?, speed? })` →
-  `setPower(P)`: purple tube with radius ∝ |P| (in the shader, no rebuild), chevrons flowing
-  with sign(P).
-- `createLabelLayer(stage, layout.sceneOverlay)` → `add({ text, anchor: Vector3, quantity?,
-  priority?, offset?, occlude?, size? })` → `setText`, `setVisible`, `setOffset`. Labels are
-  projected every frame, nudged vertically to avoid overlaps (higher priority placed first) and
-  faded when hidden by `stage.occluders`; quantity colours via `.r-label--b|emf|i|f|energy|accent`.
+- Thermal false colour: `ironbow(x)` (thermal-camera palette, x ∈ [0, 1]) and
+  `ironbowGradientCss()` for the °C legend bar. Use it for REALISTIC temperatures (an overhead
+  line at 60 °C, a resistor at 40 °C) behind a labelled toggle with a °C scale; incandescence
+  (`applyHeatGlow`) only from the computed temperature above 700 K — never fake a glow.
+- `createEnergyRibbon(stage, { path, widthPerWatt, minRadius?, maxRadius?, pRef?, speed?,
+  quantity?: 'energy', dim?: 1, opacity?: 0.9 })` → `setPower(P)`, `setDim(d)`, `setOpacity(o)`:
+  tube with radius ∝ |P| (in the shader, no rebuild), chevrons flowing with sign(P), colour =
+  palette colour of `quantity` × `dim`, re-applied on every theme change (e.g. losses that
+  became heat: `dim: 0.42`). Never write the ribbon's shader uniforms from a sim.
+- `createLabelLayer(stage, layout.sceneOverlay, { occlude?: true })` → `add({ text, anchor:
+  Vector3, quantity?, priority?, offset?, occlude?, size? })` → `setText`, `setVisible`,
+  `setOffset`. Labels are projected every frame, nudged vertically to avoid overlaps (higher
+  priority placed first; items are kept sorted on `add`) and faded when hidden by
+  `stage.occluders`; quantity colours via `.r-label--b|emf|i|f|energy|accent`. The update is
+  allocation-free (pooled rectangles, style writes only on change); with `{ occlude: false }` on
+  the layer, or when no label asks for occlusion, no ray is ever cast. Visible text uses Unicode
+  sub/superscripts (τₑₘ, Φₘₐₓ, I₀), never `_` (KaTeX only in formula panels).
 
 ### 10.6 Disposal and performance rules
 
@@ -555,3 +580,8 @@ geometry change, never per frame; if only the field magnitude changes keep the l
 - Read `stage.settings` for counts (`lineDensity`, `particleDensity`, `tessellation`) and rebuild
   them in `stage.onTierChange`. `base` must stay usable on SwiftShader (all e2e run there).
 - The render layer only reads simulation state; physics stays in the fixed-step model.
+- GLSL: clamp before `pow` (`pow(x, y)` is undefined for x < 0, and a single NaN pixel becomes
+  a large blot after bloom); e.g. a Fresnel rim `pow(clamp(1.0 − |N·V|, 0.0, 1.0), k)`.
+- Deterministic GPU counters: sims whose objects start hidden call a `prewarm()` after building
+  the scene (make everything visible, `renderer.compile`, `initTexture` every texture, restore)
+  and expose a `frames` counter; e2e leak tests sample only after a few frames (`settled()`).

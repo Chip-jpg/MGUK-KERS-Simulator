@@ -22,15 +22,14 @@ import {
   applyHeatGlow,
   chamferBox,
   createEnergyRibbon,
+  radialFade,
   type EnergyRibbon,
   type MaterialKind,
   type Stage,
 } from '../../../render';
-import { quantityColorHex } from '../../../ui/colors';
 import { CAR_DIMS } from './dims';
 import { loftGeometry, wingGeometry, type LoftStation } from './loft';
 import { discFace, spinBlur } from './textures';
-import { radialFade } from '../../../render/textures';
 
 import { carStats } from './stats';
 
@@ -681,32 +680,23 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
       v3(-0.24, 0.17, 0.06),
     ],
   });
+  // Losses become heat: same ribbon, dimmed colour (it is not stored energy).
   const loss = createEnergyRibbon(stage, {
     ...ribbonOpts,
+    dim: 0.42,
     path: [v3(-1.0, 0.29, 0.24), v3(-0.72, 0.42, 0.42), v3(-0.2, 0.42, 0.56), v3(0.3, 0.4, 0.6)],
   });
   for (const r of [mech, elec, loss]) {
     body.add(r.object);
     r.object.renderOrder = 7; // over the transparent cover, not dimmed by it
   }
-  // Losses become heat: same ribbon, dimmed colour (it is not stored energy).
-  const dimLoss = (): void => {
-    const u = (loss.object.material as THREE.ShaderMaterial).uniforms['uColor'] as {
-      value: THREE.Color;
-    };
-    u.value.setHex(quantityColorHex('energy', stage.theme)).multiplyScalar(0.42);
-  };
-  dimLoss();
   // kit materials animated every frame (re-fetched after a tier/theme switch)
   const glow = { battery: kit.get('glowEnergy', 'battery'), mguk: kit.get('glowEnergy', 'mguk') };
   const refetch = (): void => {
     glow.battery = kit.get('glowEnergy', 'battery');
     glow.mguk = kit.get('glowEnergy', 'mguk');
   };
-  const offTheme = stage.onThemeChange(() => {
-    dimLoss();
-    refetch();
-  });
+  const offTheme = stage.onThemeChange(() => refetch());
 
   const offTier = stage.onTierChange(() => {
     refetch();

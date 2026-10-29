@@ -192,3 +192,38 @@ back to `#/teoria`.
   mount/unmount leak check in `alta` (composer, render targets, PMREM, textures, workers back to
   0). Real-GPU frame rates cannot be measured in CI; the performance rules are in
   ARCHITECTURE §10.6.
+
+## D15 — Transport chain and RL bench on the foundation; render polish (2026-10-29, V3)
+
+- **joule-transformer** becomes a diorama of the whole chain (generator hall → step-up
+  transformer with laminated core and an optional oil-tank cut-away → lattice pylons → step-down
+  → town). Every visual is driven by the model: turns N₁ : N₂ in proportion; wire radius ∝ √I
+  (equal current density, so the low-voltage winding is thicker); peak core flux
+  Φₘₐₓ = √2·V/(2π·f·N) (`coreFluxPeak`, ideal core, illustrative 50 Hz) sets how many closed flux
+  loops are drawn; current particles in each section move with velocity ∝ that section's
+  instantaneous current, so the HV line visibly carries N₁/N₂ of the generator current; one lit
+  window per 0,5 MW delivered.
+- **AC is shown as AC.** 50 Hz is played 200× slower: the particles oscillate with
+  i(t) = √2·I·sin ωt and the flux pulses reverse with Φₘₐₓ·cos ωt (same phase reference). A
+  steady drift would have suggested DC. _Trade-off:_ a still frame cannot show the motion; the
+  labels carry the RMS values.
+- **Line heating without fake glow.** The conductor temperature comes from a lumped model per
+  metre (C'·dT/dt = R'·I² − h·π·D·(T − T_amb), illustrative aluminium conductor, thermal time
+  ×300) and feeds the sag: catenary + thermal elongation (`thermalSag`, elastic stretch
+  neglected, upper estimate). An overhead line never glows, so the temperature is shown by a
+  labelled, toggleable ironbow false-colour overlay with a °C scale and the typical 80 °C limit;
+  in `alta` a faint heat haze ∝ R'·I². Black-body glow stays reserved for computed T > 700 K
+  (the RL resistor reaches it only with large currents for several τ).
+- **rl-energy** becomes a bench circuit (cells ∝ E, knife switch with an animated blade,
+  wire-wound resistor, large solenoid). B lines are traced once for a finite solenoid
+  (`solenoidField`, flux-seeded) and their NUMBER follows i/I_ref (`setFraction` with
+  bit-reversal ordering, `spreadOrder`); the purple shell ∝ ½·L·i² (full = ½·L·I₀²) lags them
+  (∝ i²); the amber arrow ∝ L·|di/dt| equals E at t = 0⁺ and decays; energy ribbons split the
+  generator power E·i into R·i² and L·i·di/dt (the radii add up). The resistor wire is heated
+  by the model's own integrated Joule energy per step.
+- **Render polish.** Ribbon colour/dim/opacity options (no uniform poking from sims);
+  allocation-free label layer with an occlusion-free fast path; `floor` option of the stage
+  (car scenes: radius 64, no disc edge beside the track); NaN-safe Fresnel terms (a negative
+  `pow` base blew up through bloom); `src/physics/powerline.ts` (catenary, thermal sag, core
+  flux) and the brake-thermal model exported from the physics barrel; the render barrel exports
+  the scale and studio helpers. Visible strings use Unicode subscripts, never `_`.

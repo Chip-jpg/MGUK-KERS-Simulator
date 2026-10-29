@@ -51,6 +51,9 @@ describe('sim UI strings (QA-016)', () => {
       if (/^\s*(\*|\/\/|\/\*)/.test(line)) continue;
       if (/\b(tex|symbolTex|Tex)\b\s*[:=(]/.test(line) || line.includes('\\\\')) continue;
       for (const m of line.matchAll(/'([^']*)'|"([^"]*)"/g)) out.push(m[1] ?? m[2] ?? '');
+      // template literals on one line, without their ${…} code parts (identifiers like A_B)
+      for (const m of line.matchAll(/`([^`]*)`/g))
+        out.push((m[1] ?? '').replace(/\$\{[^}]*\}/g, '').replace(/\$\{.*$/, ''));
     }
     return out;
   }

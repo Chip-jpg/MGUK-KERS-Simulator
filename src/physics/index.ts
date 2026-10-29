@@ -109,3 +109,27 @@ export {
   BLACKBODY_LUT_MIN,
   BLACKBODY_LUT_MAX,
 } from './thermal';
+
+// Lumped thermal model of a brake disc (car simulators, v0.6)
+export {
+  STEFAN_BOLTZMANN,
+  BRAKE_DISC_ILLUSTRATIVE,
+  discHeatCapacity,
+  discConvectionCoefficient,
+  discLossPower,
+  discThermalStep,
+  discAdiabaticRise,
+  celsiusToKelvin,
+  kelvinToCelsius,
+} from './brake-thermal';
+export type { DiscThermalSpec, DiscStepResult } from './brake-thermal';
+
+// Overhead line (catenary, thermal sag) and transformer core flux (visualisation, v0.6)
+export {
+  catenarySag,
+  catenaryDrop,
+  catenaryLength,
+  catenaryParameterForLength,
+  thermalSag,
+  coreFluxPeak,
+} from './powerline';

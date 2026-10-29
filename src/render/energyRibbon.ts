@@ -3,9 +3,14 @@
  * power (|P| · widthPerWatt, clamped) with purple chevrons flowing in the
  * direction of the energy flow (sign of P), speed ∝ |P| (capped).
  * The radius is changed in the vertex shader (no geometry rebuild per frame).
+ *
+ * Colour is theme-safe: it is a quantity colour of the §4.5 palette (default
+ * `energy`) times a dim factor, re-applied on every theme change — sims never
+ * touch the shader uniforms themselves (e.g. losses becoming heat: `dim: 0.42`).
  */
 import * as THREE from 'three';
-import { quantityColorHex } from '../ui/colors';
+import type { Theme } from '../core/types';
+import { quantityColorHex, type Quantity } from '../ui/colors';
 import type { Stage } from './stage';
 import { renderStats } from './stats';
 
@@ -19,6 +24,26 @@ export interface EnergyRibbonOptions {
   /** Chevron speed at |P| = pRef [τ / s] and the reference power. */
   speed?: number;
   pRef?: number;
+  /** Palette quantity of the colour (default 'energy'). */
+  quantity?: Quantity;
+  /** Colour multiplier in [0, 1] (default 1; e.g. 0.42 for energy that became heat). */
+  dim?: number;
+  /** Opacity while power flows (default 0.9); at P = 0 the ribbon fades to 0.28 × this. */
+  opacity?: number;
+}
+
+/** Idle opacity as a fraction of the flowing opacity (P = 0). */
+export const RIBBON_IDLE_FRACTION = 0.28;
+
+/** Linear colour of a ribbon for a theme: palette colour of `quantity` × `dim`. */
+export function ribbonColor(
+  theme: Theme,
+  quantity: Quantity = 'energy',
+  dim = 1,
+  out: THREE.Color = new THREE.Color(),
+): THREE.Color {
+  const d = Number.isFinite(dim) ? Math.min(1, Math.max(0, dim)) : 1;
+  return out.setHex(quantityColorHex(quantity, theme)).multiplyScalar(d);
 }
 
 export interface EnergyRibbon {
@@ -26,6 +51,10 @@ export interface EnergyRibbon {
   setPower(P: number): void;
   setPath(path: THREE.Vector3[]): void;
   setVisible(v: boolean): void;
+  /** Change the dim factor (theme-safe; kept across theme changes). */
+  setDim(d: number): void;
+  /** Change the flowing opacity. */
+  setOpacity(o: number): void;
   dispose(): void;
 }
 
@@ -55,7 +84,8 @@ varying vec3 vView;
 void main() {
   float t = fract( vUv.x * uRepeat - uOffset );
   float chevron = smoothstep( 0.0, 0.5, t ) * ( 1.0 - smoothstep( 0.5, 0.62, t ) );
-  float rim = pow( 1.0 - abs( dot( vN, vView ) ), 1.5 );
+  // clamp: |dot| can exceed 1 by rounding, and pow(<0, x) is NaN (bloom turns one NaN pixel into a blot)
+  float rim = pow( clamp( 1.0 - abs( dot( vN, vView ) ), 0.0, 1.0 ), 1.5 );
   vec3 c = uColor * ( 0.35 + 1.6 * chevron + 0.6 * rim );
   gl_FragColor = vec4( c, uOpacity * ( 0.35 + 0.65 * max( chevron, rim ) ) );
   #include <tonemapping_fragment>
@@ -67,6 +97,9 @@ export function createEnergyRibbon(stage: Stage, o: EnergyRibbonOptions): Energy
   const maxR = o.maxRadius ?? 0.4;
   const pRef = o.pRef ?? 1;
   const speed = o.speed ?? 1.2;
+  const quantity = o.quantity ?? 'energy';
+  let dim = o.dim ?? 1;
+  let opacity = o.opacity ?? 0.9;
   const mat = new THREE.ShaderMaterial({
     vertexShader: VS,
     fragmentShader: FS,
@@ -74,10 +107,10 @@ export function createEnergyRibbon(stage: Stage, o: EnergyRibbonOptions): Energy
     depthWrite: false,
     uniforms: {
       uRadius: { value: minR },
-      uColor: { value: new THREE.Color(quantityColorHex('energy', stage.theme)) },
+      uColor: { value: ribbonColor(stage.theme, quantity, dim) },
       uOffset: { value: 0 },
       uRepeat: { value: 6 },
-      uOpacity: { value: 0.9 },
+      uOpacity: { value: opacity * RIBBON_IDLE_FRACTION },
     },
   });
   renderStats.liveMaterials++;
@@ -108,9 +141,8 @@ export function createEnergyRibbon(stage: Stage, o: EnergyRibbonOptions): Energy
   let power = 0;
 
   const offTier = stage.onTierChange(() => setPath(lastPath));
-  const offTheme = stage.onThemeChange((t) =>
-    (mat.uniforms['uColor'] as { value: THREE.Color }).value.setHex(quantityColorHex('energy', t)),
-  );
+  const uColor = mat.uniforms['uColor'] as { value: THREE.Color };
+  const offTheme = stage.onThemeChange((t) => ribbonColor(t, quantity, dim, uColor.value));
   const offUpdate = stage.addUpdatable({
     update(dt) {
       const a = Math.abs(power);
@@ -120,7 +152,8 @@ export function createEnergyRibbon(stage: Stage, o: EnergyRibbonOptions): Energy
       );
       const u = mat.uniforms['uOffset'] as { value: number };
       u.value = (u.value + Math.sign(power) * Math.min(2, a / pRef) * speed * dt) % 1000;
-      (mat.uniforms['uOpacity'] as { value: number }).value = a > 0 ? 0.9 : 0.25;
+      (mat.uniforms['uOpacity'] as { value: number }).value =
+        a > 0 ? opacity : opacity * RIBBON_IDLE_FRACTION;
     },
   });
 
@@ -135,6 +168,13 @@ export function createEnergyRibbon(stage: Stage, o: EnergyRibbonOptions): Energy
     },
     setVisible(v) {
       mesh.visible = v;
+    },
+    setDim(d) {
+      dim = d;
+      ribbonColor(stage.theme, quantity, dim, uColor.value);
+    },
+    setOpacity(x) {
+      opacity = Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : opacity;
     },
     dispose() {
       offTier();

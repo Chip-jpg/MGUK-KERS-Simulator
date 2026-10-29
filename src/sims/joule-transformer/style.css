@@ -51,30 +51,6 @@
   font-size: var(--fs-sm);
 }
 
-.jt-label {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
-  color: var(--color-text);
-  font-size: var(--fs-xs);
-  white-space: nowrap;
-}
-
-.jt-label--end {
-  transform: translate(-100%, -100%);
-}
-
-.jt-label--start {
-  transform: translate(0, -100%);
-}
-
-.jt-label--line {
-  color: var(--q-i);
-  font-weight: var(--fw-medium);
-}
-
 .jt-chart {
   grid-column: 1 / -1;
 }
@@ -193,6 +169,97 @@
   text-align: right;
 }
 
-.jt-label--below {
-  transform: translate(-50%, 0);
+.jt-toggles {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* scene legend (bottom left) and thermal false-colour scale (top right) */
+.jt-legend {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  max-width: max-content;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.jt-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 0.9em;
+  height: 0.25em;
+  margin-right: 0.35em;
+  vertical-align: middle;
+  background: var(--q, var(--color-text-muted));
+}
+
+.jt-thermal {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  gap: 0.2rem;
+  width: min(17rem, 60%);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.jt-thermal[hidden] {
+  display: none;
+}
+
+.jt-thermal__title {
+  font-weight: var(--fw-medium);
+}
+
+.jt-thermal__bar {
+  position: relative;
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    rgb(18 10 52) 0%,
+    rgb(86 18 130) 20%,
+    rgb(182 32 112) 42%,
+    rgb(232 92 36) 62%,
+    rgb(250 178 30) 82%,
+    rgb(255 246 214) 100%
+  );
+}
+
+/* typical design limit (80 °C on the 20 … 120 °C scale) */
+.jt-thermal__bar::after {
+  content: '';
+  position: absolute;
+  left: 60%;
+  top: -0.15rem;
+  bottom: -0.15rem;
+  width: 2px;
+  background: var(--color-text);
+}
+
+.jt-thermal__ticks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.jt-thermal__now {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }

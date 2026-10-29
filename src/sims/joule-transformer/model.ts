@@ -153,28 +153,3 @@ export function visualTurns(N1: number, N2: number, max = 24): { n1: number; n2:
     n2: Math.max(2, Math.min(max, Math.round(N2 * s))),
   };
 }
-
-/**
- * Heat-glow intensity of the line in [0, 1] from the loss fraction, on a log
- * scale: 10⁻⁴ → 0, 10⁻³ → ⅓, 10⁻² → ⅔, ≥ 10⁻¹ → 1.
- */
-export function glowFromFraction(fraction: number): number {
-  if (!(fraction > 0)) return 0;
-  return Math.min(1, Math.max(0, (Math.log10(fraction) + 4) / 3));
-}
-
-/**
- * Particle animation for a conductor carrying current `I`, relative to a
- * reference current `Iref`: density and speed ∝ I (clamped for readability).
- */
-export function particleFlow(
-  I: number,
-  Iref: number,
-  maxCount: number,
-): { count: number; speed: number } {
-  const r = Iref > 0 ? Math.abs(I) / Iref : 0;
-  return {
-    count: Math.max(r > 0 ? 2 : 0, Math.min(maxCount, Math.round(maxCount * 0.6 * r))),
-    speed: Math.min(3, 0.6 * r),
-  };
-}

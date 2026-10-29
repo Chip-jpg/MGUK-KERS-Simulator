@@ -16,3 +16,5 @@ export * from './labels';
 export * from './stats';
 export * from './viewButton';
 export * from './geometry';
+export * from './scale';
+export { radialFade, studioBackgroundColor } from './textures';

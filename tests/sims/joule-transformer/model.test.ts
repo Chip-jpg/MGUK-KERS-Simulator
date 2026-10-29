@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeTransmission,
-  glowFromFraction,
   lossCurve,
   lossReductionFactor,
-  particleFlow,
   siPrefix,
   visualTurns,
 } from '../../../src/sims/joule-transformer/model';
@@ -79,15 +77,6 @@ describe('joule-transformer model', () => {
     const vt = visualTurns(100, 1000);
     expect(vt).toEqual({ n1: 2, n2: 24 });
     expect(visualTurns(500, 500)).toEqual({ n1: 24, n2: 24 });
-    expect(glowFromFraction(0)).toBe(0);
-    expect(glowFromFraction(1e-4)).toBeCloseTo(0, 12);
-    expect(glowFromFraction(1e-2)).toBeCloseTo(2 / 3, 12);
-    expect(glowFromFraction(0.5)).toBe(1);
-    const hi = particleFlow(500, 500, 28);
-    const lo = particleFlow(50, 500, 28);
-    expect(lo.count).toBeLessThan(hi.count);
-    expect(lo.speed).toBeCloseTo(hi.speed / 10, 12);
-    expect(particleFlow(0, 500, 28).count).toBe(0);
   });
 
   it('params satisfy min ≤ default ≤ max and step > 0', () => {

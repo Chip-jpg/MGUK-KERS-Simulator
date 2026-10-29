@@ -8,7 +8,7 @@ import {
   celsiusToKelvin,
   discThermalStep,
   type DiscStepResult,
-} from '../../../physics/brake-thermal';
+} from '../../../physics';
 
 /** Selectable starting temperatures [°C]. */
 export const DISC_START_OPTIONS_C = [25, 300, 500] as const;

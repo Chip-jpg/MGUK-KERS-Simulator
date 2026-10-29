@@ -67,6 +67,8 @@ export function createCarSceneCore(
     camera: { ...CAR_VIEW, fov: 34, far: 160 },
     controls: { minDistance: 3, maxDistance: 24, maxPolarAngle: (84 * Math.PI) / 180 },
     floorY: -0.02,
+    // the studio floor runs out under the scene fog (no disc edge beside the track)
+    floor: { radius: 64 },
     shadowRadius: 4.2,
   });
   let car: Car | null = null;

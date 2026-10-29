@@ -221,7 +221,12 @@ export function createComparisonChart(container: HTMLElement): ComparisonChart {
         svg('line', { x1: M.l, x2: W - M.r, y1: y(P), y2: y(P), class: 'jt-chart__limit' }),
         svg(
           'text',
-          { x: W - M.r - 4, y: y(P) + 14, 'text-anchor': 'end', class: 'jt-chart__note' },
+          {
+            x: W - M.r - 4,
+            y: y(P) - M.t >= 14 ? y(P) - 6 : y(P) + 14,
+            'text-anchor': 'end',
+            class: 'jt-chart__note',
+          },
           'perdita = P (limite del modello)',
         ),
       );
@@ -274,7 +279,13 @@ export function createComparisonChart(container: HTMLElement): ComparisonChart {
         ),
       );
       const sameAsHigh = Math.abs(r.V2 / (10 * V) - 1) < 0.05;
-      point(V, lowL, 'jt-chart__pt jt-chart__pt--low', `V₁ = ${fmtSI(V, 'V', 2)}`);
+      const sameAsLow = Math.abs(r.V2 / V - 1) < 0.05; // N₁ = N₂: no step-up
+      point(
+        V,
+        lowL,
+        'jt-chart__pt jt-chart__pt--low',
+        `V₁ = ${fmtSI(V, 'V', 2)}${sameAsLow ? ' (= V₂ attuale)' : ''}`,
+      );
       point(
         10 * V,
         highL,
@@ -285,7 +296,7 @@ export function createComparisonChart(container: HTMLElement): ComparisonChart {
         r.V2,
         r.line.loss,
         'jt-chart__pt jt-chart__pt--now',
-        sameAsHigh ? '' : `V₂ attuale = ${fmtSI(r.V2, 'V', 3)}`,
+        sameAsHigh || sameAsLow ? '' : `V₂ attuale = ${fmtSI(r.V2, 'V', 3)}`,
       );
 
       desc.textContent = `Perdite R·I² in funzione della tensione: a ${fmtSI(V, 'V')} ${fmtSI(lowL, 'W')}, a ${fmtSI(10 * V, 'V')} ${fmtSI(highL, 'W')}; fattore ${formatIT(factor, 1)}.`;

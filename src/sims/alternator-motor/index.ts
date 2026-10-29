@@ -44,9 +44,13 @@ import {
   createReadouts,
   type FlowPowers,
 } from './panel';
-import { createResetViewButton, snapshotRenderStats } from '../../render';
-import { createHeatBody } from '../../render/heat';
-import { autoRange, holdPeak } from '../../render/scale';
+import {
+  autoRange,
+  createHeatBody,
+  createResetViewButton,
+  holdPeak,
+  snapshotRenderStats,
+} from '../../render';
 import { F_LOG_RANGE, PARTICLE_SPEED_PER_AMP, sceneStats } from './constants';
 import type { MachineScene, SceneInfo } from './scene';
 

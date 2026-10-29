@@ -87,3 +87,49 @@ export function createHeatBody(p: HeatBodyParams): HeatBody {
     },
   };
 }
+
+// --- thermal false colour ----------------------------------------------------------------
+
+/**
+ * "Ironbow" thermal-camera palette stops (sRGB 0–255), from cold to hot:
+ * near-black navy → violet → magenta-red → orange → yellow → near-white.
+ * A FALSE colour (an instrument's display), never confused with incandescence:
+ * the sims show it only behind a labelled toggle, with a °C scale.
+ */
+export const IRONBOW_STOPS: ReadonlyArray<readonly [number, number, number, number]> = [
+  [0, 18, 10, 52],
+  [0.2, 86, 18, 130],
+  [0.42, 182, 32, 112],
+  [0.62, 232, 92, 36],
+  [0.82, 250, 178, 30],
+  [1, 255, 246, 214],
+];
+
+/**
+ * Ironbow false colour of x ∈ [0, 1] (clamped) as sRGB components in [0, 1].
+ * Piecewise linear between {@link IRONBOW_STOPS}.
+ */
+export function ironbow(
+  x: number,
+  out: [number, number, number] = [0, 0, 0],
+): [number, number, number] {
+  const t = Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0;
+  let k = 1;
+  type Stop = readonly [number, number, number, number];
+  while (k < IRONBOW_STOPS.length - 1 && (IRONBOW_STOPS[k] as Stop)[0] < t) k++;
+  const a = IRONBOW_STOPS[k - 1] as Stop;
+  const b = IRONBOW_STOPS[k] as Stop;
+  const f = b[0] > a[0] ? (t - a[0]) / (b[0] - a[0]) : 0;
+  out[0] = (a[1] + f * (b[1] - a[1])) / 255;
+  out[1] = (a[2] + f * (b[2] - a[2])) / 255;
+  out[2] = (a[3] + f * (b[3] - a[3])) / 255;
+  return out;
+}
+
+/** CSS `linear-gradient` of the ironbow palette (for the °C legend bar). */
+export function ironbowGradientCss(direction = 'to right'): string {
+  const stops = IRONBOW_STOPS.map(
+    ([p, r, g, b]) => `rgb(${r} ${g} ${b}) ${Math.round(p * 100)}%`,
+  ).join(', ');
+  return `linear-gradient(${direction}, ${stops})`;
+}

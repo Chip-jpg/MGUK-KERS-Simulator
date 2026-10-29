@@ -26,10 +26,8 @@ import {
 } from '../../ui';
 import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
-import { G_STANDARD, PHYSICS_DT, type CarBrakingSample } from '../../physics';
-import { kelvinToCelsius } from '../../physics/brake-thermal';
-import { createResetViewButton } from '../../render/viewButton';
-import { snapshotRenderStats } from '../../render/stats';
+import { G_STANDARD, PHYSICS_DT, kelvinToCelsius, type CarBrakingSample } from '../../physics';
+import { createResetViewButton, snapshotRenderStats } from '../../render';
 import type { ButtonHandle } from '../../ui/controls';
 import {
   DISC_START_DEFAULT_C,

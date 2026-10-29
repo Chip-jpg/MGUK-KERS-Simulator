@@ -14,7 +14,7 @@
  */
 import * as THREE from 'three';
 import type { Stage } from '../../../render';
-import { studioBackgroundColor } from '../../../render/textures';
+import { studioBackgroundColor } from '../../../render';
 import { carStats } from './stats';
 import { CAR_DIMS } from './dims';
 import { TRACK_TILE_M, TRACK_WIDTH_M, asphaltTile, boardFace } from './textures';

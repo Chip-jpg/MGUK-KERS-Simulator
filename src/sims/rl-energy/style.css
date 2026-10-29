@@ -31,17 +31,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.rl-label {
-  position: absolute;
-  transform: translate(-50%, -100%);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
-  color: var(--color-text);
-  font-size: var(--fs-xs);
-  white-space: nowrap;
-}
-
 .rl-energy-plot {
   position: relative;
 }
@@ -62,16 +51,6 @@
 }
 .rl-plot-hint[hidden] {
   display: none;
-}
-
-.rl-label--emf {
-  color: var(--q-emf);
-  font-weight: var(--fw-medium);
-}
-
-.rl-label--b {
-  color: var(--q-b);
-  font-weight: var(--fw-bold);
 }
 
 .rl-energy {
@@ -154,4 +133,81 @@
   margin: var(--space-2) 0 0;
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
+}
+
+/* scene legend (bottom left) and thermal false-colour scale (top right) */
+.rl-legend-3d {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  max-width: max-content;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.rl-legend-3d span::before {
+  content: '';
+  display: inline-block;
+  width: 0.9em;
+  height: 0.25em;
+  margin-right: 0.35em;
+  vertical-align: middle;
+  background: var(--q, var(--color-text-muted));
+}
+
+.rl-thermal {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  gap: 0.2rem;
+  width: min(17rem, 60%);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-text);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.rl-thermal[hidden] {
+  display: none;
+}
+
+.rl-thermal__title {
+  font-weight: var(--fw-medium);
+}
+
+.rl-thermal__bar {
+  height: 0.6rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    rgb(18 10 52) 0%,
+    rgb(86 18 130) 20%,
+    rgb(182 32 112) 42%,
+    rgb(232 92 36) 62%,
+    rgb(250 178 30) 82%,
+    rgb(255 246 214) 100%
+  );
+}
+
+.rl-thermal__ticks {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rl-thermal__now {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }

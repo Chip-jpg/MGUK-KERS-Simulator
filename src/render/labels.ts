@@ -10,6 +10,11 @@
  *   already placed one is nudged vertically (±1…4 label heights) to the first
  *   free slot, so labels never sit on top of each other.
  * - Off-screen / behind-camera anchors are hidden.
+ * - No per-frame allocations: items are kept sorted by priority when added
+ *   (stable: equal priorities keep their insertion order), placed rectangles come
+ *   from a pool, and styles are written only when they change.
+ * - Fast path: with `{ occlude: false }` on the layer (or when no label asks for it,
+ *   or there are no occluders) no ray is ever cast.
  */
 import * as THREE from 'three';
 import type { Quantity } from '../ui/colors';
@@ -39,6 +44,11 @@ export interface Label {
   setOffset(x: number, y: number): void;
 }
 
+export interface LabelLayerOptions {
+  /** Occlusion tests for this layer (default true); false = never cast a ray. */
+  occlude?: boolean;
+}
+
 export interface LabelLayer {
   add(o: LabelOptions): Label;
   /** Number of labels and how many were nudged in the last frame (debug). */
@@ -60,25 +70,70 @@ interface Item {
   occluded: boolean;
   shownX: number;
   shownY: number;
+  /** Last written `display` ('' or 'none') and opacity, to skip redundant style writes. */
+  shownDisplay: string;
+  shownOpacity: string;
 }
 
-export function createLabelLayer(stage: Stage, overlay: HTMLElement): LabelLayer {
-  const items: Item[] = [];
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Insert `it` into `items` (sorted by descending priority, stable for equal priorities). */
+export function insertByPriority<T extends { priority: number }>(items: T[], it: T): void {
+  let k = items.length;
+  while (k > 0 && (items[k - 1] as T).priority < it.priority) k--;
+  items.splice(k, 0, it);
+}
+
+export function createLabelLayer(
+  stage: Stage,
+  overlay: HTMLElement,
+  layerOptions: LabelLayerOptions = {},
+): LabelLayer {
+  const items: Item[] = []; // sorted by descending priority (insertByPriority)
+  const layerOcclude = layerOptions.occlude ?? true;
+  let occluding = 0; // labels that ask for the occlusion test
   const v = new THREE.Vector3();
   const dir = new THREE.Vector3();
   const ray = new THREE.Raycaster();
+  const hits: THREE.Intersection[] = [];
   let frame = 0;
   let lastNudged = 0;
   let lastOccluded = 0;
   let lastOverlaps = 0;
-  const placed: Array<{ x: number; y: number; w: number; h: number }> = [];
+  const placed: Rect[] = []; // pool; the first `nPlaced` are valid this frame
+  let nPlaced = 0;
+  const rect: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
-  const overlaps = (a: { x: number; y: number; w: number; h: number }): boolean => {
-    for (const b of placed) {
+  const overlaps = (a: Rect): boolean => {
+    for (let k = 0; k < nPlaced; k++) {
+      const b = placed[k] as Rect;
       if (a.x < b.x + b.w + 4 && a.x + a.w + 4 > b.x && a.y < b.y + b.h + 3 && a.y + a.h + 3 > b.y)
         return true;
     }
     return false;
+  };
+  const place = (a: Rect): void => {
+    let r = placed[nPlaced];
+    if (!r) {
+      r = { x: 0, y: 0, w: 0, h: 0 };
+      placed.push(r);
+    }
+    r.x = a.x;
+    r.y = a.y;
+    r.w = a.w;
+    r.h = a.h;
+    nPlaced++;
+  };
+  const setDisplay = (it: Item, d: string): void => {
+    if (it.shownDisplay !== d) {
+      it.el.style.display = d;
+      it.shownDisplay = d;
+    }
   };
 
   const update = (): void => {
@@ -88,38 +143,41 @@ export function createLabelLayer(stage: Stage, overlay: HTMLElement): LabelLayer
     // measure pass (reads only)
     for (const it of items) {
       if (it.dirty && it.visible) {
+        setDisplay(it, ''); // a hidden element measures 0 × 0
         it.w = it.el.offsetWidth;
         it.h = it.el.offsetHeight;
         it.dirty = false;
       }
     }
-    const testOcclusion = frame % 4 === 0 && stage.occluders.length > 0;
-    placed.length = 0;
+    const testOcclusion =
+      layerOcclude && occluding > 0 && frame % 4 === 0 && stage.occluders.length > 0;
+    nPlaced = 0;
     let nudged = 0;
     let occludedN = 0;
     let overlapsLeft = 0;
-    const order = [...items].sort((a, b) => b.priority - a.priority);
-    for (const it of order) {
+    for (let n = 0; n < items.length; n++) {
+      const it = items[n] as Item;
       if (!it.visible) {
-        it.el.style.display = 'none';
+        setDisplay(it, 'none');
         continue;
       }
       v.copy(it.anchor).project(stage.camera);
       if (v.z > 1 || v.x < -1.1 || v.x > 1.1 || v.y < -1.1 || v.y > 1.1) {
-        it.el.style.display = 'none';
+        setDisplay(it, 'none');
         continue;
       }
-      it.el.style.display = '';
+      setDisplay(it, '');
       const cx = ((v.x + 1) / 2) * W + it.offset[0];
       const cy = ((1 - v.y) / 2) * H + it.offset[1];
-      const rect = { x: cx - it.w / 2, y: cy - it.h / 2, w: it.w, h: it.h };
-      rect.x = Math.min(Math.max(2, rect.x), W - it.w - 2);
-      rect.y = Math.min(Math.max(2, rect.y), H - it.h - 2);
+      rect.w = it.w;
+      rect.h = it.h;
+      rect.x = Math.min(Math.max(2, cx - it.w / 2), W - it.w - 2);
+      rect.y = Math.min(Math.max(2, cy - it.h / 2), H - it.h - 2);
       if (overlaps(rect)) {
         const y0 = rect.y;
         let ok = false;
         for (let k = 1; k <= 4 && !ok; k++) {
-          for (const s of [-1, 1]) {
+          for (let s = -1; s <= 1; s += 2) {
             rect.y = Math.min(Math.max(2, y0 + s * k * (it.h + 4)), H - it.h - 2);
             if (!overlaps(rect)) {
               ok = true;
@@ -133,13 +191,15 @@ export function createLabelLayer(stage: Stage, overlay: HTMLElement): LabelLayer
         }
         nudged++;
       }
-      placed.push({ ...rect });
-      if (testOcclusion && it.occlude) {
+      place(rect);
+      if (!layerOcclude || !it.occlude) it.occluded = false;
+      else if (testOcclusion) {
         dir.copy(it.anchor).sub(stage.camera.position);
         const dist = dir.length();
         ray.set(stage.camera.position, dir.normalize());
         ray.far = dist - 0.08;
-        it.occluded = ray.intersectObjects(stage.occluders, true).length > 0;
+        hits.length = 0;
+        it.occluded = ray.intersectObjects(stage.occluders, true, hits).length > 0;
       }
       if (it.occluded) occludedN++;
       const x = Math.round(rect.x * 2) / 2;
@@ -149,7 +209,11 @@ export function createLabelLayer(stage: Stage, overlay: HTMLElement): LabelLayer
         it.shownX = x;
         it.shownY = y;
       }
-      it.el.style.opacity = it.occluded ? '0.25' : '1';
+      const op = it.occluded ? '0.25' : '1';
+      if (op !== it.shownOpacity) {
+        it.el.style.opacity = op;
+        it.shownOpacity = op;
+      }
     }
     lastNudged = nudged;
     lastOccluded = occludedN;
@@ -181,8 +245,11 @@ export function createLabelLayer(stage: Stage, overlay: HTMLElement): LabelLayer
         occluded: false,
         shownX: Number.NaN,
         shownY: Number.NaN,
+        shownDisplay: '',
+        shownOpacity: '',
       };
-      items.push(it);
+      insertByPriority(items, it);
+      if (it.occlude) occluding++;
       return {
         element: el,
         anchor: o.anchor,
@@ -212,6 +279,8 @@ export function createLabelLayer(stage: Stage, overlay: HTMLElement): LabelLayer
       offResize();
       for (const it of items) it.el.remove();
       items.length = 0;
+      placed.length = 0;
+      occluding = 0;
     },
   };
 }

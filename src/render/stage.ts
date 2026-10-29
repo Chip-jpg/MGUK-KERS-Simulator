@@ -56,12 +56,29 @@ export interface StageOptions {
   };
   /** Height of the studio floor (default −2). */
   floorY?: number;
+  /**
+   * Studio floor: `visible: false` hides it (scenes with their own ground, e.g. the
+   * car track); `radius` sets the disc radius in scene units (default {@link STUDIO_FLOOR_RADIUS}).
+   */
+  floor?: { visible?: boolean; radius?: number };
   /** Half-size of the key light's shadow frustum [scene units] (default 6). */
   shadowRadius?: number;
   /** Force a tier for this stage instead of the global setting (tests). */
   tier?: QualityTier;
   /** Gentle intro camera move on mount (default true; off with reduced motion). */
   intro?: boolean;
+}
+
+/** Default radius of the studio floor disc [scene units]. */
+export const STUDIO_FLOOR_RADIUS = 16;
+
+/** Floor options with defaults applied (pure; exported for tests). */
+export function resolveFloor(o: StageOptions['floor']): { visible: boolean; radius: number } {
+  const r = o?.radius;
+  return {
+    visible: o?.visible ?? true,
+    radius: r !== undefined && Number.isFinite(r) && r > 0 ? r : STUDIO_FLOOR_RADIUS,
+  };
 }
 
 export interface Updatable {
@@ -208,7 +225,8 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
   let floorTex: THREE.CanvasTexture | null = null;
   const fadeTex = new THREE.CanvasTexture(radialFade());
   renderStats.liveTextures++;
-  const floorGeo = new THREE.CircleGeometry(16, 96).rotateX(-Math.PI / 2);
+  const floorOpts = resolveFloor(opts.floor);
+  const floorGeo = new THREE.CircleGeometry(floorOpts.radius, 96).rotateX(-Math.PI / 2);
   renderStats.liveGeometries++;
   const floorMat = new THREE.MeshStandardMaterial({
     roughness: 0.9,
@@ -217,8 +235,6 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
     alphaMap: fadeTex,
     depthWrite: false,
   });
-  // base tier: unlit floor (a lit, alpha-blended full-screen floor is the most
-  // expensive draw on software GL).
   // base tier: unlit, OPAQUE floor with the fade baked in (a lit, alpha-blended
   // full-screen floor is the most expensive draw on software GL).
   const floorBasic = new THREE.MeshBasicMaterial();
@@ -228,7 +244,9 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
   floor.position.y = floorY;
   floor.receiveShadow = true;
   floor.renderOrder = -1;
-  scene.add(floor);
+  floor.name = 'studio-floor';
+  // a hidden floor is never added to the scene (no draw, no program, no prewarm)
+  if (floorOpts.visible) scene.add(floor);
 
   // --- material kit -----------------------------------------------------------------
   const materials = createMaterialKit(settings, theme);
@@ -345,6 +363,13 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
     floorTex = new THREE.CanvasTexture(studioFloor(dark));
     floorTex.colorSpace = THREE.SRGBColorSpace;
     floorTex.anisotropy = 4;
+    // constant grid pitch whatever the floor radius (the grid canvas tiles seamlessly)
+    const rep = floorOpts.radius / STUDIO_FLOOR_RADIUS;
+    if (rep !== 1) {
+      floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+      floorTex.repeat.setScalar(rep);
+      floorTex.offset.setScalar((1 - rep) / 2);
+    }
     renderStats.liveTextures += 2;
     floorMat.map = floorTex;
     floorMat.color.set(0xffffff);

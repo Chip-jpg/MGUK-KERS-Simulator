@@ -20,8 +20,7 @@ import {
   type Slider,
 } from '../../ui';
 import { createResetViewButton, snapshotRenderStats } from '../../render';
-import { kelvinToCelsius } from '../../physics/brake-thermal';
-import { PHYSICS_DT } from '../../physics';
+import { PHYSICS_DT, kelvinToCelsius } from '../../physics';
 import {
   DISC_START_DEFAULT_C,
   DISC_START_OPTIONS_C,
