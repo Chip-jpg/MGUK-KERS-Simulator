@@ -565,6 +565,20 @@ geometry change, never per frame; if only the field magnitude changes keep the l
   the layer, or when no label asks for occlusion, no ray is ever cast. Visible text uses Unicode
   sub/superscripts (τₑₘ, Φₘₐₓ, I₀), never `_` (KaTeX only in formula panels).
 
+### 10.5b Additions in v0.6.0 (QA-031…QA-043)
+
+- **Legend dock:** `SimLayout.addSceneLegend(el)` registers in-canvas legends/HUDs; when the
+  scene is shorter than 420 px or narrower than 640 px (`compact`) they move into a collapsible
+  "Legenda" `<details>` block under the scene, and back when there is room. `.sim-scene` has a
+  22,5rem minimum height.
+- **Label obstacles:** registered legend/HUD/badge boxes are obstacles for `labels.ts`; a
+  label that finds no free slot is hidden for that frame (never stacked). `stats()` reports
+  `dropped` and `obstacles`.
+- **Trace worker:** `estimateTraceCost(job)` sends heavy first traces (> `HEAVY_TRACE_COST`)
+  to the worker; all field-line sets of a stage share one reference-counted worker.
+- **ODE work buffers:** `rk4Step(f, t, y, dt, work?)` accepts an optional `createRk4Work(n)`
+  buffer (results bit-identical); plots redraw at most `PLOT_MAX_HZ` = 30 Hz into reused arrays.
+
 ### 10.6 Disposal and performance rules
 
 - Create resources through the stage, the kit and the helpers; call each helper's `dispose()`

@@ -7,6 +7,49 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-29
+
+Nuova grafica 3D di tutti i simulatori, guidata dalla fisica dei modelli.
+
+### Aggiunto
+
+- Base grafica comune (`src/render/`): materiali realistici (rame smaltato, ferro laminato,
+  acciaio, carbonio), illuminazione d’ambiente generata nel programma (nessuna immagine
+  scaricata: l’app resta offline), ombre morbide, bagliore per energia e calore, vista
+  orbitabile con "Ripristina vista".
+- **Qualità grafica** Alta / Bilanciata / Base nel menu laterale (ricordata dal browser):
+  Alta automatica nell’app per PC e con scheda grafica dedicata, Base sui PC senza GPU;
+  forzabile con `?quality=alta|bilanciata|base` nell’indirizzo.
+- Effetti visivi calcolati dal modello, con scale dichiarate in legenda:
+  - linee di campo tracciate dai campi veri (dipolo, spira esatta con integrali ellittici,
+    solenoide, campo tra le espansioni polari con le frange);
+  - particelle di corrente con verso e velocità proporzionali a i;
+  - temperature da modelli termici (dischi freno, resistore, avvolgimenti, linea AT) e colore
+    di incandescenza dal corpo nero solo sopra 700 K; altrimenti falsi colori dichiarati;
+  - nastri di energia con spessore proporzionale alla potenza.
+- Ridisegnati tutti i 7 simulatori: espansioni polari e lampadina (Faraday), banco con
+  galvanometro smorzato e campo indotto (Lenz), macchina completa con forze di Lorentz e flussi
+  di energia (alternatore/motore), monoposto originale con dischi che si scaldano (frenata KERS,
+  dinamica della vettura), catena centrale → tralicci con catenaria → città (trasformatore),
+  banco RL con il campo del solenoide che cresce con τ (circuito RL).
+- Nuovi moduli di fisica documentati in `docs/PHYSICS.md` §8–§12 (campi, modello termico,
+  dischi freno, linea elettrica) con la tabella di trasparenza "effetto visivo → grandezza
+  fisica → scala".
+
+### Corretto
+
+- Verifica indipendente della nuova grafica (QA-031…QA-043): scena più alta a 1280×720 con
+  legende spostate in un riquadro "Legenda" sotto la scena, etichette che non si sovrappongono
+  mai a legende e riquadri, contorno di focus visibile sul magnete di Lenz, velocità delle
+  particelle nel trasformatore sempre nel rapporto N₂/N₁, lampadina di Faraday accesa solo in
+  proporzione alla potenza, scale e guadagni dichiarati in tutte le note, segno meno tipografico
+  "−", meno allocazioni per fotogramma, un solo worker per il tracciamento delle linee.
+
+### Note
+
+- I 60 fps su RTX 3060 non sono misurati: nei test (grafica software) la qualità Alta gira a
+  pochi fps, il carico per fotogramma resta basso (≈ 75–200 draw call).
+
 ## [0.5.1] - 2026-10-28
 
 ### Modificato
@@ -237,7 +280,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.0...v0.4.1

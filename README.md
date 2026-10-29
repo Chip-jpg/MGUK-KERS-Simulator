@@ -19,7 +19,7 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Simulatori** — 7 simulatori 3D (6 di base + 1 di approfondimento) con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
-**Versione attuale: v0.5.1** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.6.0** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
@@ -42,11 +42,13 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 ## Screenshot
 
-| Teoria                                                                                               | Simulatore `faraday`                                                                                         |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png)                      | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme](e2e/screenshots/sim-empty-dark-1280x720.png) |
-| **Frenata e recupero di energia**                                                                    | **Dinamica della vettura**                                                                                   |
-| ![Frenata con MGU-K al limite di potenza e freni a disco](docs/media/kers-braking-dark-1280x720.png) | ![Frenata combinata MGU-K + freni con forze sugli assi](docs/media/car-dynamics-dark-1280x720.png)           |
+| Teoria                                                                                                    | Simulatore `faraday`                                                                                  |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png)                           | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme](docs/media/faraday-dark-1280x720.png) |
+| **Frenata e recupero di energia**                                                                         | **Dinamica della vettura**                                                                            |
+| ![Frenata con MGU-K al limite di potenza e freni a disco](docs/media/kers-braking-dark-1280x720.png)      | ![Frenata combinata MGU-K + freni con forze sugli assi](docs/media/car-dynamics-dark-1280x720.png)    |
+| **Legge di Lenz**                                                                                         | **Teoria e simulatori in qualità grafica Alta**                                                       |
+| ![Magnete, bobina avvolta e galvanometro con linee di campo calcolate](docs/media/lenz-dark-1280x720.png) | Le catture dei simulatori sono in qualità Alta (`?quality=alta`).                                     |
 
 ## I simulatori
 
@@ -88,6 +90,20 @@ npm run e2e            # Playwright (Chromium), smoke test end-to-end
 ```
 
 Per Playwright con un Chromium già installato: `PW_CHROMIUM_PATH=/percorso/chrome npm run e2e`.
+
+## Grafica 3D e qualità
+
+Le scene 3D sono costruite sulla fisica dei modelli: linee di campo calcolate, particelle di
+corrente proporzionali a i, temperature da modelli termici, nastri di energia proporzionali
+alla potenza; ogni scala è dichiarata nella legenda del simulatore e in
+[`docs/PHYSICS.md`](docs/PHYSICS.md) §12. Nel menu laterale si sceglie la **qualità grafica**:
+
+- **Alta** — post-processing, ombre, riflessi: automatica nell’app per PC e con scheda grafica
+  dedicata;
+- **Bilanciata** — per schede grafiche integrate;
+- **Base** — senza effetti, per PC senza accelerazione grafica.
+
+Si può forzare con `?quality=alta`, `?quality=bilanciata` o `?quality=base` nell’indirizzo.
 
 ## Tecnologie
 
