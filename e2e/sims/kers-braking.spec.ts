@@ -8,7 +8,8 @@ const URL = './#/sim/kers-braking';
 interface KersDebug {
   liveMounts: number;
   mountsTotal: number;
-  scene: () => { geometries: number; textures: number; programs: number; calls: number } | null;
+  scene: () => { memory: { geometries: number; textures: number } } | null;
+  car: () => Record<string, number>;
 }
 
 const parseMJ = (s: string): number =>
@@ -101,7 +102,93 @@ test('Pausa / Passo advance the playback by one physics step', async ({ page }) 
   expect(Math.abs(t1 - t0 - 1 / 240) < 1e-9 || t1 === 0).toBe(true);
 });
 
+const FOUNDATION_KEYS = [
+  'liveStages',
+  'liveRenderers',
+  'liveComposers',
+  'liveRenderTargets',
+  'livePmrem',
+  'liveMaterials',
+  'liveTextures',
+  'liveGeometries',
+  'liveWorkers',
+];
+type Hook = {
+  discs: () => { tFront: number; tRear: number; startC: number };
+  seek: (t: number) => void;
+  tier: () => string | null;
+  car: () => Record<string, number>;
+  scene: () => { post: boolean; shadows: boolean; ibl: boolean; passes: string[] } | null;
+};
+interface Snap {
+  discs: { tFront: number; tRear: number; startC: number };
+  tier: string | null;
+  scene: { post: boolean; shadows: boolean; ibl: boolean } | null;
+}
+const snap = (page: Page): Promise<Snap> =>
+  page.evaluate(() => {
+    const h = (window as unknown as { __kersDebug: Record<string, Hook> }).__kersDebug[
+      'kers-braking'
+    ] as Hook;
+    return { discs: h.discs(), tier: h.tier(), scene: h.scene() };
+  });
+const seek = (page: Page, t: number): Promise<void> =>
+  page.evaluate((tt) => {
+    (window as unknown as { __kersDebug: Record<string, Hook> }).__kersDebug['kers-braking']?.seek(
+      tt,
+    );
+  }, t);
+const foundation = (page: Page): Promise<Record<string, number>> =>
+  page.evaluate(
+    () =>
+      (
+        window as unknown as { __kersDebug?: { render?: () => Record<string, number> } }
+      ).__kersDebug?.render?.() ?? {},
+  );
+
+test('GATE: disc temperature rises by ≈ E/C (lumped model), start temperature selectable', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  await page.goto(URL);
+  await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Ripristina vista/ })).toBeVisible();
+  expect((await snap(page)).tier).toBe('base');
+  await page.getByRole('button', { name: 'Pausa' }).click();
+  await seek(page, 3);
+  const d = (await snap(page)).discs;
+  expect(d.startC).toBe(300);
+  // 2025 preset: 2,069 MJ of disc heat, 60 % front, 2 discs, C = 1,2 kg · 1400 J/(kg·K)
+  const rise = (2.069e6 * 0.6) / 2 / (1.2 * 1400);
+  const dT = d.tFront - (300 + 273.15);
+  expect(dT).toBeLessThan(rise);
+  expect(dT / rise).toBeGreaterThan(0.93); // convective + radiative losses over 3 s
+  await expect(page.locator('.r-label', { hasText: 'Disco ant.' })).toContainText('°C');
+  // keyboard: start temperature "Caldi 500 °C"
+  const radio = page.getByRole('radio', { name: 'In temperatura 300 °C' });
+  await radio.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('radio', { name: 'Caldi 500 °C' })).toBeChecked();
+  await expect.poll(async () => (await snap(page)).discs.startC).toBe(500);
+  expect(errors).toEqual([]);
+});
+
+test('quality "alta" via ?quality=: post-processing, shadows, IBL; no errors', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = collectErrors(page);
+  await page.goto('./?quality=alta#/sim/kers-braking');
+  await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
+  await expect.poll(async () => (await snap(page)).tier, { timeout: 30_000 }).toBe('alta');
+  const info = (await snap(page)).scene;
+  expect(info?.post).toBe(true);
+  expect(info?.shadows).toBe(true);
+  expect(info?.ibl).toBe(true);
+  await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+});
+
 test('mount/unmount ×20 without leaks', async ({ page }) => {
+  test.setTimeout(150_000);
   const errors = collectErrors(page);
   await page.goto(URL);
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
@@ -114,6 +201,7 @@ test('mount/unmount ×20 without leaks', async ({ page }) => {
         live: d?.liveMounts ?? -1,
         total: d?.mountsTotal ?? -1,
         scene: d?.scene() ?? null,
+        car: d?.car() ?? null,
         canvases: document.querySelectorAll('canvas').length,
       };
     });
@@ -132,6 +220,8 @@ test('mount/unmount ×20 without leaks', async ({ page }) => {
     }));
     expect(away.canvases).toBe(0);
     expect(away.debug).toBeUndefined();
+    const fu = await foundation(page);
+    for (const key of FOUNDATION_KEYS) expect(fu[key], key).toBe(0);
     await page.goto(URL);
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   }
@@ -143,8 +233,12 @@ test('mount/unmount ×20 without leaks', async ({ page }) => {
   expect(last.live).toBe(1);
   expect(last.total).toBe(first.total + 20);
   expect(last.canvases).toBe(first.canvases);
-  expect(last.scene?.geometries).toBe(first.scene?.geometries);
-  expect(last.scene?.textures).toBe(first.scene?.textures);
+  expect(last.scene?.memory.geometries).toBe(first.scene?.memory.geometries);
+  expect(last.scene?.memory.textures).toBe(first.scene?.memory.textures);
+  expect(last.car?.['liveCars']).toBe(1);
+  expect(last.car?.['liveGeometries']).toBe(first.car?.['liveGeometries']);
+  expect(last.car?.['liveMaterials']).toBe(first.car?.['liveMaterials']);
+  expect(last.car?.['liveTextures']).toBe(first.car?.['liveTextures']);
   expect(errors).toEqual([]);
 });
 

@@ -262,3 +262,48 @@ $P_{max}$. Without aero the same zone takes ≈ 3,56 s and ≈ 198 m.
 **Validity limits.** Educational model: no transient of the ABS, no tyre load sensitivity
 (μ independent of $F_z$), constant η, aero coefficients independent of ride height and pitch,
 no track slope or wind.
+
+## 8. Brake-disc temperature (visualisation, `src/physics/brake-thermal.ts`)
+
+Extension used only by the 3D scenes of `kers-braking` and `car-dynamics` (`@slide none`):
+the disc glow is the black-body colour (`blackbodyRGB`, `applyHeatGlow`) of a temperature
+**computed** from the friction-brake power, not an arbitrary "heat level".
+
+One lumped node per disc, integrated in the sims' fixed physics step (dt = 1/240 s):
+
+$$
+C\,\frac{dT}{dt} = P_{in} - h(v)\,A\,(T - T_{amb}) - \varepsilon\sigma A\,(T^4 - T_{amb}^4),
+\qquad h(v) = h_0 + h_{ref}\,(v/v_{ref})^{0{,}8}
+$$
+
+`discThermalStep` is a scalar RK4 step that integrates the heat lost with the same four
+stage values, so $C\,\Delta T + Q_{loss} = P_{in}\,dt$ holds to rounding (tested), and with
+no losses $\Delta T = E/C$ exactly (tested).
+
+| Constant (`BRAKE_DISC_ILLUSTRATIVE`, illustrative) | Front             | Rear              |
+| -------------------------------------------------- | ----------------- | ----------------- |
+| Size (C/C, ventilated)                             | Ø 330 × 32 mm     | Ø 280 × 32 mm     |
+| Mass m                                             | 1,2 kg            | 0,9 kg            |
+| Specific heat c (mean 300–1000 °C)                 | 1400 J/(kg·K)     | 1400 J/(kg·K)     |
+| C = m·c                                            | 1680 J/K          | 1260 J/K          |
+| Area A (faces + vents)                             | 0,14 m²           | 0,10 m²           |
+| h₀ / h_ref at v_ref = 80 m/s                       | 20 / 180 W/(m²·K) | 20 / 180 W/(m²·K) |
+| Emissivity ε                                       | 0,85              | 0,85              |
+
+Ambient 25 °C. Power into each disc: `kers-braking` — disc-brake power $P_b - P_{MGU-K,mech}$
+split with a **fixed 60 % front / 40 % rear** (the constant-deceleration model has no axles),
+half per disc; `car-dynamics` — half of each axle's friction-brake power of
+`simulateBrakingZone`. All the friction heat goes into the disc (pads, calipers and hubs are
+not modelled: an upper bound). Starting temperature selectable: 25 / 300 / 500 °C
+(default 300 °C, "dischi in temperatura"); it is reset at every replay.
+
+Worked numbers (default 300 °C start, end of the braking): `kers-braking` 2025 preset,
+front disc 0,62 MJ in 3 s → 647 °C (rear 608 °C), 38 kJ lost (6 %); 2026 preset 514 °C /
+490 °C (less disc work because the MGU-K absorbs more). `car-dynamics` defaults: front 673 °C,
+rear 565 °C (120 kW) / 422 °C (350 kW: the MGU-K takes more of the rear-axle force). The
+glow starts above ≈ 700 K (427 °C).
+
+**Scene scales** (stated in the sims' notes): energy-ribbon radius 0,12 m at 350 kW
+(∝ power); `car-dynamics` force arrows $L = 0{,}9\ \text{m}\cdot\log_{10}(1 + F/1\ \text{kN})$;
+pitch/heave from the axle loads with illustrative axle rates 350 / 300 kN/m, exaggerated
+×2,5 and limited so the floor never touches the ground; contact-patch glow ∝ (κ/κ*)².

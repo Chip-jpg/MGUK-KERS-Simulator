@@ -6,7 +6,17 @@ import { expect, test, type Page } from '@playwright/test';
 interface Dbg {
   liveMounts: number;
   canvases: number;
-  renderer: { geometries: number; textures: number; programs: number } | null;
+  renderer: {
+    memory: { geometries: number; textures: number };
+    programs: number;
+    post: boolean;
+    shadows: boolean;
+    ibl: boolean;
+  } | null;
+  tier: string | null;
+  discs: { tFront: number; tRear: number; startC: number };
+  foundation: Record<string, number>;
+  car: Record<string, number>;
   frames: number;
   simT: number;
   aero: boolean;
@@ -171,6 +181,24 @@ test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async (
   for (let k = 0; k < 20; k++) {
     await page.goto('./#/teoria');
     await expect(page.locator('canvas')).toHaveCount(0);
+    const fu = await page.evaluate(
+      () =>
+        (
+          window as unknown as { __kersDebug?: { render?: () => Record<string, number> } }
+        ).__kersDebug?.render?.() ?? {},
+    );
+    for (const key of [
+      'liveStages',
+      'liveRenderers',
+      'liveComposers',
+      'liveRenderTargets',
+      'livePmrem',
+      'liveMaterials',
+      'liveTextures',
+      'liveGeometries',
+      'liveWorkers',
+    ])
+      expect(fu[key], key).toBe(0);
     await page.goto(URL);
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   }
@@ -179,9 +207,13 @@ test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async (
   expect(last.liveMounts).toBe(1);
   expect(last.canvases).toBe(1);
   expect(first.renderer).not.toBeNull();
-  expect(last.renderer?.geometries).toBe(first.renderer?.geometries);
-  expect(last.renderer?.textures).toBe(first.renderer?.textures);
+  expect(last.renderer?.memory.geometries).toBe(first.renderer?.memory.geometries);
+  expect(last.renderer?.memory.textures).toBe(first.renderer?.memory.textures);
   expect(last.renderer?.programs).toBe(first.renderer?.programs);
+  for (const key of ['liveCars', 'liveGeometries', 'liveMaterials', 'liveTextures'])
+    expect(last.car[key], key).toBe(first.car[key]);
+  expect(last.car['liveCars']).toBe(1);
+  expect(last.foundation['liveStages']).toBe(1);
   // whole page: 1 WebGL canvas + the 3 uPlot canvases of this mount only
   expect(await page.locator('canvas').count()).toBe(4);
   expect(await page.locator('.cd-balance').count()).toBe(1);
@@ -189,6 +221,59 @@ test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async (
   console.warn(
     `car-dynamics leak check: first=${JSON.stringify(first.renderer)} last=${JSON.stringify(last.renderer)}`,
   );
+});
+
+test('GATE: per-axle disc temperatures follow the friction-brake energy (≈ E/C)', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  await page.goto(URL);
+  await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /Ripristina vista/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Pausa' }).click();
+  // mid-zone: the limiting axle and the force arrows are labelled
+  await page.evaluate(() =>
+    (
+      window as unknown as { __kersDebug: Record<string, () => { seek(t: number): void }> }
+    ).__kersDebug['car-dynamics']?.().seek(0.6),
+  );
+  await expect(page.locator('.r-label', { hasText: 'al limite' })).toBeVisible();
+  await expect(page.locator('.r-label', { hasText: /^Fx ant\. / })).toBeVisible();
+  const d = await page.evaluate(() => {
+    const f = (
+      window as unknown as { __kersDebug: Record<string, () => Dbg & { seek(t: number): void }> }
+    ).__kersDebug['car-dynamics'];
+    const x = f?.();
+    x?.seek(x.tBrake);
+    return f?.();
+  });
+  expect(d?.tier).toBe('base');
+  const T0 = 300 + 273.15;
+  // one disc per side: half of the axle's friction-brake energy; C = m·c (1,2 / 0,9 kg · 1400)
+  for (const [T, E, C] of [
+    [d!.discs.tFront, d!.eBrakesFront / 2, 1.2 * 1400],
+    [d!.discs.tRear, d!.eBrakesRear / 2, 0.9 * 1400],
+  ] as const) {
+    const rise = E / C;
+    expect(T - T0).toBeLessThan(rise);
+    expect((T - T0) / rise).toBeGreaterThan(0.93);
+  }
+  await expect(page.locator('.cd-legend-scene')).toContainText('scala logaritmica');
+  expect(errors).toEqual([]);
+});
+
+test('quality "alta" via ?quality=: post-processing, shadows, IBL; no errors', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = collectErrors(page);
+  await page.goto('./?quality=alta#/sim/car-dynamics');
+  await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
+  await expect.poll(async () => (await debug(page)).tier, { timeout: 30_000 }).toBe('alta');
+  const r = (await debug(page)).renderer;
+  expect(r?.post).toBe(true);
+  expect(r?.shadows).toBe(true);
+  expect(r?.ibl).toBe(true);
+  await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
 });
 
 test('fps measurement (headless SwiftShader: informative only)', async ({ page }) => {

@@ -19,14 +19,27 @@ import {
   onThemeChange,
   type Slider,
 } from '../../ui';
-import { createBalance, createPresets } from './panel';
-import { createKersScene, type KersScene } from './scene';
+import { createResetViewButton, snapshotRenderStats } from '../../render';
+import { kelvinToCelsius } from '../../physics/brake-thermal';
+import { PHYSICS_DT } from '../../physics';
 import {
+  DISC_START_DEFAULT_C,
+  DISC_START_OPTIONS_C,
+  createDiscPair,
+  type DiscStartC,
+} from '../shared/car/discs';
+import { createBalance, createPresets } from './panel';
+import { carStats, createKersScene, type KersScene } from './scene';
+import {
+  FRONT_BRAKE_SHARE,
   PARAM_KEYS,
   defaultParams,
   params,
+  powersAt,
   stateAt,
   summarize,
+  toSI,
+  type InstantPowers,
   type EventSummary,
   type KersUiParams,
   type ParamKey,
@@ -36,7 +49,7 @@ import './style.css';
 export { params } from './model';
 
 export const MODEL_NOTE_IT =
-  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K.';
+  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K. Nella scena: spessore dei nastri viola ∝ potenza (0,12 m a 350 kW); temperatura dei dischi da un modello termico a un nodo per disco (dischi carbonio-carbonio illustrativi: 1,2 kg anteriori, 0,9 kg posteriori, c = 1400 J/(kg·K); raffreddamento per convezione e irraggiamento), con la potenza dei freni a disco ripartita in modo fisso 60 % anteriore / 40 % posteriore; tutto il calore va nel disco (pastiglie e pinze non modellate); colore del corpo nero alla temperatura calcolata.';
 
 /** Pause at the end of the event before the playback restarts [s]. */
 const END_HOLD = 1.5;
@@ -47,6 +60,11 @@ interface KersDebug {
   mountsTotal: number;
   scene: () => ReturnType<KersScene['info']> | null;
   simTime: () => number;
+  discs: () => { tFront: number; tRear: number; startC: number };
+  foundation: () => ReturnType<typeof snapshotRenderStats>;
+  car: () => typeof carStats;
+  seek: (t: number) => void;
+  tier: () => string | null;
 }
 let liveMounts = 0;
 let mountsTotal = 0;
@@ -58,12 +76,18 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   let simT = 0;
   let hold = 0;
   let speed = 1;
+  let si = toSI(values);
+  const r0Distance = (): number => (si.v1 > si.v2 ? ((si.v1 + si.v2) / 2) * si.tBrake : 0);
+  let zoneDistance = r0Distance();
+  let startC: DiscStartC = DISC_START_DEFAULT_C;
+  const discs = createDiscPair(startC);
+  const pw: InstantPowers = { v: 0, pBrake: 0, pMech: 0, pElec: 0, pLoss: 0, pDiscs: 0 };
   const offs: Array<() => void> = [];
 
   // --- Scene (WebGL may be unavailable: the rest of the page still works) ---
   let scene: KersScene | null = null;
   try {
-    scene = createKersScene(layout.scene, ctx.theme);
+    scene = createKersScene(layout.scene, layout.sceneOverlay, ctx);
   } catch {
     layout.scene.append(
       el('p', { class: 'sim-placeholder', text: 'Grafica 3D non disponibile (WebGL).' }),
@@ -131,6 +155,23 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     onChange: (v) => (speed = Number(v)),
   });
   layout.controls.append(speedCtl.element);
+
+  const discCtl = createSegmented<string>({
+    labelIT: 'Temperatura iniziale dei dischi',
+    options: DISC_START_OPTIONS_C.map((c) => ({
+      value: String(c),
+      labelIT: c === 25 ? 'Freddi 25 °C' : c === 300 ? 'In temperatura 300 °C' : 'Caldi 500 °C',
+    })),
+    value: String(startC),
+    onChange: (v) => {
+      startC = Number(v) as DiscStartC;
+      discs.reset(startC);
+      simT = 0;
+      hold = 0;
+      draw();
+    },
+  });
+  layout.controls.append(discCtl.element);
 
   // --- Formulas ---
   const formulas = createFormulaPanel(layout.formulas, [
@@ -236,45 +277,86 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   // --- Loop ---
   const loop = createLoop(
     {
-      step(dt) {
-        if (simT >= values.tBrake) {
-          hold += dt * speed;
-          if (hold >= END_HOLD) {
-            hold = 0;
-            simT = 0;
-          }
-        } else {
-          simT = Math.min(values.tBrake, simT + dt * speed);
-        }
-      },
+      step: (dt) => advance(dt * speed),
       render: () => draw(),
     },
     { autoStart: !ctx.reducedMotion },
   );
+  /** One fixed physics step of h seconds of event time. */
+  function advance(h: number): void {
+    // disc temperatures: fixed step on the disc-brake power at the current instant
+    powersAt(si, simT < values.tBrake ? simT : values.tBrake, pw);
+    discs.step(pw.pDiscs * FRONT_BRAKE_SHARE, pw.pDiscs * (1 - FRONT_BRAKE_SHARE), pw.v, h);
+    if (simT >= values.tBrake) {
+      hold += h;
+      if (hold >= END_HOLD) {
+        hold = 0;
+        simT = 0;
+        discs.reset(startC);
+      }
+    } else {
+      simT = Math.min(values.tBrake, simT + h);
+    }
+  }
+  /** Debug/screenshots: replay the event from 0 to t (fixed steps, discs included). */
+  function seek(t: number): void {
+    simT = 0;
+    hold = 0;
+    discs.reset(startC);
+    const end = Math.min(t, values.tBrake + END_HOLD * 0.99);
+    let tt = 0;
+    while (tt < end - 1e-9) {
+      advance(PHYSICS_DT);
+      tt += PHYSICS_DT;
+    }
+    draw();
+  }
   const toolbar = createSimToolbar(layout.toolbar, {
     loop,
     onReset: () => {
       for (const k of PARAM_KEYS) setParam(k, params[k].default);
       speedCtl.set('1');
       speed = 1;
+      discCtl.set(String(DISC_START_DEFAULT_C));
+      startC = DISC_START_DEFAULT_C;
       recompute();
     },
   });
+
+  const resetView = scene ? createResetViewButton(scene.core.stage) : null;
+  if (resetView) layout.toolbar.append(resetView.element);
 
   let lastHud = '';
   function draw(): void {
     const st = stateAt(values, simT);
     const r = summary.result;
-    const peak = summary.peakPower;
-    scene?.update({
-      x: st.x,
-      kersLevel: values.Pmax > 0 ? st.pKers / (values.Pmax * 1e3) : 0,
-      brakeLevel: peak > 0 ? st.pBrakes / peak : 0,
-      batteryFill: r.dEk > 0 ? st.stored / r.dEk : 0,
-    });
-    scene?.render();
-    formulas.update({ v: st.v, pKers: st.pKers });
     const fmt = ctx.formatIT;
+    if (scene) {
+      const done = simT >= values.tBrake;
+      powersAt(si, done ? values.tBrake : simT, pw);
+      const xEnd = Math.max(0, st.x);
+      scene.render({
+        x: done ? xEnd + si.v2 * hold : st.x,
+        v: done ? si.v2 : st.v,
+        distance: zoneDistance,
+        timeScale: speed,
+        pitch: 0,
+        heave: 0,
+        tFront: discs.tFront,
+        tRear: discs.tRear,
+        batteryFill: r.dEk > 0 ? st.stored / r.dEk : 0,
+        pMech: pw.pMech,
+        pElec: pw.pElec,
+        pLoss: pw.pLoss,
+        texts: {
+          mguk: `MGU-K → batteria ${fmt(pw.pElec / 1e3, 0, 'kW')}`,
+          battery: `Batteria ${fmt(st.stored / 1e6, 2, 'MJ')}`,
+          discFront: `Disco ant. ${fmt(kelvinToCelsius(discs.tFront), 0, '°C')}`,
+          discRear: `Disco post. ${fmt(kelvinToCelsius(discs.tRear), 0, '°C')}`,
+        },
+      });
+    }
+    formulas.update({ v: st.v, pKers: st.pKers });
     const texts = [
       `t = ${fmt(st.t, 2, 's')} / ${fmt(values.tBrake, 1, 's')}`,
       `v = ${fmt(st.v * 3.6, 0, 'km/h')}`,
@@ -293,9 +375,12 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
 
   function recompute(): void {
     summary = summarize(values);
+    si = toSI(values);
+    zoneDistance = r0Distance();
     const r = summary.result;
     simT = 0;
     hold = 0;
+    discs.reset(startC);
     formulas.update({
       dEk: r.dEk > 0 ? r.dEk : Number.NaN,
       pMean: r.dEk > 0 ? summary.meanPower : Number.NaN,
@@ -314,8 +399,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   }
 
   offs.push(
-    onThemeChange((theme: Theme) => {
-      scene?.setTheme(theme);
+    onThemeChange((_theme: Theme) => {
       draw();
     }),
   );
@@ -332,6 +416,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     },
     scene: () => scene?.info() ?? null,
     simTime: () => simT,
+    discs: () => ({ tFront: discs.tFront, tRear: discs.tRear, startC }),
+    foundation: () => snapshotRenderStats(),
+    car: () => ({ ...carStats }),
+    seek,
+    tier: () => scene?.core.stage.tier ?? null,
   });
 
   let disposed = false;
@@ -345,6 +434,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       presets.dispose();
       for (const k of PARAM_KEYS) sliders[k].dispose();
       speedCtl.dispose();
+      discCtl.dispose();
+      resetView?.dispose();
       formulas.dispose();
       plot.dispose();
       balance.dispose();

@@ -408,3 +408,57 @@ export function roundTo(n: number, digits: number): number {
   const k = 10 ** digits;
   return Math.round(n * k) / k;
 }
+
+// --- Instantaneous powers (allocation-free, for the disc model and the scene) ---------------
+
+export interface AxlePowers {
+  /** Speed [m/s] and distance [m]. */
+  v: number;
+  x: number;
+  /** Friction-brake power of the front / rear axle [W]. */
+  pBrakesFront: number;
+  pBrakesRear: number;
+  /** Mechanical power into the MGU-K, electrical power stored, MGU-K losses [W]. */
+  pMech: number;
+  pElec: number;
+  pLoss: number;
+}
+
+/**
+ * Powers at time t (linear interpolation of the RK4 trace, like {@link sampleAt}) written
+ * into `out` without allocating. After t_brake the car runs at v₂ with every power at 0.
+ */
+export function axlePowersAt(
+  zone: BrakingZoneResult,
+  eta: number,
+  t: number,
+  out: AxlePowers,
+): AxlePowers {
+  const tr = zone.trace;
+  const last = tr[tr.length - 1] as CarBrakingSample;
+  if (zone.dEk <= 0 || t >= last.t) {
+    out.v = last.v;
+    out.x = last.x;
+    out.pBrakesFront = out.pBrakesRear = out.pMech = out.pElec = out.pLoss = 0;
+    return out;
+  }
+  let lo = 0;
+  let hi = tr.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if ((tr[mid] as CarBrakingSample).t <= t) lo = mid;
+    else hi = mid;
+  }
+  const a = tr[lo] as CarBrakingSample;
+  const b = tr[hi] as CarBrakingSample;
+  const w = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 0;
+  const lerp = (p: number, q: number): number => p + w * (q - p);
+  out.v = lerp(a.v, b.v);
+  out.x = lerp(a.x, b.x);
+  out.pBrakesFront = lerp(a.pBrakesFront, b.pBrakesFront);
+  out.pBrakesRear = lerp(a.pBrakesRear, b.pBrakesRear);
+  out.pMech = lerp(a.pMguk, b.pMguk);
+  out.pElec = eta * out.pMech;
+  out.pLoss = out.pMech - out.pElec;
+  return out;
+}

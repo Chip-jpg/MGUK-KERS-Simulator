@@ -11,7 +11,7 @@ import { el } from '../../ui/dom';
 import { FIXED, PEAK_SLIP, PRESETS, type CarPreset, type Source, type ZoneSummary } from './model';
 
 export const MODEL_NOTE_IT =
-  'vettura puntiforme con trasferimento di carico longitudinale, pneumatici Pacejka semplificati al picco di aderenza (ABS ideale), MGU-K solo sull’asse posteriore, parametri illustrativi.';
+  'vettura puntiforme con trasferimento di carico longitudinale, pneumatici Pacejka semplificati al picco di aderenza (ABS ideale), MGU-K solo sull’asse posteriore, parametri illustrativi. Nella scena: frecce delle forze in scala logaritmica (legenda), beccheggio e abbassamento dai carichi sugli assi con molle illustrative (350 / 300 kN/m) esagerati ×2,5, spessore dei nastri viola ∝ potenza (0,12 m a 350 kW), temperatura dei dischi da un modello termico a un nodo per disco (carbonio-carbonio illustrativo: 1,2 / 0,9 kg, c = 1400 J/(kg·K), convezione e irraggiamento) alimentato con la potenza dei freni di ciascun asse; colore del corpo nero alla temperatura calcolata.';
 
 function sourceLinks(sources: readonly Source[]): HTMLElement {
   const p = el('span', { class: 'cd-sources' }, ['Fonte: ']);

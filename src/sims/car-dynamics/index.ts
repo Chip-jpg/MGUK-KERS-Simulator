@@ -26,8 +26,24 @@ import {
 } from '../../ui';
 import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
-import { G_STANDARD, type CarBrakingSample } from '../../physics';
+import { G_STANDARD, PHYSICS_DT, type CarBrakingSample } from '../../physics';
+import { kelvinToCelsius } from '../../physics/brake-thermal';
+import { createResetViewButton } from '../../render/viewButton';
+import { snapshotRenderStats } from '../../render/stats';
+import type { ButtonHandle } from '../../ui/controls';
 import {
+  DISC_START_DEFAULT_C,
+  DISC_START_OPTIONS_C,
+  createDiscPair,
+  type DiscStartC,
+} from '../shared/car/discs';
+import { rideFromLoads, visualRide } from '../shared/car/dims';
+import { carStats } from '../shared/car/stats';
+import { ARROW_LEGEND } from './forces';
+import {
+  PEAK_SLIP,
+  axlePowersAt,
+  type AxlePowers,
   PARAM_KEYS,
   defaultParams,
   energiesOf,
@@ -49,7 +65,9 @@ import {
   createPresets,
   createTheoryLinks,
 } from './panel';
-import type { CarScene, SceneInfo } from './scene';
+import type { CarScene } from './scene';
+
+type SceneInfo = ReturnType<CarScene['info']>;
 
 export { params } from './model';
 
@@ -183,6 +201,11 @@ export interface CarDynamicsDebug {
   balanceError: number;
   compareRecovered: number | null;
   compareDistance: number | null;
+  discs: { tFront: number; tRear: number; startC: number };
+  tier: string | null;
+  foundation: ReturnType<typeof snapshotRenderStats>;
+  car: typeof carStats;
+  seek: (t: number) => void;
 }
 
 let liveMounts = 0;
@@ -200,6 +223,17 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   let hold = 0;
   let speed = 1;
   let frames = 0;
+  let startC: DiscStartC = DISC_START_DEFAULT_C;
+  const discs = createDiscPair(startC);
+  const pw: AxlePowers = {
+    v: 0,
+    x: 0,
+    pBrakesFront: 0,
+    pBrakesRear: 0,
+    pMech: 0,
+    pElec: 0,
+    pLoss: 0,
+  };
   const offs: Array<() => void> = [];
 
   // --- Controls ---------------------------------------------------------------------
@@ -268,7 +302,23 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     onChange: (v) => (speed = Number(v)),
   });
   speedCtl.element.classList.add('cd-block');
-  layout.controls.append(speedCtl.element, createFixedData());
+  const discCtl = createSegmented<string>({
+    labelIT: 'Temperatura iniziale dei dischi',
+    options: DISC_START_OPTIONS_C.map((c) => ({
+      value: String(c),
+      labelIT: c === 25 ? 'Freddi 25 °C' : c === 300 ? 'In temperatura 300 °C' : 'Caldi 500 °C',
+    })),
+    value: String(startC),
+    onChange: (v) => {
+      startC = Number(v) as DiscStartC;
+      discs.reset(startC);
+      simT = 0;
+      hold = 0;
+      draw();
+    },
+  });
+  discCtl.element.classList.add('cd-block');
+  layout.controls.append(speedCtl.element, discCtl.element, createFixedData());
 
   function setParam(key: ParamKey, v: number): void {
     sliders[key].set(v);
@@ -287,19 +337,28 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   };
   hud.append(...Object.values(hudLines));
   const legend = el('div', { class: 'cd-legend-scene' }, [
-    el('span', { class: 'q-f', text: 'Frecce verdi: forze (1 m ≈ 8 kN)' }),
-    el('span', { text: 'Linea colorata: punto di frenata · linea chiara: fine frenata' }),
-    el('span', { class: 'cd-hud__energy', text: 'Viola: MGU-K → batteria' }),
+    el('span', {
+      class: 'q-f',
+      text: `Frecce verdi: forze, scala logaritmica (${ARROW_LEGEND.map((l) => `${ctx.formatIT(l.f / 1e3, 0, 'kN')} → ${ctx.formatIT(l.len, 2, 'm')}`).join(' · ')})`,
+    }),
+    el('span', { text: 'Linea colorata: punto di frenata · linea a scacchi: fine frenata' }),
+    el('span', {
+      class: 'cd-hud__energy',
+      text: 'Viola: potenza verso MGU-K e batteria (spessore ∝ potenza); viola scuro: perdite',
+    }),
   ]);
   layout.sceneOverlay.append(hud, legend);
 
   let scene: CarScene | null = null;
+  let resetView: ButtonHandle | null = null;
   let disposed = false;
   void import('./scene')
     .then(({ createCarScene }) => {
       if (disposed) return;
       try {
-        scene = createCarScene(layout.scene, ctx.theme);
+        scene = createCarScene(layout.scene, layout.sceneOverlay, ctx);
+        resetView = createResetViewButton(scene.core.stage);
+        layout.toolbar.append(resetView.element);
       } catch (e) {
         console.warn('car-dynamics: WebGL non disponibile', e);
         layout.scene.append(
@@ -311,8 +370,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       if (!disposed) draw();
     });
   offs.push(
-    onThemeChange((t) => {
-      scene?.setTheme(t);
+    onThemeChange(() => {
       draw();
     }),
   );
@@ -414,22 +472,40 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   // --- Loop ---------------------------------------------------------------------------
   const loop = createLoop(
     {
-      step(dt) {
-        const tEnd = summary.zone.tBrake;
-        if (simT >= tEnd) {
-          hold += dt * speed;
-          if (hold >= END_HOLD) {
-            hold = 0;
-            simT = 0;
-          }
-        } else {
-          simT = Math.min(tEnd, simT + dt * speed);
-        }
-      },
+      step: (dt) => advance(dt * speed),
       render: () => draw(),
     },
     { autoStart: !ctx.reducedMotion },
   );
+  /** One fixed physics step of h seconds of zone time (playback + disc temperatures). */
+  function advance(h: number): void {
+    const tEnd = summary.zone.tBrake;
+    axlePowersAt(summary.zone, summary.si.eta, simT, pw);
+    discs.step(pw.pBrakesFront, pw.pBrakesRear, pw.v, h);
+    if (simT >= tEnd) {
+      hold += h;
+      if (hold >= END_HOLD) {
+        hold = 0;
+        simT = 0;
+        discs.reset(startC);
+      }
+    } else {
+      simT = Math.min(tEnd, simT + h);
+    }
+  }
+  /** Debug/screenshots: replay the zone from 0 to t (fixed steps, discs included). */
+  function seek(t: number): void {
+    simT = 0;
+    hold = 0;
+    discs.reset(startC);
+    const end = Math.min(t, summary.zone.tBrake + END_HOLD * 0.99);
+    let tt = 0;
+    while (tt < end - 1e-9) {
+      advance(PHYSICS_DT);
+      tt += PHYSICS_DT;
+    }
+    draw();
+  }
   const toolbar = createSimToolbar(layout.toolbar, {
     loop,
     onReset: () => {
@@ -440,6 +516,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       sliders.ClA.setDisabled(false);
       speedCtl.set('1');
       speed = 1;
+      discCtl.set(String(DISC_START_DEFAULT_C));
+      startC = DISC_START_DEFAULT_C;
       recompute();
     },
   });
@@ -450,22 +528,52 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     const s = sampleAt(z, simT);
     const si = summary.si;
     const e = energiesOf(s, si.eta, si.m, si.v1);
-    const pk = (x: number, peak: number): number => (peak > 0 ? x / peak : 0);
-    const brakePeak = Math.max(summary.peakBrakesFront, summary.peakBrakesRear);
-    scene?.update({
-      x: s.x,
-      distance: z.distance,
-      drag: s.drag,
-      downforceFront: s.downforce * (si.weightFront ?? 0.45),
-      downforceRear: s.downforce * (1 - (si.weightFront ?? 0.45)),
-      fxFront: s.fxFront,
-      fxRear: s.fxRear,
-      brakeFrontLevel: pk(s.pBrakesFront, brakePeak),
-      brakeRearLevel: pk(s.pBrakesRear, brakePeak),
-      kersLevel: si.Pmax > 0 ? s.pStored / si.Pmax : 0,
-      batteryFill: z.dEk > 0 ? e.stored / z.dEk : 0,
-    });
-    scene?.render();
+    const fmt = ctx.formatIT;
+    if (scene) {
+      const done = simT >= z.tBrake;
+      axlePowersAt(z, si.eta, simT, pw);
+      const wf = si.weightFront ?? 0.45;
+      const mg = si.m * G_STANDARD;
+      const ride = rideFromLoads(s.fzFront, s.fzRear, mg * wf, mg * (1 - wf));
+      const [pitch, heave] = done ? [0, 0] : visualRide(ride.pitch, ride.heave);
+      const kN = (f: number): string => fmt(f / 1e3, 1, 'kN');
+      const slip = (k: number): number => (Number.isFinite(k) ? Math.abs(k) / PEAK_SLIP : 0);
+      scene.render({
+        x: done ? s.x + s.v * hold : s.x,
+        v: s.v,
+        distance: z.distance,
+        timeScale: speed,
+        pitch,
+        heave,
+        tFront: discs.tFront,
+        tRear: discs.tRear,
+        batteryFill: z.dEk > 0 ? e.stored / z.dEk : 0,
+        pMech: pw.pMech,
+        pElec: pw.pElec,
+        pLoss: pw.pLoss,
+        slipFront: done ? 0 : slip(s.kappaFront),
+        slipRear: done ? 0 : slip(s.kappaRear),
+        drag: s.drag,
+        downforceFront: s.downforce * wf,
+        downforceRear: s.downforce * (1 - wf),
+        fxFront: done ? 0 : s.fxFront,
+        fxRear: done ? 0 : s.fxRear,
+        limit: s.limit,
+        forceTexts: {
+          drag: `D ${kN(s.drag)}`,
+          downFront: `L ant. ${kN(s.downforce * wf)}`,
+          downRear: `L post. ${kN(s.downforce * (1 - wf))}`,
+          fxFront: `Fx ant. ${kN(s.fxFront)}`,
+          fxRear: `Fx post. ${kN(s.fxRear)}`,
+        },
+        texts: {
+          mguk: `MGU-K → batteria ${fmt(pw.pElec / 1e3, 0, 'kW')}`,
+          battery: `Batteria ${fmt(e.stored / 1e6, 2, 'MJ')}`,
+          discFront: `Disco ant. ${fmt(kelvinToCelsius(discs.tFront), 0, '°C')}`,
+          discRear: `Disco post. ${fmt(kelvinToCelsius(discs.tRear), 0, '°C')}`,
+        },
+      });
+    }
     formulas.update({
       fz: s.fzTotal,
       drag: s.drag,
@@ -476,7 +584,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       pBatt: s.pStored,
     });
     if (frames++ % SLOW_UPDATE_FRAMES === 0) updatePacejka(s);
-    const fmt = ctx.formatIT;
     const braking = z.dEk > 0;
     const texts = [
       `t = ${fmt(s.t, 2, 's')} / ${fmt(z.tBrake, 2, 's')}`,
@@ -498,6 +605,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     const z = summary.zone;
     simT = 0;
     hold = 0;
+    discs.reset(startC);
     const braking = z.dEk > 0;
     formulas.update({
       dEk: braking ? z.dEk : Number.NaN,
@@ -545,6 +653,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       balanceError: z.balanceError,
       compareRecovered: summary.compare?.result.recovered ?? null,
       compareDistance: summary.compare?.distance ?? null,
+      discs: { tFront: discs.tFront, tRear: discs.tRear, startC },
+      tier: scene?.core.stage.tier ?? null,
+      foundation: snapshotRenderStats(),
+      car: { ...carStats },
+      seek,
     };
   };
   const unregisterDebug = registerDebugHook(SIM_ID, debugFn);
@@ -562,6 +675,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       aeroCtl.dispose();
       idealBtn.dispose();
       speedCtl.dispose();
+      discCtl.dispose();
+      resetView?.dispose();
       formulas.dispose();
       plotV.dispose();
       plotP.dispose();

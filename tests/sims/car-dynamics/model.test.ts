@@ -26,7 +26,13 @@ import {
   withPoints,
 } from '../../../src/sims/car-dynamics/model';
 import { PRESETS as KERS_PRESETS } from '../../../src/sims/kers-braking/model';
-import { ARROW_MAX, arrowLength } from '../../../src/sims/car-dynamics/scene';
+import {
+  ARROW_F_REF,
+  ARROW_K,
+  ARROW_LEGEND,
+  ARROW_MAX,
+  arrowLength,
+} from '../../../src/sims/car-dynamics/forces';
 
 describe('car-dynamics parameters', () => {
   it('schema is complete and defaults lie inside the ranges', () => {
@@ -239,8 +245,13 @@ describe('car-dynamics playback and plots', () => {
     expect(aero.vConst[aero.vConst.length - 1]).toBeCloseTo(100, 6);
   });
 
-  it('arrow lengths are proportional to the force and capped', () => {
-    expect(arrowLength(8000)).toBeCloseTo(1, 12);
+  it('arrow lengths follow the stated log scale and are capped', () => {
+    expect(arrowLength(ARROW_F_REF * 9)).toBeCloseTo(ARROW_K, 12);
+    expect(arrowLength(1000)).toBeCloseTo(0.27, 2);
+    expect(arrowLength(10e3)).toBeCloseTo(0.94, 2);
+    expect(arrowLength(40e3)).toBeCloseTo(1.45, 2);
+    expect(arrowLength(20e3)).toBeGreaterThan(arrowLength(10e3));
+    expect(ARROW_LEGEND.map((l) => l.f)).toEqual([1e3, 10e3, 40e3]);
     expect(arrowLength(0)).toBe(0);
     expect(arrowLength(-5)).toBe(0);
     expect(arrowLength(1e7)).toBe(ARROW_MAX);

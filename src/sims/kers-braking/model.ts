@@ -295,3 +295,55 @@ export function roundTo(n: number, digits: number): number {
   const k = 10 ** digits;
   return Math.round(n * k) / k;
 }
+
+// --- Instantaneous powers (allocation-free, for the scene and the disc model) ----------
+
+/**
+ * Fixed split of the disc-brake power between the axles in the scene's thermal model:
+ * 60 % front, 40 % rear (illustrative; the constant-deceleration model has no axles).
+ */
+export const FRONT_BRAKE_SHARE = 0.6;
+
+export interface InstantPowers {
+  /** Speed [m/s]. */
+  v: number;
+  /** Total braking power m·a·v [W]. */
+  pBrake: number;
+  /** Mechanical power absorbed by the MGU-K, min(P_b, Pₘₐₓ/η) [W]. */
+  pMech: number;
+  /** Electrical power stored, η·pMech (≤ Pₘₐₓ) [W]. */
+  pElec: number;
+  /** MGU-K / converter losses, (1 − η)·pMech [W]. */
+  pLoss: number;
+  /** Disc-brake (friction) power, P_b − pMech [W]. */
+  pDiscs: number;
+}
+
+/**
+ * Powers at time t of the event (same model as `kersBrakingEvent`, D8), written into
+ * `out`. After t_f (or when not braking) the car runs at v₂ with every power at 0.
+ */
+export function powersAt(
+  si: ReturnType<typeof toSI>,
+  t: number,
+  out: InstantPowers,
+): InstantPowers {
+  const braking = si.v1 > si.v2 && si.tBrake > 0;
+  if (!braking || t >= si.tBrake || t < 0) {
+    out.v = t < 0 ? si.v1 : si.v2;
+    out.pBrake = out.pMech = out.pElec = out.pLoss = out.pDiscs = 0;
+    return out;
+  }
+  const a = (si.v1 - si.v2) / si.tBrake;
+  const v = si.v1 - a * t;
+  const pB = si.m * a * v;
+  const cap = si.Pmax === 0 ? 0 : si.eta === 0 ? Infinity : si.Pmax / si.eta;
+  const pMech = Math.min(pB, cap);
+  out.v = v;
+  out.pBrake = pB;
+  out.pMech = pMech;
+  out.pElec = si.eta * pMech;
+  out.pLoss = pMech - out.pElec;
+  out.pDiscs = pB - pMech;
+  return out;
+}
