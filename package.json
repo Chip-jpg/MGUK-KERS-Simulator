@@ -28,7 +28,7 @@
   "dependencies": {
     "katex": "0.16.47",
     "marked": "14.1.4",
-    "three": "0.169.0",
+    "three": "0.186.1",
     "uplot": "1.6.32"
   },
   "devDependencies": {
