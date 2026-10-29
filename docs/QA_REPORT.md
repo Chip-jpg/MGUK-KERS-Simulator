@@ -5,6 +5,170 @@
 > references are no longer shown in the UI. Findings below about the quiz, those two modules
 > or slide chips are historical and obsolete; the rest of the history is kept unchanged.
 
+## Visual overhaul round (v0.6.0)
+
+Date: 2026-10-29 · Base: `claude/new-session-u560qi` @ `9b01577` (V0–V3 on top of v0.5.1) ·
+Branch: `qa/A11-visual`. Scope: the render foundation (`src/render/**`), the new physics
+modules `src/physics/{fields,thermal,brake-thermal,powerline}.ts`, the redesigned scenes of all
+7 simulators, ARCHITECTURE §10, DECISIONS D13–D15, PHYSICS §8. Read-only on source; scripts,
+logs and screenshots in the scratchpad `a11vis/` (not committed). Real-GPU frame rates cannot be
+measured here (headless Chromium on SwiftShader); the performance section uses proxies.
+
+### V.1 Verdict
+
+| Item                                                                 | Result | Notes                                                                                       |
+| -------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| Physics `fields.ts` (K/E, loop, dipole, solenoid, gap)               | PASS   | re-derived numerically, see V.3                                                             |
+| Physics `thermal.ts` (exact step, Planck → sRGB)                     | PASS   | exact step and LUT checked; nit QA-037                                                      |
+| Physics `brake-thermal.ts`                                           | PASS   | 300 → 649 °C reproduced for the 2025 preset (doc: 647 °C)                                   |
+| Physics `powerline.ts`                                               | PASS   | catenary, thermal sag, 4,44·f·N·Φ̂ checked; undocumented → QA-033                            |
+| Physics coverage                                                     | PASS   | 100 % stmts/funcs/lines, 98,94 % branches                                                   |
+| Render foundation (stage, tiers, lines, flow, heat, ribbons, labels) | PASS   | leaks 0, hidden tab 0 draw calls, tier switch live + persisted; nits QA-038, QA-041, QA-042 |
+| Sim `faraday`                                                        | PASS   | mapping correct; minor QA-035 (bloom fakes a lit lamp in alta dark)                         |
+| Sim `lenz`                                                           | FAIL   | **QA-031** (1280×720 unreadable); minor QA-032 (invisible canvas focus ring)                |
+| Sim `alternator-motor`                                               | FAIL   | **QA-031** (6 label overlaps at 1280×720); forces, torques, ribbons correct                 |
+| Sim `rl-energy`                                                      | FAIL   | **QA-031**; emf = E at 0⁺, E·e⁻¹ at τ, Joule + field = trunk: correct                       |
+| Sim `joule-transformer`                                              | FAIL   | **QA-031**; minor QA-034 (speed cap hides N₁/N₂ at high P); nit QA-043                      |
+| Sim `kers-braking`                                                   | PASS   | disc temperatures and ribbons from the model; nit QA-039                                    |
+| Sim `car-dynamics`                                                   | FAIL   | **QA-031** (HUD, arrows, legend overlap at 1280×720); pitch/heave/patch signs correct       |
+| Accessibility                                                        | PASS   | axe 0 violations on 36 own runs + e2e sweep; keyboard path PASS; minor QA-032               |
+| Italian proofreading                                                 | PASS   | nits QA-040                                                                                 |
+| Docs (ARCHITECTURE §10, D13–D15, PHYSICS, README, CHANGELOG)         | FAIL   | minor QA-033, QA-036                                                                        |
+| Gate + full e2e                                                      | PASS   | gate exit 0, 523/523 unit, 113/113 e2e, tree clean afterwards                               |
+
+**Overall: FAIL for v0.6.0** — one major defect (QA-031): at the 1280×720 minimum resolution the
+scene box is 256 px high and the in-canvas legends, HUD and status badge cover 40–60 % of it, with
+labels drawn on top of the legend in 5 of 7 sims. The physics behind every visual checked out;
+everything else is minor or nit. After QA-031 (and ideally QA-032–QA-036) the release can be
+re-marked PASS by re-taking the 1280×720 screenshots.
+
+### V.2 Defects
+
+| ID     | Sev   | Owner                   | File:line                                                                                                                                                                   | Defect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Evidence                                                                                                                                                           | Suggested fix                                                                                                                                                                                                                                                                                          |
+| ------ | ----- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| QA-031 | major | A3 layout / sim owners  | `src/styles/sim.css:72`; in-canvas legends (e.g. `src/sims/lenz/index.ts:119-131`, `src/sims/joule-transformer/index.ts:116-123`, `src/sims/car-dynamics/index.ts:338-346`) | At 1280×720 `.sim-scene` is clamped to 16rem = 256 px (`calc(100vh − 32rem)` < 16rem). The overlay legend (2–4 lines), the HUD (car sims) and the status badge (lenz) cover 40–60 % of the canvas; scene labels are drawn on top of the legend and of each other (alternator-motor: 6 overlapping label pairs, e.g. `τₑₘ …` ⟷ `avvolgimento … calore Joule`; lenz: `B̄` and `N = 200 spire` under the legend, galvanometer covered; joule-transformer: `Φₘₐₓ` and `freccia` over the legend; car-dynamics: arrow labels over the HUD). The 3D scene is not readable at the documented minimum resolution. Fine at 1920×1080.                               | `a11vis/shots/{lenz,alternator-motor,joule-transformer,rl-energy,car-dynamics}-{base,alta}-{dark,light}-1280x720.png`; overlap counts in `a11vis/results-*-7.json` | Below ≈ 400 px of scene height move the legend out of the canvas (collapsible block under the scene) and collapse the HUD; raise the scene minimum (≈ 20rem) and accept plots below the fold at 720 px; include legend/HUD rects in the label collision test; add a 1280×720 overlap assertion to e2e. |
+| QA-032 | minor | lenz owner              | `src/sims/lenz/lenz.css:12-15`                                                                                                                                              | The focusable magnet canvas (`role="slider"`) gets `outline: none; box-shadow: inset var(--focus-ring)` on `:focus-visible`. An inset box-shadow on a replaced element is painted under the canvas pixels, so keyboard focus is invisible (WCAG 2.4.7). axe cannot detect it.                                                                                                                                                                                                                                                                                                                                                                             | `:focus-visible` matches, but `a11vis/shots/lenz-focused.png` shows no ring (identical framing to `lenz-unfocused.png`)                                            | `outline: 3px solid var(--color-focus); outline-offset: -3px;` or a ring on `.sim-scene:has(canvas:focus-visible)`.                                                                                                                                                                                    |
+| QA-033 | minor | A1 docs                 | `docs/PHYSICS.md` §1, §8                                                                                                                                                    | PHYSICS.md documents only `brake-thermal.ts` (§8). No section or function-table rows for `fields.ts` (AGM K/E, exact loop field, finite solenoid, two-sheet gap model, divergence), `thermal.ts` (exact lumped step, energy-exact loss, Planck × CIE 1931 → linear sRGB, LUT 300–2500 K, luminance ratio) or `powerline.ts` (catenary sag/length/inverse, `thermalSag`, `coreFluxPeak`), although the document is "the reference for `src/physics/**`".                                                                                                                                                                                                   | `grep -n 'loopField\|thermalStep\|catenary' docs/PHYSICS.md` → nothing                                                                                             | Add sections for fields, thermal/black body and power line with formulas, units, limits (elastic stretch neglected; gap model ignores saturation; LUT clamp) and the numbers in V.3.                                                                                                                   |
+| QA-034 | minor | joule-transformer owner | `src/sims/joule-transformer/visual.ts:85-86`; `src/sims/joule-transformer/scene.ts:833-835`                                                                                 | D15 claims "the HV line visibly carries N₁/N₂ of the generator current". Particle speed 0,003 units/s per A, capped at 3,2 ⇒ saturation at 1067 A peak (754 A RMS). With V₁ = 20 kV and P ≳ 16 MW the generator section is capped; at P = 100 MW (I₁ = 5000 A, I_line = 500 A) the peak speeds are 3,2 vs 2,1 (ratio 1,5, not 10). The wire-radius clamp (rMin 0,012) likewise hides ratios > ≈ 21. The cap is stated in the note, so it is not dishonest, but the visual stops showing the point of the sim.                                                                                                                                             | Code + hand computation; correct ratio (10) at the defaults                                                                                                        | Normalise the speeds to the largest section current (1-2-5 full scale, stated in the legend, as lenz/rl-energy do).                                                                                                                                                                                    |
+| QA-035 | minor | render / faraday owner  | `src/render/quality.ts:58` (bloom threshold 0,82); faraday lamp materials                                                                                                   | In `alta` dark the white lamp base/glass crosses the bloom threshold, so the bulb looks lit while its label reads `P/Pₘₐₓ = 1 %` — a glow not driven by the model. Car body highlights in car-dynamics `alta` also approach blow-out.                                                                                                                                                                                                                                                                                                                                                                                                                     | `a11vis/shots/faraday-alta-dark-1920x1080.png` (halo at 1 %) vs `faraday-alta-light-1920x1080.png`, same instant (no halo)                                         | Bloom only HDR emissive (threshold ≥ 1 with emissive > 1) or a selective bloom layer; darker porcelain/glass albedo.                                                                                                                                                                                   |
+| QA-036 | minor | release / docs          | `package.json:3`; `CHANGELOG.md:8`; `README.md`                                                                                                                             | Release bookkeeping for v0.6.0 missing: version still 0.5.1, `[Unreleased]` empty, README says nothing about the "Qualità grafica" tiers, auto-detection, the `?quality=` override or what `base` drops.                                                                                                                                                                                                                                                                                                                                                                                                                                                  | files                                                                                                                                                              | Bump, CHANGELOG entry (V0–V3), README paragraph.                                                                                                                                                                                                                                                       |
+| QA-037 | nit   | render / sim owners     | `src/render/heat.ts:19-36`; `src/sims/shared/car/car.ts:760-762`; `src/sims/lenz/index.ts:45`                                                                               | Honesty of scales: (a) the glow brightness is a stylised log-luminance mapping (2,6·(L/L₂₅₀₀)^1,5) but the notes only say "colore del corpo nero"; (b) the MGU-K glow ∝ √(P/350 kW) and the battery emissive 0,6 + 1,2·carica in the car sims are not stated; (c) lenz note "il campo indotto reale è circa mille volte più debole": at the defaults (z = 0,10 m) B̄/B_ind ≈ 4·10² ("centinaia di volte").                                                                                                                                                                                                                                                 | Code reading; hand computation                                                                                                                                     | One sentence each in the model notes.                                                                                                                                                                                                                                                                  |
+| QA-038 | nit   | sim owners / render     | `src/render/heat.ts:30-31`; sim plots                                                                                                                                       | Per-frame JS allocation in `base` (CDP sampling heap profiler, 5 s): faraday 233 KB/frame, alternator-motor 244 KB/frame, kers-braking 139 KB/frame — mostly uPlot `setData`/`toArrays` every frame, `rk4Step` arrays at 240 Hz and model traces; `glowIntensity` recomputes `blackbodyLuminance(700 K)` and `(2500 K)` (≈ 160 small arrays) on every cache miss while a disc heats. Not a 60 fps risk on the target (≈ 14 MB/s of young garbage), but contradicts the brief's "no per-frame allocations".                                                                                                                                                | `a11vis/alloc.mjs` (V.5)                                                                                                                                           | Hoist the two reference luminances; throttle plot updates to ≈ 20–30 Hz.                                                                                                                                                                                                                               |
+| QA-039 | nit   | car sims owner          | `src/sims/shared/car/scene.ts` (labels vs HUD)                                                                                                                              | The "Punto di frenata" label overlaps the HUD box and hides its last line ("In batteria …") also at 1920×1080.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `a11vis/shots/car-dynamics-{base,alta}-*-1920x1080.png`                                                                                                            | Treat the HUD rect as a label occluder or move the HUD.                                                                                                                                                                                                                                                |
+| QA-040 | nit   | sim owners / A2         | `src/core/format.ts` (negatives); faraday α label; joule-transformer model note; `src/sims/lenz/index.ts:121`; `content/theory/*.md`                                        | Typography: negative values with hyphen-minus in scene labels and readouts (`Φ = … = -2,8 mWb`, `τₑₘ = -1,38 N·m`, `B̄ = -61,62 µT`, `ε = -9,4 V`) — use U+2212 "−"; angle `α = 107 °` (no space before ° for angles); prime as straight apostrophe in `C'·dT/dt = R'·I²` (use ′); legend "1 linea = flusso uguale" → "ogni linea porta lo stesso flusso". Pre-existing: theory Markdown still uses straight apostrophes (`un'induttanza`, ≈ 60 lines in 01–14). Decimal commas, units, Unicode subscripts and the absence of slide references are correct; MGU-K machine wording is hedged ("generalmente descritta come sincrona a magneti permanenti"). | Screenshots; `a11vis/strings.txt`                                                                                                                                  | As stated.                                                                                                                                                                                                                                                                                             |
+| QA-041 | nit   | render                  | `src/render/fieldLines.ts:219`                                                                                                                                              | The first trace of every `FieldLines` (and every retrace after a tier change) runs synchronously on the main thread; the worker is used only after a trace took > 4 ms. Measured first traces 4,6–25 ms (rl-energy solenoid 25 ms under load). Lenz can hold 3 workers (one per `FieldLines`; 2 alive in my run).                                                                                                                                                                                                                                                                                                                                         | `a11vis/perf.log` (`trace` entries, `liveWorkers`)                                                                                                                 | Start in the worker for `solenoid`/`sum` specs; share one worker per stage.                                                                                                                                                                                                                            |
+| QA-042 | nit   | render                  | `src/render/trace.ts:461-472` (`seedByFlux`)                                                                                                                                | Stratified sampling may pick the same candidate for several seeds when one cell's weight exceeds total/n, producing coincident duplicate lines (wasted draws; the count no longer equals distinct flux tubes).                                                                                                                                                                                                                                                                                                                                                                                                                                            | Code reading                                                                                                                                                       | Skip duplicates or jitter within the cell.                                                                                                                                                                                                                                                             |
+| QA-043 | nit   | joule-transformer owner | `src/sims/joule-transformer/scene.ts` (home camera)                                                                                                                         | The generator hall is cut by the left edge of the home view (stack and hall), both tiers, 1920×1080.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `a11vis/shots/joule-transformer-*-1920x1080.png`                                                                                                                   | Widen the FOV or move the target slightly left.                                                                                                                                                                                                                                                        |
+
+### V.3 Physics behind the visuals (check 1, re-derived)
+
+Independent script `a11vis/phys.ts` (bundled with esbuild, run in Node) against brute force:
+
+- **K(m), E(m)** (AGM) vs Simpson quadrature (2·10⁵ panels), m = 0 … 0,99: |error| ≤ 4·10⁻¹⁴.
+- **`loopField`** vs Biot–Savart sum over 20 000 segments at 5 points (centre, axis, off-axis, far,
+  1 cm from the wire): relative error ≤ 4·10⁻¹³. Far field vs `dipoleField(m = I·πR²)` at
+  r = 0,64 m (R = 1 cm): ≤ 2·10⁻⁴ (expected O((R/r)²)).
+- **`solenoidField`** centre of R = 2 cm, L = 0,4 m, N = 200: 6,252 0038·10⁻⁴ T vs the finite-solenoid
+  formula 6,252 0031·10⁻⁴ T.
+- **Gap two-sheet model** vs a 300 × 300 numerical integration of the two charged rectangles at 5
+  points (inside, edge, outside, behind the faces): identical to 4 decimals; ∇·B ≈ −5·10⁻⁶ T/m
+  (B₀ = 0,5 T) at a fringing point.
+- **`thermalStep`** equals the analytic exponential exactly; black body (linear sRGB, max = 1):
+  800 K (1, 0, 0), 1000 K (1; 0,029; 0), 1500 K (1; 0,145; 0), 2500 K (1; 0,380; 0,068); LUT
+  clamps above 2500 K (documented). Y(800 K)/Y(2500 K) = 1,45·10⁻⁹.
+- **Brake disc**: front disc, 0,62 MJ in 3 s, v 83 → 22 m/s, from 300 °C: **649 °C**, 33 kJ lost
+  (PHYSICS §8: 647 °C, 38 kJ — consistent within the speed-profile approximation). Starting
+  temperatures and the 60/40 split are stated in the notes. On screen: kers-braking 2025 front
+  616 °C at t = 2,44 s, 635 °C at 2,74 s.
+- **Catenary** S = 300 m, a = 1000 m: sag 11,271 m (parabola 11,25 m); +50 K with α = 23·10⁻⁶:
+  sag 12,893 m vs parabolic estimate 12,884 m. joule-transformer default sag 8,3 m = 300²/(8·1359 m) ✓.
+  **Core flux** Φ̂(230 V, 50 Hz, 500) = 2,0707 mWb vs 4,44-rule 2,0721 mWb; default
+  Φₘₐₓ = 0,90 Wb ✓.
+
+Visual mapping (code reading, signs checked by hand):
+
+- **Field lines** are traced from the models (`gap` faraday/alternator, 8-dipole chain lenz,
+  solenoid rl-energy/lenz induced, closed core loops joule-transformer). Line count follows flux
+  where claimed: rl-energy `setFraction(|i|/I_ref)` with bit-reversal order; joule-transformer
+  `fluxFraction(Φ̂)`; lenz seeds equal-flux from the face. Faraday/alternator draw a fixed count
+  and only the pulse speed follows B (as stated).
+- **Current particles**: speed = sign(i)·min(|i|·k, vmax); paths oriented counter-clockwise about
+  n̂ for i > 0 (faraday rails, lenz helix θ ↑ = CCW about +x, alternator coil `ccw = −s` checked
+  against the side carrying s along +y); still at i = 0.
+- **Lenz**: induced lines visible only while `sign ≠ 0` (dΦ = 0 at rest); N approaching ⇒ B̄ < 0
+  growing in magnitude ⇒ i > 0 ⇒ B_ind along +x toward the magnet (repulsion) ✓ — opposes the
+  change in every case.
+- **Alternator**: F_A = i L ŷ × B x̂ = −s·B·L ẑ = arrow `dirA = −sign(F)` ✓; τ_y = (w/2) sin θ · F
+  per side ✓; ribbons mech = elec + Joule (12,72 = 10,18 + 2,54 W on screen) ✓.
+- **RL**: arrow ∝ |−L di/dt| = E − R i ⇒ E at 0⁺, E·e⁻¹ at τ ✓; ribbons gen = Joule + field
+  (radii add) ✓.
+- **Transformer**: section speeds ∝ I₁, I_line, I_out (ratio N₂/N₁ = 10 at the defaults) ✓ until
+  the cap (QA-034).
+- **Car**: pitch θ = atan((δ_f − δ_r)/L), `body.rotation.z = −pitch` lowers the nose (+x) ✓; heave
+  down ✓; wheel spin −x/r ✓ (forward roll); patch glow 0,9·(κ/κ*)² ✓; arrows backward for D and
+  Fx, downward for L ✓.
+- **Honesty**: every scale is in a legend or note (log force arrows, ribbon radius, particle k,
+  induced-line gain ×500, sag scale, AC ×200 slower, thermal ×300) except the items in QA-037.
+
+### V.4 Gate and e2e (check 2)
+
+```
+npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
+  All matched files use Prettier code style!
+  Test Files  54 passed (54) · Tests  523 passed (523)
+  ✓ built in 5.48s                                   GATE_EXIT 0
+physics coverage: All files 100 | 98.94 | 100 | 100 (fields.ts branch 175, vehicle-dynamics 381-382)
+PW_PORT=4740 … npm run e2e -- --workers=2
+  113 passed (8.5m)                                  E2E_EXIT 0
+git status --short → (empty)
+```
+
+### V.5 Performance proxies (check 4)
+
+Draw calls / triangles per frame (`renderer.info`, whole frame incl. shadow + post passes; GL
+wrapper agrees), 1920×1080:
+
+| Sim               | base calls / tris | alta calls / tris | alta passes           |
+| ----------------- | ----------------- | ----------------- | --------------------- |
+| faraday           | 41 / 19,7 k       | 89 / 182 k        | render, bloom, output |
+| lenz              | 41 / 11,9 k       | 90 / 76 k         | idem                  |
+| alternator-motor  | 79 / 29,3 k       | 166 / 221 k       | idem                  |
+| rl-energy         | 34 / 56,0 k       | 75 / 180 k        | idem                  |
+| joule-transformer | 82 / 40,2 k       | 170 / 171 k       | idem                  |
+| kers-braking      | 90 (GL count)     | 183 (GL count)    | idem                  |
+| car-dynamics      | 98 / 15,4 k       | 197 / 55 k        | idem                  |
+
+≤ 200 calls and ≤ 0,23 M triangles per frame with 4× MSAA, bloom and a 2048 shadow map: well
+inside an RTX 3060 Laptop budget at 1080p; nothing found that threatens 60 fps there. SwiftShader
+rates (not representative): base 9–16 fps, alta 1,5–2 fps. Allocations: see QA-038 (139–244
+KB/frame, sims' plots and ODE). Long tasks: on SwiftShader every frame is a long task, so the
+proxy cannot isolate retraces; measured trace times 4,6–25 ms on the main thread (QA-041). Hidden
+tab: 0 draw calls in 1 s for all 7 sims, resumes on visible.
+
+### V.6 Leaks (check 5)
+
+Route loops `#/sim/<id>` ↔ `#/teoria`: ×10 per sim in base (70 mounts), ×3 per sim in alta (21
+mounts). After each sim: all foundation counters 0 (`liveStages, liveRenderers, liveComposers,
+liveRenderTargets, livePmrem, liveMaterials, liveTextures, liveGeometries, liveWorkers`), 0
+canvases, sim debug hooks unregistered, heap after GC 10–14 MB (no growth trend). e2e ×20 leak
+tests also green.
+
+### V.7 Visual review and interaction (checks 3, 6, 7)
+
+56 sim screenshots (7 sims × alta/base × dark/light × 1920×1080/1280×720, alta after 10 s) plus
+theory index, theory 06 and the sim index in both themes (`a11vis/shots/`), all read. No NaN
+blots, no black/empty canvases, no z-fighting seen, no horizontal scroll anywhere, plots directly
+under the scene at 1920×1080 (plots top 730–755 px, scene bottom 714–739 px). Problems: QA-031
+(1280×720), QA-035 (bloom), QA-039 (HUD label), QA-043 (framing). Light "pale studio": readable;
+field-line contrast is lowest in base light (1-px lines) but acceptable. Quality selector: keyboard
+(arrows in the native radio group) switches base → alta live (no remount, 1 canvas), stored in
+`localStorage` and kept after reload. "Ripristina vista" returns to the home view after an orbit
+drag (visually identical). Orbit controls take no keyboard input (no focus trap; only the lenz
+canvas is focusable by design and Tab leaves it after arrow keys). Reduced motion: every sim
+starts paused ("Riprendi"), no intro flight, 0 draw calls while idle. axe (WCAG 2.0/2.1 A+AA):
+0 violations on `#/teoria`, `#/sim` and the 7 sims × {base, alta} × {dark, light} at 1280×720;
+the e2e sweep covers all 15 theory sections in both themes.
+
 ## Phase 4 round — v0.3.0 / v0.3.1 (Biot-Savart, PMSM d-q, car dynamics)
 
 Date: 2026-10-28 · Base: `claude/new-session-u560qi` @ `8aa9aae` (v0.3.1) · Branch: `qa/A11-p4`.
