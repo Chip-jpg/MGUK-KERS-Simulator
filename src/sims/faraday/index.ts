@@ -20,6 +20,7 @@ import {
   type FormulaPanel,
   type Plot,
   type Slider,
+  PLOT_MAX_HZ,
 } from '../../ui';
 import { singularTurnsScale } from '../shared/turns';
 import { toDegrees360 } from './format';
@@ -244,23 +245,29 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
             peak: peak ?? Number.NaN,
           },
     );
-    const tr = sim.trace();
+    // plot data at most PLOT_MAX_HZ (the plots redraw no faster), into reused arrays
+    const now = performance.now();
+    if (now - lastPlotMs < 1000 / PLOT_MAX_HZ - 1 && loopRef?.isPaused() === false) return;
+    lastPlotMs = now;
+    const tr = sim.trace(sim.plotWindow(), 480, traceBuf);
     const ks = scales.phi.scale;
     const ke = scales.emf.scale;
-    phiPlot?.setData(
-      tr.t,
-      tr.phi.map((v) => v * ks),
-    );
-    emfPlot?.setData(
-      tr.t,
-      tr.emf.map((v) => v * ke),
-    );
+    for (let k = 0; k < tr.t.length; k++) {
+      tr.phi[k] = (tr.phi[k] as number) * ks;
+      tr.emf[k] = (tr.emf[k] as number) * ke;
+    }
+    phiPlot?.setData(tr.t, tr.phi);
+    emfPlot?.setData(tr.t, tr.emf);
   };
+  const traceBuf = { t: [] as number[], phi: [] as number[], emf: [] as number[] };
+  let lastPlotMs = -Infinity;
+  let loopRef: { isPaused(): boolean } | null = null; // set once the loop exists
 
   const loop = createLoop(
     { step: () => sim.step(), render: () => draw() },
     { autoStart: !ctx.reducedMotion },
   );
+  loopRef = loop;
   disposers.push(() => loop.dispose());
 
   const toolbar = createSimToolbar(layout.toolbar, {

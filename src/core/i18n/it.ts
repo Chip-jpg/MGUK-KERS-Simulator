@@ -96,6 +96,7 @@ export const it = {
     scene: 'Scena',
     sceneLabel: 'Scena interattiva',
     formulasOverlay: 'Formule in evidenza',
+    legend: 'Legenda',
     titles: {
       faraday: 'Flusso e legge di Faraday-Neumann',
       lenz: 'Legge di Lenz',

@@ -157,6 +157,23 @@ describe('seeding', () => {
     expect(seedByFlux(f, cands, [1, 0, 0], 0)).toEqual([]);
     expect(seedByFlux((_p, o) => ((o[0] = o[1] = o[2] = 0), o), cands, [1, 0, 0], 5)).toEqual([]);
   });
+  it('flux seeding never returns duplicate seeds (QA-042)', () => {
+    // one candidate carries 90 % of the flux: it would be picked for most of the 10 seeds
+    const cands: Array<[number, number, number]> = [
+      [0, 0, 0],
+      [0, 1, 0],
+      [0, 2, 0],
+    ];
+    const f = (p: readonly number[], o: [number, number, number]): [number, number, number] => {
+      o[0] = p[1] === 1 ? 18 : 1;
+      o[1] = o[2] = 0;
+      return o;
+    };
+    const seeds = seedByFlux(f, cands, [1, 0, 0], 10);
+    const keys = seeds.map((p) => p.join(','));
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(keys).toEqual(['0,0,0', '0,1,0']); // 8 of 10 strata fall in the middle cell: one seed
+  });
 });
 
 describe('pulse shader patch', () => {

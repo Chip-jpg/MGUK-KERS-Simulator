@@ -19,9 +19,12 @@
  * (e.g. a solenoid while its current grows). `setLines` shows lines computed
  * elsewhere (e.g. flux confined in an ideal transformer core).
  *
- * If a synchronous trace takes longer than {@link WORKER_THRESHOLD_MS}, the
- * following traces run in a module Web Worker (results are versioned: stale
- * ones are dropped).
+ * Traces run in a module Web Worker when they are expected to be heavy
+ * ({@link estimateTraceCost} above {@link HEAVY_TRACE_COST}: solenoids, coils —
+ * also the FIRST trace), or once a synchronous trace took longer than
+ * {@link WORKER_THRESHOLD_MS}. All the field-line sets of one stage share ONE
+ * worker (created on demand, terminated with the last set). Results are
+ * versioned: stale ones are dropped.
  */
 import * as THREE from 'three';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
@@ -30,9 +33,54 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { quantityColorHex } from '../ui/colors';
 import type { Stage } from './stage';
 import { renderStats } from './stats';
-import { runTraceJob, type TraceJob, type TracedLine } from './trace';
+import {
+  estimateTraceCost,
+  HEAVY_TRACE_COST,
+  runTraceJob,
+  type TraceJob,
+  type TracedLine,
+} from './trace';
 
 export const WORKER_THRESHOLD_MS = 4;
+
+/** One trace worker per stage, shared by its field-line sets (QA-041). */
+interface SharedWorker {
+  worker: Worker;
+  users: number;
+  pending: Map<number, (lines: TracedLine[]) => void>;
+}
+const stageWorkers = new WeakMap<Stage, SharedWorker>();
+let nextJobId = 0;
+
+function acquireWorker(stage: Stage): SharedWorker {
+  let sw = stageWorkers.get(stage);
+  if (!sw) {
+    const worker = new Worker(new URL('./fieldTrace.worker.ts', import.meta.url), {
+      type: 'module',
+    });
+    renderStats.liveWorkers++;
+    const created: SharedWorker = { worker, users: 0, pending: new Map() };
+    worker.onmessage = (e: MessageEvent<{ id: number; lines: TracedLine[] }>) => {
+      created.pending.get(e.data.id)?.(e.data.lines);
+      created.pending.delete(e.data.id);
+    };
+    stageWorkers.set(stage, created);
+    sw = created;
+  }
+  sw.users++;
+  return sw;
+}
+
+function releaseWorker(stage: Stage, sw: SharedWorker, ownIds: Set<number>): void {
+  for (const id of ownIds) sw.pending.delete(id);
+  sw.users--;
+  if (sw.users <= 0) {
+    sw.worker.terminate();
+    sw.pending.clear();
+    stageWorkers.delete(stage);
+    renderStats.liveWorkers--;
+  }
+}
 
 export interface FieldLinesOptions {
   /** Pixel width of fat lines (default 2.4). */
@@ -153,9 +201,9 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
   let lines: TracedLine[] = [];
   let lastTrace: { ms: number; where: 'main' | 'worker' } = { ms: 0, where: 'main' };
   let version = 0;
-  let worker: Worker | null = null;
+  let shared: SharedWorker | null = null;
+  const ownJobs = new Set<number>();
   let disposed = false;
-  const pending = new Map<number, (lines: TracedLine[]) => void>();
 
   let mesh: LineSegments2 | THREE.LineSegments | null = null;
   let fatMat: LineMaterial | null = null;
@@ -319,18 +367,17 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
     applyFraction();
   };
 
-  const traceInWorker = (job: TraceJob, id: number): Promise<TracedLine[]> => {
-    if (!worker) {
-      worker = new Worker(new URL('./fieldTrace.worker.ts', import.meta.url), { type: 'module' });
-      renderStats.liveWorkers++;
-      worker.onmessage = (e: MessageEvent<{ id: number; lines: TracedLine[] }>) => {
-        pending.get(e.data.id)?.(e.data.lines);
-        pending.delete(e.data.id);
-      };
-    }
+  const traceInWorker = (job: TraceJob): Promise<TracedLine[]> => {
+    if (!shared) shared = acquireWorker(stage);
+    const sw = shared;
+    const jobId = ++nextJobId;
+    ownJobs.add(jobId);
     return new Promise((resolve) => {
-      pending.set(id, resolve);
-      worker?.postMessage({ id, job });
+      sw.pending.set(jobId, (ls) => {
+        ownJobs.delete(jobId);
+        resolve(ls);
+      });
+      sw.worker.postMessage({ id: jobId, job });
     });
   };
 
@@ -355,9 +402,12 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
     object: group,
     async setJob(job) {
       const id = ++version;
-      const useWorker = lastTrace.ms > WORKER_THRESHOLD_MS && typeof Worker !== 'undefined';
+      // heavy jobs go to the worker from the first trace; others once one was slow
+      const useWorker =
+        typeof Worker !== 'undefined' &&
+        (lastTrace.ms > WORKER_THRESHOLD_MS || estimateTraceCost(job) > HEAVY_TRACE_COST);
       const t0 = performance.now();
-      const result = useWorker ? await traceInWorker(job, id) : runTraceJob(job);
+      const result = useWorker ? await traceInWorker(job) : runTraceJob(job);
       if (disposed || id !== version) return;
       lastTrace = { ms: performance.now() - t0, where: useWorker ? 'worker' : 'main' };
       lines = result;
@@ -401,12 +451,11 @@ export function createFieldLines(stage: Stage, options: FieldLinesOptions = {}):
       offUpdate();
       disposeMesh();
       disposeMats();
-      if (worker) {
-        worker.terminate();
-        worker = null;
-        renderStats.liveWorkers--;
+      if (shared) {
+        releaseWorker(stage, shared, ownJobs);
+        shared = null;
       }
-      pending.clear();
+      ownJobs.clear();
       stage.scene.remove(group);
     },
   };

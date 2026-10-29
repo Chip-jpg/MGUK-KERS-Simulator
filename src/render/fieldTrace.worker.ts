@@ -1,6 +1,7 @@
 /**
  * Module Web Worker that traces field lines off the main thread (used by
- * `fieldLines.ts` when a synchronous trace took longer than ~4 ms).
+ * `fieldLines.ts` for heavy jobs — also the first trace — or once a synchronous
+ * trace took longer than ~4 ms; one worker per stage, shared by its line sets).
  * Message in: `{ id, job: TraceJob }`; out: `{ id, lines: TracedLine[] }` with the
  * typed arrays transferred (no copy).
  */

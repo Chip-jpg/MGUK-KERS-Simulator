@@ -44,6 +44,9 @@ describe('slider helpers', () => {
     expect(parseNumberIT('0,05')).toBe(0.05);
     expect(parseNumberIT('1,2e-3')).toBe(0.0012);
     expect(parseNumberIT('−20.000')).toBe(-20000);
+    expect(parseNumberIT('-20.000')).toBe(-20000);
+    expect(parseNumberIT('−2,8')).toBe(-2.8);
+    expect(parseNumberIT('1,2e−3')).toBe(0.0012);
     // Dot decimals where the dot cannot be grouping.
     expect(parseNumberIT('0.500')).toBe(0.5);
     expect(parseNumberIT('2.25')).toBe(2.25);

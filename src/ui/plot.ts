@@ -8,10 +8,15 @@ import { el } from './dom';
 import { RingBuffer } from './ringBuffer';
 
 /**
- * uPlot wrapper for live plots: ring-buffered `push()` (redraw at most once per
- * animation frame), §4.5 quantity colours that follow the theme toggle, Italian
- * number formatting on axes and legend, auto-resize, `dispose()`.
+ * uPlot wrapper for live plots: ring-buffered `push()` (redraw at most
+ * {@link PLOT_MAX_HZ} times per second, into preallocated column arrays — no
+ * per-redraw copies once the buffer is full), §4.5 quantity colours that follow
+ * the theme toggle, Italian number formatting on axes and legend, auto-resize,
+ * `dispose()`.
  */
+
+/** Live plots redraw at most this often [Hz] (QA-038: the 3D scene keeps 60 fps). */
+export const PLOT_MAX_HZ = 30;
 export interface PlotSeries {
   /** Italian legend label, e.g. 'Flusso Φ'. */
   labelIT: string;
@@ -174,14 +179,25 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
     };
   };
 
-  const data = (): uPlot.AlignedData => buffer.toArrays() as unknown as uPlot.AlignedData;
+  const row: number[] = [];
+  // Column arrays reused by every redraw (uPlot reads them in setData; resized in place).
+  const columns: (number | null)[][] = [];
+  const data = (): uPlot.AlignedData =>
+    buffer.toArraysInto(columns) as unknown as uPlot.AlignedData;
 
   let chart: uPlot | null = new uPlot(buildOptions(), data(), host);
   let frame: number | null = null;
   let disposed = false;
 
-  const redraw = (): void => {
+  let lastDraw = -Infinity;
+  const minInterval = 1000 / PLOT_MAX_HZ - 1; // ms (1 ms slack for rAF jitter)
+  const redraw = (now: number): void => {
     frame = null;
+    if (now - lastDraw < minInterval) {
+      frame = requestAnimationFrame(redraw); // throttled: draw on a later frame
+      return;
+    }
+    lastDraw = now;
     chart?.setData(data(), true);
   };
   const scheduleRedraw = (): void => {
@@ -221,11 +237,10 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
       buffer.clear();
       const n = Math.min(xs.length, capacity);
       const start = xs.length - n;
+      row.length = ys.length;
       for (let k = start; k < xs.length; k++) {
-        buffer.push(
-          xs[k] as number,
-          ys.map((col) => col[k] ?? Number.NaN),
-        );
+        for (let c = 0; c < ys.length; c++) row[c] = (ys[c] as readonly number[])[k] ?? Number.NaN;
+        buffer.push(xs[k] as number, row); // one reused row, no per-sample arrays
       }
       scheduleRedraw();
     },

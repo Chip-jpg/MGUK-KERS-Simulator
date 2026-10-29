@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { quantityColorHex } from '../../src/ui/colors';
 import {
   RIBBON_IDLE_FRACTION,
@@ -9,7 +9,15 @@ import {
 import { createFieldLines, linesForFraction, spreadOrder } from '../../src/render/fieldLines';
 import { IRONBOW_STOPS, ironbow, ironbowGradientCss } from '../../src/render/heat';
 import { STUDIO_FLOOR_RADIUS, resolveFloor } from '../../src/render/stage';
-import type { TracedLine } from '../../src/render/trace';
+import {
+  estimateTraceCost,
+  fieldCost,
+  HEAVY_TRACE_COST,
+  runTraceJob,
+  type TraceJob,
+  type TracedLine,
+} from '../../src/render/trace';
+import { renderStats } from '../../src/render/stats';
 import * as renderBarrel from '../../src/render';
 import * as physicsBarrel from '../../src/physics';
 import { fakeStage } from './fakeStage';
@@ -150,6 +158,76 @@ describe('field lines: count ∝ flux (prefix fraction), precomputed lines, AC f
       fl.dispose();
     });
   }
+});
+
+describe('field-line tracing off the main thread (QA-041)', () => {
+  const dipoleJob = (n: number): TraceJob => ({
+    field: { kind: 'dipole', m: [1, 0, 0], at: [0, 0, 0] },
+    seeds: Array.from({ length: n }, (_, k) => [0.3, 0.01 * k, 0] as [number, number, number]),
+    options: { bounds: { min: [-2, -2, -2], max: [2, 2, 2] }, maxPoints: 200 },
+  });
+  const solenoidJob: TraceJob = {
+    field: { kind: 'solenoid', R: 0.1, L: 0.4, N: 200, I: 1, at: [0, 0, 0], axis: 'x' },
+    seeds: Array.from({ length: 24 }, (_, k) => [0, 0.004 * k, 0] as [number, number, number]),
+    options: { bounds: { min: [-1, -1, -1], max: [1, 1, 1] } },
+  };
+
+  it('estimates the cost from seeds × max vertices × field terms', () => {
+    expect(fieldCost({ kind: 'dipole', m: [1, 0, 0], at: [0, 0, 0] })).toBe(1);
+    expect(
+      fieldCost({ kind: 'sum', parts: [dipoleJob(1).field, { kind: 'uniform', B: [0, 0, 1] }] }),
+    ).toBeCloseTo(1.2, 12);
+    expect(fieldCost(solenoidJob.field)).toBe(800); // 200 loops × 4
+    expect(estimateTraceCost(dipoleJob(10))).toBe(10 * 200 * 4);
+    expect(
+      estimateTraceCost({ ...dipoleJob(10), options: { ...dipoleJob(10).options, direction: 0 } }),
+    ).toBe(2 * 10 * 200 * 4);
+    expect(estimateTraceCost(dipoleJob(30))).toBeLessThan(HEAVY_TRACE_COST); // light: main thread
+    expect(estimateTraceCost(solenoidJob)).toBeGreaterThan(HEAVY_TRACE_COST); // heavy: worker
+  });
+
+  it('heavy first trace goes to ONE worker shared by all sets of a stage; light stays sync', async () => {
+    const created: FakeWorker[] = [];
+    class FakeWorker {
+      onmessage: ((e: { data: unknown }) => void) | null = null;
+      terminated = false;
+      constructor() {
+        created.push(this);
+      }
+      postMessage(msg: { id: number; job: TraceJob }): void {
+        const lines = runTraceJob(msg.job);
+        queueMicrotask(() => this.onmessage?.({ data: { id: msg.id, lines } }));
+      }
+      terminate(): void {
+        this.terminated = true;
+      }
+    }
+    vi.stubGlobal('Worker', FakeWorker);
+    try {
+      const { stage } = fakeStage();
+      const before = renderStats.liveWorkers;
+      const light = createFieldLines(stage);
+      await light.setJob(dipoleJob(8));
+      expect(light.lastTrace.where).toBe('main');
+      expect(created).toHaveLength(0);
+      const a = createFieldLines(stage);
+      const b = createFieldLines(stage);
+      await Promise.all([a.setJob(solenoidJob), b.setJob(solenoidJob)]);
+      expect(a.lastTrace.where).toBe('worker');
+      expect(b.lastTrace.where).toBe('worker');
+      expect(a.count).toBeGreaterThan(0);
+      expect(created).toHaveLength(1); // shared
+      expect(renderStats.liveWorkers).toBe(before + 1);
+      a.dispose();
+      expect(created[0]?.terminated).toBe(false); // b still uses it
+      b.dispose();
+      expect(created[0]?.terminated).toBe(true);
+      expect(renderStats.liveWorkers).toBe(before);
+      light.dispose();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe('ironbow false colour', () => {

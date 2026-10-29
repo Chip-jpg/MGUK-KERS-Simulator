@@ -246,7 +246,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     }),
     legendEnergy,
   ]);
-  layout.sceneOverlay.append(badge, legend);
+  layout.sceneOverlay.append(badge);
+  layout.addSceneLegend(legend);
 
   // --- 3D scene (skipped where WebGL is unavailable, e.g. jsdom) -------------
   let scene: MachineScene | null = null;

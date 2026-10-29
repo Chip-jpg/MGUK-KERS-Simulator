@@ -345,7 +345,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       text: 'Viola: potenza verso MGU-K e batteria (spessore ∝ potenza); viola scuro: perdite',
     }),
   ]);
-  layout.sceneOverlay.append(hud, legend);
+  layout.addSceneLegend(hud);
+  layout.addSceneLegend(legend);
 
   let scene: CarScene | null = null;
   let resetView: ButtonHandle | null = null;

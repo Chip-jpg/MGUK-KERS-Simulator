@@ -170,6 +170,17 @@ export function createCarSceneCore(
     for (const tx of [...c.textures, ...t.textures]) {
       if (!seen.has(tx)) stage.renderer.initTexture(tx);
     }
+    // Upload every geometry too (compile() does not): one draw with frustum culling off,
+    // so the GPU geometry count does not depend on which track parts came into view.
+    const culled: THREE.Object3D[] = [];
+    stage.scene.traverse((o) => {
+      if (o.frustumCulled) {
+        culled.push(o);
+        o.frustumCulled = false;
+      }
+    });
+    stage.renderer.render(stage.scene, stage.camera);
+    for (const o of culled) o.frustumCulled = true;
     for (const o of hidden) o.visible = false;
   };
   prewarm();

@@ -42,7 +42,7 @@ export type { LenzParams } from './params';
 
 type Mode = 'auto' | 'manuale';
 
-export const MODEL_NOTE_IT = `magnete come dipolo puntiforme sull’asse della bobina; flusso Φ = B̄·S con B̄ campo medio sulla sezione (equivale a B uniforme sulla sezione); bobina sottile; autoinduzione trascurata; moto del magnete imposto. La forza è calcolata come interazione dipolo–spira; la lunghezza della freccia F è in scala logaritmica (1 nN … 1 N). Nella scena le linee del magnete sono calcolate per un dipolo finito (${MAGNET_DIPOLES} dipoli puntiformi lungo la barra, stesso campo lontano del dipolo del modello) e seminate a flusso uguale dalla faccia vicina: quante attraversano la bobina cresce con Φ. Le linee tratteggiate del campo indotto sono calcolate per le spire percorse da i (integrali ellittici) con guadagno visivo ×${INDUCED_VISUAL_GAIN} (il campo indotto reale è circa mille volte più debole di quello del magnete: le etichette riportano i valori veri). Il galvanometro è un indicatore a zero centrale con risposta del 2° ordine (f₀ = ${String(GALVO.f0).replace('.', ',')} Hz, ζ = ${String(GALVO.zeta).replace('.', ',')}) e fondo scala automatico; le particelle di corrente si muovono a velocità ∝ i (fondo scala → ${PARTICLE_SPEED_FS} unità/s).`;
+export const MODEL_NOTE_IT = `magnete come dipolo puntiforme sull’asse della bobina; flusso Φ = B̄·S con B̄ campo medio sulla sezione (equivale a B uniforme sulla sezione); bobina sottile; autoinduzione trascurata; moto del magnete imposto. La forza è calcolata come interazione dipolo–spira; la lunghezza della freccia F è in scala logaritmica (1 nN … 1 N). Nella scena le linee del magnete sono calcolate per un dipolo finito (${MAGNET_DIPOLES} dipoli puntiformi lungo la barra, stesso campo lontano del dipolo del modello) e seminate a flusso uguale dalla faccia vicina: quante attraversano la bobina cresce con Φ. Le linee tratteggiate del campo indotto sono calcolate per le spire percorse da i (integrali ellittici) con guadagno visivo G = ${INDUCED_VISUAL_GAIN} sulla velocità degli impulsi (velocità ∝ min(G·|B indotto|/|B̄|; 1,2); il campo indotto reale è alcune centinaia di volte più debole di quello del magnete, circa 4·10² volte con i valori iniziali: le etichette riportano i valori veri). Il galvanometro è un indicatore a zero centrale con risposta del 2° ordine (f₀ = ${String(GALVO.f0).replace('.', ',')} Hz, ζ = ${String(GALVO.zeta).replace('.', ',')}) e fondo scala automatico; le particelle di corrente si muovono a velocità ∝ i (fondo scala → ${PARTICLE_SPEED_FS} unità/s).`;
 
 /** Debug counters for the e2e leak check (exposed only when `debugEnabled()`). */
 const debug = { mounts: 0, disposes: 0, frames: 0 };
@@ -118,11 +118,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const legend = el('div', { class: 'lenz-legend' }, [
     el('span', {
       class: 'lenz-legend__b',
-      text: 'B magnete: linee calcolate (dipolo finito), 1 linea = flusso uguale',
+      text: 'B magnete: linee calcolate (dipolo finito), ogni linea porta lo stesso flusso',
     }),
     el('span', {
       class: 'lenz-legend__bi',
-      text: `B indotto (tratteggio): linee calcolate, impulsi ×${INDUCED_VISUAL_GAIN}`,
+      text: `B indotto (tratteggio): linee calcolate, impulsi con guadagno G = ${INDUCED_VISUAL_GAIN}`,
     }),
     el('span', { class: 'lenz-legend__f', text: 'F: lunghezza ∝ log₁₀|F| (1 nN … 1 N)' }),
     el('span', {
@@ -130,7 +130,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       text: 'i: velocità particelle ∝ i (fondo scala galvanometro)',
     }),
   ]);
-  layout.sceneOverlay.append(legend);
+  layout.addSceneLegend(legend);
 
   // --- controls ----------------------------------------------------------------
   const restartAuto = (): void => {

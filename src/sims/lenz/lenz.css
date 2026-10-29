@@ -9,10 +9,6 @@
 .lenz-canvas.is-dragging {
   cursor: grabbing;
 }
-.lenz-canvas:focus-visible {
-  outline: none;
-  box-shadow: inset var(--focus-ring);
-}
 .lenz-status {
   position: absolute;
   top: var(--space-3);
@@ -71,4 +67,19 @@
 }
 .lenz-legend__i {
   --q: var(--q-i);
+}
+
+/* Compact scene (e.g. 1280×720): a slimmer status badge, so it covers less of the 3D view. */
+.sim-scene--compact .lenz-status {
+  top: var(--space-2);
+  left: var(--space-2);
+  right: auto;
+  max-width: min(26rem, calc(100% - 2 * var(--space-2)));
+  padding: var(--space-1) var(--space-2);
+}
+.sim-scene--compact .lenz-status__main {
+  font-size: var(--fs-xs);
+}
+.sim-scene--compact .lenz-status__sub {
+  font-size: 0.7rem;
 }

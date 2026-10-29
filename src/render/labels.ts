@@ -7,8 +7,14 @@
  * - Occlusion: every 4th frame a ray from the camera to the anchor is tested
  *   against `stage.occluders`; hidden anchors fade to 25 % opacity.
  * - Collisions: labels are placed by descending priority; a label overlapping an
- *   already placed one is nudged vertically (±1…4 label heights) to the first
- *   free slot, so labels never sit on top of each other.
+ *   already placed one, or an obstacle, is nudged vertically (±1…4 label heights)
+ *   and then sideways to the first free slot. When no slot is free the label is
+ *   DROPPED for that frame (never stacked on another label): every label placed
+ *   before it has a higher or equal priority, so the essential ones survive.
+ * - Obstacles: the other boxes drawn over the canvas (legends, HUD, status
+ *   badges: every visible non-label child of the overlay and of the scene box,
+ *   except the canvas and elements marked `data-label-pass`) are measured every
+ *   10th frame and on resize; labels never sit on them (QA-031, QA-039).
  * - Off-screen / behind-camera anchors are hidden.
  * - No per-frame allocations: items are kept sorted by priority when added
  *   (stable: equal priorities keep their insertion order), placed rectangles come
@@ -51,8 +57,15 @@ export interface LabelLayerOptions {
 
 export interface LabelLayer {
   add(o: LabelOptions): Label;
-  /** Number of labels and how many were nudged in the last frame (debug). */
-  stats(): { labels: number; nudged: number; occluded: number; overlaps: number };
+  /** Number of labels and how many were nudged / dropped in the last frame (debug). */
+  stats(): {
+    labels: number;
+    nudged: number;
+    occluded: number;
+    overlaps: number;
+    dropped: number;
+    obstacles: number;
+  };
   dispose(): void;
 }
 
@@ -104,30 +117,68 @@ export function createLabelLayer(
   let frame = 0;
   let lastNudged = 0;
   let lastOccluded = 0;
-  let lastOverlaps = 0;
+  let lastDropped = 0;
   const placed: Rect[] = []; // pool; the first `nPlaced` are valid this frame
   let nPlaced = 0;
+  const obstacles: Rect[] = []; // pool; the first `nObstacles` are valid
+  let nObstacles = 0;
+  let obstaclesDirty = true;
   const rect: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
+  const hit = (a: Rect, b: Rect): boolean =>
+    a.x < b.x + b.w + 4 && a.x + a.w + 4 > b.x && a.y < b.y + b.h + 3 && a.y + a.h + 3 > b.y;
   const overlaps = (a: Rect): boolean => {
-    for (let k = 0; k < nPlaced; k++) {
-      const b = placed[k] as Rect;
-      if (a.x < b.x + b.w + 4 && a.x + a.w + 4 > b.x && a.y < b.y + b.h + 3 && a.y + a.h + 3 > b.y)
-        return true;
-    }
+    for (let k = 0; k < nObstacles; k++) if (hit(a, obstacles[k] as Rect)) return true;
+    for (let k = 0; k < nPlaced; k++) if (hit(a, placed[k] as Rect)) return true;
     return false;
   };
-  const place = (a: Rect): void => {
-    let r = placed[nPlaced];
+  const pushRect = (pool: Rect[], n: number, x: number, y: number, w: number, h: number): void => {
+    let r = pool[n];
     if (!r) {
       r = { x: 0, y: 0, w: 0, h: 0 };
-      placed.push(r);
+      pool.push(r);
     }
-    r.x = a.x;
-    r.y = a.y;
-    r.w = a.w;
-    r.h = a.h;
+    r.x = x;
+    r.y = y;
+    r.w = w;
+    r.h = h;
+  };
+  const place = (a: Rect): void => {
+    pushRect(placed, nPlaced, a.x, a.y, a.w, a.h);
     nPlaced++;
+  };
+  /** Measure the boxes drawn over the canvas (legend, HUD, badges) as label obstacles. */
+  const scanObstacles = (parent: Element | null, ox: number, oy: number): void => {
+    if (!parent) return;
+    for (let k = 0; k < parent.children.length; k++) {
+      const c = parent.children[k] as HTMLElement;
+      if (
+        c === overlay ||
+        c.tagName === 'CANVAS' ||
+        c.classList.contains('r-label') ||
+        c.classList.contains('sim-placeholder') ||
+        c.hasAttribute('data-label-pass') ||
+        c.hidden
+      )
+        continue;
+      const r = c.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      pushRect(obstacles, nObstacles, r.left - ox, r.top - oy, r.width, r.height);
+      nObstacles++;
+    }
+  };
+  const refreshObstacles = (): void => {
+    nObstacles = 0;
+    const o = overlay.getBoundingClientRect();
+    scanObstacles(overlay, o.left, o.top);
+    scanObstacles(overlay.parentElement, o.left, o.top);
+    obstaclesDirty = false;
+  };
+  /** Clamp `rect` at (x, y) inside the canvas; true when it is free. */
+  const tryAt = (x: number, y: number, W: number, H: number): boolean => {
+    rect.x = Math.min(Math.max(2, x), W - rect.w - 2);
+    rect.y = Math.min(Math.max(2, y), H - rect.h - 2);
+    return !overlaps(rect);
   };
   const setDisplay = (it: Item, d: string): void => {
     if (it.shownDisplay !== d) {
@@ -151,10 +202,11 @@ export function createLabelLayer(
     }
     const testOcclusion =
       layerOcclude && occluding > 0 && frame % 4 === 0 && stage.occluders.length > 0;
+    if (obstaclesDirty || frame % 10 === 1) refreshObstacles();
     nPlaced = 0;
     let nudged = 0;
+    let dropped = 0;
     let occludedN = 0;
-    let overlapsLeft = 0;
     for (let n = 0; n < items.length; n++) {
       const it = items[n] as Item;
       if (!it.visible) {
@@ -166,31 +218,38 @@ export function createLabelLayer(
         setDisplay(it, 'none');
         continue;
       }
-      setDisplay(it, '');
       const cx = ((v.x + 1) / 2) * W + it.offset[0];
       const cy = ((1 - v.y) / 2) * H + it.offset[1];
       rect.w = it.w;
       rect.h = it.h;
-      rect.x = Math.min(Math.max(2, cx - it.w / 2), W - it.w - 2);
-      rect.y = Math.min(Math.max(2, cy - it.h / 2), H - it.h - 2);
-      if (overlaps(rect)) {
-        const y0 = rect.y;
-        let ok = false;
+      const x0 = cx - it.w / 2;
+      const y0 = cy - it.h / 2;
+      let ok = tryAt(x0, y0, W, H);
+      if (!ok) {
+        nudged++;
+        // vertical nudges first (±1…4 label heights), then sideways (± half / one width)
         for (let k = 1; k <= 4 && !ok; k++) {
-          for (let s = -1; s <= 1; s += 2) {
-            rect.y = Math.min(Math.max(2, y0 + s * k * (it.h + 4)), H - it.h - 2);
-            if (!overlaps(rect)) {
-              ok = true;
-              break;
-            }
+          ok = tryAt(x0, y0 - k * (it.h + 4), W, H) || tryAt(x0, y0 + k * (it.h + 4), W, H);
+        }
+        for (let j = 1; j <= 2 && !ok; j++) {
+          const dx = j * (it.w / 2 + 6);
+          for (let k = 0; k <= 2 && !ok; k++) {
+            const dy = k * (it.h + 4);
+            ok =
+              tryAt(x0 + dx, y0 - dy, W, H) ||
+              tryAt(x0 - dx, y0 - dy, W, H) ||
+              tryAt(x0 + dx, y0 + dy, W, H) ||
+              tryAt(x0 - dx, y0 + dy, W, H);
           }
         }
-        if (!ok) {
-          rect.y = y0;
-          overlapsLeft++;
-        }
-        nudged++;
       }
+      if (!ok) {
+        // no free slot: drop this (lower-priority) label instead of stacking it
+        setDisplay(it, 'none');
+        dropped++;
+        continue;
+      }
+      setDisplay(it, '');
       place(rect);
       if (!layerOcclude || !it.occlude) it.occluded = false;
       else if (testOcclusion) {
@@ -217,12 +276,13 @@ export function createLabelLayer(
     }
     lastNudged = nudged;
     lastOccluded = occludedN;
-    lastOverlaps = overlapsLeft;
+    lastDropped = dropped;
   };
 
   const offUpdate = stage.addUpdatable({ update });
   const offResize = stage.onResize(() => {
     for (const it of items) it.dirty = true;
+    obstaclesDirty = true;
   });
 
   return {
@@ -272,7 +332,9 @@ export function createLabelLayer(
       labels: items.length,
       nudged: lastNudged,
       occluded: lastOccluded,
-      overlaps: lastOverlaps,
+      overlaps: 0, // a label is dropped rather than left overlapping
+      dropped: lastDropped,
+      obstacles: nObstacles,
     }),
     dispose() {
       offUpdate();
@@ -280,6 +342,8 @@ export function createLabelLayer(
       for (const it of items) it.el.remove();
       items.length = 0;
       placed.length = 0;
+      obstacles.length = 0;
+      nObstacles = 0;
       occluding = 0;
     },
   };

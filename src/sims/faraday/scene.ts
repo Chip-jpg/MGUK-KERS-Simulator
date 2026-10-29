@@ -400,11 +400,11 @@ export function createFaradayScene(
   const lamp = new THREE.Group();
   lamp.position.set(1.05, BASE_TOP, LAMP_Z);
   scene.add(lamp);
-  const lampBase = mesh(geo(new THREE.CylinderGeometry(0.16, 0.19, 0.14, 32)), 'ceramic');
+  const lampBase = mesh(geo(new THREE.CylinderGeometry(0.16, 0.19, 0.14, 32)), 'ceramic', 'lamp');
   lampBase.position.y = 0.07;
-  const socket = mesh(geo(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 32)), 'brass');
+  const socket = mesh(geo(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 32)), 'brass', 'lamp');
   socket.position.y = 0.24;
-  const bulb = mesh(geo(new THREE.SphereGeometry(0.3, 40, 28)), 'glass');
+  const bulb = mesh(geo(new THREE.SphereGeometry(0.3, 40, 28)), 'glass', 'lamp');
   bulb.position.y = 0.6;
   bulb.renderOrder = 4;
   const filament = mesh(
@@ -649,6 +649,22 @@ export function createFaradayScene(
   });
   lampLight.visible = stage.tier !== 'base';
 
+  /**
+   * QA-035: the lamp may glow (and bloom) only through its filament emissive ∝ P/Pₘₐₓ. Keep
+   * the lit porcelain, brass and glass highlights below the bloom threshold: a grey
+   * porcelain, a dimmer environment reflection on brass and glass. Re-applied every frame
+   * (kit materials are replaced on a tier/theme switch; cheap scalar writes).
+   */
+  const tameLamp = (): void => {
+    const base = kit.get('ceramic', 'lamp') as THREE.MeshStandardMaterial;
+    base.color.setHex(0x8f8a82);
+    for (const kind of ['glass', 'brass'] as const) {
+      const m = kit.get(kind, 'lamp') as THREE.MeshStandardMaterial;
+      if ('envMapIntensity' in m) m.envMapIntensity = kind === 'glass' ? 0.45 : 0.55;
+      if (kind === 'glass' && 'clearcoat' in m) (m as THREE.MeshPhysicalMaterial).clearcoat = 0.25;
+    }
+  };
+
   // --- per-frame update ----------------------------------------------------------------------------
   let time = 0;
   let lastMs = performance.now();
@@ -694,7 +710,8 @@ export function createFaradayScene(
       // lamp: P ∝ f.e.m.² (illustrative resistive load)
       const pRel = ratio * ratio;
       const fil = kit.get('filament', 'lamp');
-      fil.emissiveIntensity = 0.02 + 7 * pRel;
+      fil.emissiveIntensity = 7 * pRel; // ∝ P/Pₘₐₓ only: the one source of lamp glow
+      tameLamp();
       lampLight.intensity = 3.2 * pRel;
       // projection S·|cos α|
       const c = Math.cos(s.alpha);

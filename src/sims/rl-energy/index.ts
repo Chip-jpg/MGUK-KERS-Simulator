@@ -55,7 +55,7 @@ export const MODEL_NOTE_IT =
   'linee di B calcolate per un solenoide finito (somma di spire coassiali), seminate a flusso uguale: il loro numero è ∝ i/I* con I* = fondo scala 1-2-5 sopra I₀; ' +
   'bagliore viola ∝ energia del campo ½·L·i² (pieno = energia a regime ½·L·I₀²); freccia ambra ∝ |f.e.m. autoindotta| = L·|di/dt| (uguale a E all’istante della chiusura); ' +
   'nastri di energia con raggio ∝ potenza: generatore E·i = Joule R·i² + campo L·i·di/dt. ' +
-  `Filo del resistore: modello termico concentrato C·dT/dt = R·i² − hA·(T − T₀), T₀ = 20 °C, con valori illustrativi C = ${fmt(RESISTOR_THERMAL.C, 2)} J/K, hA = ${fmt(RESISTOR_THERMAL.hA, 1)} W/K; bagliore di corpo nero solo sopra 700 K, falsi colori a richiesta.`;
+  `Filo del resistore: modello termico concentrato C·dT/dt = R·i² − hA·(T − T₀), T₀ = 20 °C, con valori illustrativi C = ${fmt(RESISTOR_THERMAL.C, 2)} J/K, hA = ${fmt(RESISTOR_THERMAL.hA, 1)} W/K; bagliore di corpo nero solo sopra 700 K con luminosità in scala logaritmica (intensità 2,6·(L/L₂₅₀₀)^1,5, L = log₁₀ del rapporto tra la luminanza visibile a T e a 700 K), falsi colori a richiesta.`;
 
 const ID = 'rl-energy';
 
@@ -123,7 +123,8 @@ export function mountRl(
     el('span', { class: 'q-emf', text: 'f.e.m. autoindotta: freccia ∝ L·|di/dt|' }),
     el('span', { class: 'q-energy', text: 'Energia: bagliore ∝ ½·L·i², nastri ∝ potenza' }),
   ]);
-  layout.sceneOverlay.append(legend, thermalLegend);
+  layout.addSceneLegend(legend);
+  layout.addSceneLegend(thermalLegend);
   if (options.scene !== false) {
     void import('./scene')
       .then(({ createRlScene }) => {

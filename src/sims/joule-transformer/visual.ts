@@ -16,6 +16,7 @@
  *   (ideal transformer: the flux lags the voltage by 90°).
  */
 import { G_STANDARD, catenarySag, coreFluxPeak, thermalSag } from '../../physics';
+import { niceCeil } from '../../render';
 
 export const LINE = {
   /** Span between pylons [m]. */
@@ -71,9 +72,24 @@ export const SAG_DRAW = 0.1;
 export const AC_HZ = 50;
 export const AC_VISUAL_HZ = 0.25;
 
-/** Current particles: scene units/s per ampere of instantaneous current; cap. */
-export const PARTICLE_SPEED_PER_AMP = 0.003;
-export const PARTICLE_VMAX = 3.2;
+/**
+ * Current particles (QA-034): ONE speed scale per state for the three sections, so the
+ * section speeds keep the current ratios exactly (generator : line = N₂ : N₁). The full
+ * scale is the largest section RMS current rounded up to 1-2-5 ({@link particleFullScale});
+ * its peak instantaneous current √2·I_fs moves at {@link PARTICLE_V_FS} units/s. Never
+ * saturates: every section stays ≤ the full-scale speed.
+ */
+export const PARTICLE_V_FS = 2.4;
+
+/** Particle full-scale current [A RMS]: 1-2-5 ceiling of the largest section current. */
+export function particleFullScale(I1: number, Iline: number, Iout: number): number {
+  return niceCeil(Math.max(I1, Iline, Iout), 1);
+}
+
+/** Particle speed per ampere of instantaneous current [units/(s·A)] for a full scale. */
+export function particleSpeedPerAmp(fullScale: number): number {
+  return PARTICLE_V_FS / (Math.SQRT2 * fullScale);
+}
 
 /** Town: one lit window per this delivered power [W]; windows in the town. */
 export const WINDOW_W = 0.5e6;

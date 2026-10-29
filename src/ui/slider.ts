@@ -57,14 +57,15 @@ const GROUPED_INT = /^[1-9]\d{0,2}(\.\d{3})+$/;
  *   "20.000" → 20000, "1.234.567" → 1234567. So "1.500" reads as 1500
  *   (Italian reading), never 1,5.
  * - Otherwise a single `.` is a decimal point: "0.5", "2.25", "0.500", "1.5".
- * - An exponent may follow: "1,2e-3", "1e-3". A leading "−" (U+2212) is a
- *   minus; spaces / NBSP are ignored.
+ * - An exponent may follow: "1,2e-3", "1e-3". A "−" (U+2212, what `formatIT`
+ *   writes for negative numbers) is a minus like "-", also in the exponent;
+ *   spaces / NBSP are ignored.
  */
 export function parseNumberIT(input: string): number {
   const s = input
     .trim()
     .replace(/\s|\u00A0/g, '')
-    .replace(/^\u2212/, '-');
+    .replace(/\u2212/g, '-');
   const m = /^([+-]?)([\d.]*)(?:,(\d*))?(e[+-]?\d+)?$/i.exec(s);
   if (!m) return Number.NaN;
   const [, sign = '', intRaw = '', frac, exp = ''] = m;

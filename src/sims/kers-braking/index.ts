@@ -48,7 +48,7 @@ import './style.css';
 export { params } from './model';
 
 export const MODEL_NOTE_IT =
-  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K. Nella scena: spessore dei nastri viola ∝ potenza (0,12 m a 350 kW); temperatura dei dischi da un modello termico a un nodo per disco (dischi carbonio-carbonio illustrativi: 1,2 kg anteriori, 0,9 kg posteriori, c = 1400 J/(kg·K); raffreddamento per convezione e irraggiamento), con la potenza dei freni a disco ripartita in modo fisso 60 % anteriore / 40 % posteriore; tutto il calore va nel disco (pastiglie e pinze non modellate); colore del corpo nero alla temperatura calcolata.';
+  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K. Nella scena: spessore dei nastri viola ∝ potenza (0,12 m a 350 kW); temperatura dei dischi da un modello termico a un nodo per disco (dischi carbonio-carbonio illustrativi: 1,2 kg anteriori, 0,9 kg posteriori, c = 1400 J/(kg·K); raffreddamento per convezione e irraggiamento), con la potenza dei freni a disco ripartita in modo fisso 60 % anteriore / 40 % posteriore; tutto il calore va nel disco (pastiglie e pinze non modellate); colore del corpo nero alla temperatura calcolata, bagliore solo sopra 700 K con luminosità in scala logaritmica (intensità 2,6·(L/L₂₅₀₀)^1,5, L = log₁₀ del rapporto tra la luminanza visibile del corpo nero a T e a 700 K); bagliore dell’MGU-K ∝ √(|P|/350 kW) (la radice lo rende visibile anche a bassa potenza), luminosità della batteria 0,6 + 1,2 × frazione di carica (indicativa).';
 
 /** Pause at the end of the event before the playback restarts [s]. */
 const END_HOLD = 1.5;
@@ -101,7 +101,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     stored: el('span', { class: 'kers-hud__kers' }),
   };
   hud.append(...Object.values(hudLines));
-  layout.sceneOverlay.append(hud);
+  layout.addSceneLegend(hud);
 
   // --- Controls ---
   const presets = createPresets({

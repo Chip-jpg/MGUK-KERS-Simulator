@@ -53,7 +53,14 @@
  *              (to the load), E_J = ∫R_w·i² dt, E_conv = ∫emf·i dt;
  *              balance: E_in = E_out + (E_kin − E_kin,0) + E_J.
  */
-import { inducedCurrent, jouleLoss, lorentzForce, rk4Step, rotatingLoop } from '../../physics';
+import {
+  createRk4Work,
+  inducedCurrent,
+  jouleLoss,
+  lorentzForce,
+  rk4Step,
+  rotatingLoop,
+} from '../../physics';
 import type { OdeRhs } from '../../physics';
 import type { ParamsSchema } from '../../core/types';
 
@@ -354,10 +361,14 @@ function stepWith(
 ): MachineState {
   const n = substeps(mode, p, s.y[IDX.omega] as number, dt);
   const h = dt / n;
-  let y = s.y;
-  for (let j = 0; j < n; j++) y = rk4Step(f, s.t + j * h, y, h);
-  return { t: s.t + dt, y };
+  // sub-steps in place in a shared work buffer; one copy for the returned state (QA-038)
+  let y: readonly number[] = s.y;
+  for (let j = 0; j < n; j++) y = rk4Step(f, s.t + j * h, y, h, WORK);
+  return { t: s.t + dt, y: y.slice() };
 }
+
+/** RK4 work buffers reused by every step (the state has 6 components). */
+const WORK = createRk4Work(6);
 
 export function simulate(
   mode: MachineMode,

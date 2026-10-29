@@ -81,6 +81,47 @@ describe('createLabelLayer', () => {
     layer.dispose();
   });
 
+  it('treats legend / HUD boxes as obstacles and drops low-priority labels with no free slot', () => {
+    const { stage, fire } = fakeStage();
+    const scene = document.createElement('div');
+    const overlay = document.createElement('div');
+    scene.append(overlay);
+    const rect = (x: number, y: number, w: number, h: number): DOMRect =>
+      ({ x, y, left: x, top: y, width: w, height: h, right: x + w, bottom: y + h }) as DOMRect;
+    overlay.getBoundingClientRect = () => rect(0, 0, 800, 600);
+    // a legend in the overlay covering the centre band, and a badge in the scene box
+    const legend = document.createElement('div');
+    legend.getBoundingClientRect = () => rect(300, 260, 200, 80);
+    overlay.append(legend);
+    const badge = document.createElement('div');
+    badge.getBoundingClientRect = () => rect(0, 0, 800, 40);
+    scene.append(badge);
+    const passed = document.createElement('div');
+    passed.dataset['labelPass'] = '';
+    passed.getBoundingClientRect = () => rect(0, 0, 800, 600);
+    overlay.append(passed);
+
+    const layer = createLabelLayer(stage, overlay, { occlude: false });
+    const a = layer.add({ text: 'a', anchor: new THREE.Vector3(0, 0, 0), priority: 5 });
+    fire.frame(0.016);
+    expect(layer.stats().obstacles).toBe(2); // legend + badge, not the marked element
+    const ya = y(a.element);
+    // moved off the legend (260…340), label is 20 px tall
+    expect(ya + 20 <= 260 - 3 || ya >= 340 + 3).toBe(true);
+    expect(ya).toBeGreaterThanOrEqual(40); // and not under the badge
+
+    // Fill the canvas with high-priority labels: a low-priority one must be dropped, never stacked.
+    const many = [];
+    for (let k = 0; k < 200; k++)
+      many.push(layer.add({ text: `x${k}`, anchor: new THREE.Vector3(0, 0, 0), priority: 3 }));
+    const low = layer.add({ text: 'low', anchor: new THREE.Vector3(0, 0, 0), priority: 0 });
+    fire.frame(0.016);
+    expect(low.element.style.display).toBe('none');
+    expect(layer.stats().dropped).toBeGreaterThan(0);
+    expect(a.element.style.display).toBe(''); // the highest priority survives
+    layer.dispose();
+  });
+
   it('writes styles only when they change (no per-frame churn)', () => {
     const { stage, fire } = fakeStage();
     const overlay = document.createElement('div');

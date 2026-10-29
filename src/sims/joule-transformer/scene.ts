@@ -43,8 +43,9 @@ import {
   AC_VISUAL_HZ,
   FLUX_LOOPS,
   HAZE_REF_W_PER_M,
-  PARTICLE_SPEED_PER_AMP,
-  PARTICLE_VMAX,
+  PARTICLE_V_FS,
+  particleFullScale,
+  particleSpeedPerAmp,
   SAG_DRAW,
   TOTAL_WINDOWS,
   T_SCALE_C,
@@ -125,6 +126,31 @@ const HOME = {
   position: [-7.6, 6.0, 18.6] as [number, number, number],
   target: [-0.4, 2.1, -0.4] as [number, number, number],
 };
+/** Aspect ratio for which {@link HOME} frames the whole chain (1920×1080 scene box). */
+const HOME_ASPECT = 2.33;
+
+/**
+ * Home view for a scene box of aspect w/h (QA-043): same viewing direction, target moved
+ * slightly left (the power-station hall is the widest end) and the camera pulled back so
+ * the whole chain, generator hall to town, fits the width of narrower boxes (1280×720).
+ */
+export function homeView(aspect: number): {
+  position: [number, number, number];
+  target: [number, number, number];
+} {
+  const target: [number, number, number] = [-1.3, 2.0, -0.4];
+  const a = Number.isFinite(aspect) && aspect > 0 ? aspect : HOME_ASPECT;
+  const dx = HOME.position[0] - HOME.target[0];
+  const dy = HOME.position[1] - HOME.target[1];
+  const dz = HOME.position[2] - HOME.target[2];
+  // pull back for narrow boxes; stay inside the orbit limit (maxDistance 46)
+  // (exponent 0.7: the oblique view and perspective make the chain shrink faster than 1/d)
+  const k = Math.min(1.1 * Math.max(1, HOME_ASPECT / a) ** 0.7, 44 / Math.hypot(dx, dy, dz));
+  return {
+    position: [target[0] + dx * k, target[1] + dy * k, target[2] + dz * k],
+    target,
+  };
+}
 
 /** A transformer group: core, windings (rebuilt), flux loops, tank. */
 interface Xfmr {
@@ -146,7 +172,11 @@ export function createTransformerScene(
   const stage = createStage(container, ctx, {
     ariaLabel:
       'Scena 3D della catena di trasporto: centrale con generatore, trasformatore elevatore con nucleo laminato e avvolgimenti, linea ad alta tensione su tralicci con conduttori a catenaria, trasformatore abbassatore e quartiere con finestre illuminate in proporzione alla potenza consegnata.',
-    camera: { ...HOME, fov: 36, far: 200 },
+    camera: {
+      ...homeView(container.clientWidth / Math.max(1, container.clientHeight)),
+      fov: 36,
+      far: 200,
+    },
     controls: { minDistance: 6, maxDistance: 46, maxPolarAngle: (82 * Math.PI) / 180 },
     floorY: GROUND,
     floor: { radius: 30 },
@@ -737,7 +767,8 @@ export function createTransformerScene(
 
   // --- current flows (one per section, same velocity scale) --------------------------------------
   const pd = stage.settings.particleDensity;
-  const flowOpts = { speedPerAmp: PARTICLE_SPEED_PER_AMP, vMax: PARTICLE_VMAX, smooth: false };
+  // setCurrent() receives the particle speed directly (common scale per state, see update)
+  const flowOpts = { speedPerAmp: 1, vMax: PARTICLE_V_FS * 1.01, smooth: false };
   const upWinding = (): THREE.Vector3[] => up.right.slice().reverse();
   const downWinding = (): THREE.Vector3[] => down.left;
   const lineFlow: CurrentFlow = createCurrentFlow(stage, {
@@ -805,6 +836,15 @@ export function createTransformerScene(
   const offTheme = stage.onThemeChange(() => {
     litShown = -1;
   });
+  // Re-frame the home view when the scene box changes aspect, unless the user has orbited.
+  let home = homeView(stage.width / stage.height);
+  const offResize = stage.onResize((w, h) => {
+    const atHome =
+      stage.camera.position.distanceTo(new THREE.Vector3(...home.position)) < 0.05 &&
+      stage.controls.target.distanceTo(new THREE.Vector3(...home.target)) < 0.05;
+    home = homeView(w / h);
+    if (atHome) stage.setView(home.position, home.target, false);
+  });
 
   // --- per-frame ---------------------------------------------------------------------------------------
   const rgb: [number, number, number] = [0, 0, 0];
@@ -833,9 +873,11 @@ export function createTransformerScene(
     // AC: instantaneous currents √2·I·sin ωt, flux Φ̂·cos ωt (same phase reference)
     const w = 2 * Math.PI * AC_VISUAL_HZ * s.t;
     const sn = Math.SQRT2 * Math.sin(w);
-    genFlow.setCurrent(s.I1 * sn);
-    lineFlow.setCurrent(s.Iline * sn);
-    townFlow.setCurrent(s.Iout * sn);
+    // one speed scale for all sections: speed ratios = current ratios (N₂/N₁), never capped
+    const k = particleSpeedPerAmp(particleFullScale(s.I1, s.Iline, s.Iout));
+    genFlow.setCurrent(s.I1 * sn * k);
+    lineFlow.setCurrent(s.Iline * sn * k);
+    townFlow.setCurrent(s.Iout * sn * k);
     const c = Math.cos(w);
     up.flux.setFraction(fluxFraction(s.phiUp));
     down.flux.setFraction(fluxFraction(s.phiDown));
@@ -923,6 +965,7 @@ export function createTransformerScene(
       disposed = true;
       offTier();
       offTheme();
+      offResize();
       labels.dispose();
       for (const f of [lineFlow, genFlow, townFlow]) f.dispose();
       up.flux.dispose();

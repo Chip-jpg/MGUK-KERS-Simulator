@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PHYSICS_DT, rk4Step } from '../../src/physics';
+import { createRk4Work, PHYSICS_DT, rk4Step } from '../../src/physics';
 import type { OdeRhs } from '../../src/physics';
 
 describe('rk4Step', () => {
@@ -60,6 +60,30 @@ describe('rk4Step', () => {
     expect(same).not.toBe(y0);
     const back = rk4Step((_t, y) => [-(y[0] as number)], 1, [Math.exp(-1)], -1e-3);
     expect(back[0]).toBeCloseTo(Math.exp(-1 + 1e-3), 12);
+  });
+
+  it('work buffers (QA-038): identical numbers, result in work.out, in place allowed', () => {
+    const f = (_t: number, y: readonly number[]): number[] => [
+      y[1] as number,
+      -(y[0] as number) - 0.1 * (y[1] as number),
+    ];
+    const work = createRk4Work(2);
+    let a: number[] = [1, 0];
+    let b: number[] = [1, 0];
+    for (let i = 0; i < 100; i++) {
+      a = rk4Step(f, i * 0.01, a, 0.01);
+      b = rk4Step(f, i * 0.01, b, 0.01, work); // b aliases work.out after the first step
+    }
+    expect(b).toBe(work.out);
+    expect(b).toEqual(a); // bit-identical arithmetic
+    // dt = 0 copies into out; the input is not mutated when out is another array
+    const y0 = Object.freeze([3, 4]) as readonly number[];
+    const w2 = createRk4Work(1); // resized to the state length
+    expect(rk4Step(f, 0, y0, 0, w2)).toEqual([3, 4]);
+    expect(rk4Step(f, 0, y0, 0.1, w2)).toEqual(rk4Step(f, 0, y0, 0.1));
+    expect(y0).toEqual([3, 4]);
+    expect(() => rk4Step(() => [0, 0], 0, [1], 0.1, createRk4Work(1))).toThrow(RangeError);
+    expect(() => rk4Step(() => [0], 0, [1], NaN, createRk4Work(1))).toThrow(RangeError);
   });
 
   it('rejects non-finite t/dt and wrong-length derivatives', () => {

@@ -333,23 +333,25 @@ export class FaradaySim {
   trace(
     window: number = this.plotWindow(),
     maxPoints = 480,
+    into?: { t: number[]; phi: number[]; emf: number[] },
   ): { t: number[]; phi: number[]; emf: number[] } {
     const h = this.history;
     const from = this.time - window - 1e-12;
     let count = 0;
     while (count < h.size && (h.t[h.idxFromEnd(count)] as number) >= from) count++;
     const stride = Math.max(1, Math.ceil(count / maxPoints));
-    const out = { t: [] as number[], phi: [] as number[], emf: [] as number[] };
-    // Walk from the newest backwards so the newest sample is always included.
-    for (let k = 0; k < count; k += stride) {
-      const i = h.idxFromEnd(k);
-      out.t.push(h.t[i] as number);
-      out.phi.push(h.phi[i] as number);
-      out.emf.push(h.emf[i] as number);
+    // `into`: reuse the caller's arrays (live plots, QA-038)
+    const out = into ?? { t: [] as number[], phi: [] as number[], emf: [] as number[] };
+    // Walk from the newest backwards so the newest sample is always included; write in
+    // chronological order straight into the (possibly reused) arrays.
+    const m = Math.ceil(count / stride);
+    out.t.length = out.phi.length = out.emf.length = m;
+    for (let j = 0; j < m; j++) {
+      const i = h.idxFromEnd(j * stride);
+      out.t[m - 1 - j] = h.t[i] as number;
+      out.phi[m - 1 - j] = h.phi[i] as number;
+      out.emf[m - 1 - j] = h.emf[i] as number;
     }
-    out.t.reverse();
-    out.phi.reverse();
-    out.emf.reverse();
     return out;
   }
 

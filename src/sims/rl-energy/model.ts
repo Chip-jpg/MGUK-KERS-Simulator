@@ -21,6 +21,7 @@ import {
   jouleLoss,
   magneticEnergy,
   rk4Step,
+  createRk4Work,
   rlCurrent,
   rlTimeConstant,
   solenoidInductance,
@@ -57,6 +58,9 @@ export function substepsFor(h: number, tau: number): number {
   return Math.max(1, Math.min(10_000, Math.ceil(h / (tau / 50))));
 }
 
+/** RK4 work buffers reused by {@link advance} (3 state components). */
+const WORK = createRk4Work(3);
+
 /** Advance the state by `h` seconds of simulated time (RK4, sub-stepped). */
 export function advance(s: RlState, p: RlInputs, h: number): RlState {
   const tau = rlTimeConstant(p.R, p.L);
@@ -66,10 +70,10 @@ export function advance(s: RlState, p: RlInputs, h: number): RlState {
     const i = y[0] ?? 0;
     return [(p.E - p.R * i) / p.L, p.E * i, jouleLoss(p.R, i)];
   };
-  let y = [s.i, s.Egen, s.EJoule];
+  let y: readonly number[] = [s.i, s.Egen, s.EJoule];
   let t = s.t;
   for (let k = 0; k < n; k++) {
-    y = rk4Step(f, t, y, dt);
+    y = rk4Step(f, t, y, dt, WORK); // in place after the first sub-step (QA-038)
     t += dt;
   }
   return { t, i: y[0] ?? 0, Egen: y[1] ?? 0, EJoule: y[2] ?? 0 };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatIT, NOT_A_NUMBER, UNIT_SEPARATOR } from '../../src/core/format';
+import { parseNumberIT } from '../../src/ui/slider';
 
 const NBSP = '\u00A0';
 
@@ -24,10 +25,28 @@ describe('formatIT', () => {
     expect(formatIT(0.5, 2, 'T')).toBe(`0,50${NBSP}T`);
   });
 
-  it('formats negatives and never shows a negative zero', () => {
-    expect(formatIT(-3.14159, 2)).toBe('-3,14');
+  it('formats negatives with the minus sign U+2212 and never shows a negative zero', () => {
+    expect(formatIT(-3.14159, 2)).toBe('\u22123,14');
+    expect(formatIT(-2.8, 1, 'mWb')).toBe(`\u22122,8${NBSP}mWb`);
+    expect(formatIT(-12345.6, 1)).toBe('\u221212.345,6');
     expect(formatIT(-0.001, 2)).toBe('0,00');
     expect(formatIT(-0, 0)).toBe('0');
+  });
+
+  it('attaches angle units without a space ("107°"), keeps the space before °C', () => {
+    expect(formatIT(107, 0, '°')).toBe('107°');
+    expect(formatIT(-5, 0, '°')).toBe('\u22125°');
+    expect(formatIT(25, 0, '°C')).toBe(`25${NBSP}°C`);
+  });
+
+  it('round-trips through parseNumberIT, also for negative values', () => {
+    for (const [v, d] of [
+      [-3.14, 2],
+      [-20000, 0],
+      [-0.05, 3],
+      [1234.5, 1],
+    ] as const)
+      expect(parseNumberIT(formatIT(v, d))).toBe(v);
   });
 
   it('handles non-finite values', () => {

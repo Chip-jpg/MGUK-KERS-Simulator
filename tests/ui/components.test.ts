@@ -24,6 +24,23 @@ describe('RingBuffer', () => {
     expect(rb.length).toBe(0);
     expect(() => new RingBuffer(0, 1)).toThrow(RangeError);
   });
+
+  it('toArraysInto fills the same preallocated arrays (QA-038)', () => {
+    const rb = new RingBuffer(3, 1);
+    const out: (number | null)[][] = [];
+    for (let k = 1; k <= 2; k++) rb.push(k, [k * 10]);
+    expect(rb.toArraysInto(out)).toEqual([
+      [1, 2],
+      [10, 20],
+    ]);
+    const [xs, ys] = out;
+    for (let k = 3; k <= 5; k++) rb.push(k, [k === 5 ? Number.NaN : k * 10]);
+    rb.toArraysInto(out);
+    expect(out[0]).toBe(xs); // same array objects, updated in place
+    expect(out[1]).toBe(ys);
+    expect(out).toEqual(rb.toArrays());
+    expect(out[1]).toEqual([30, 40, null]);
+  });
 });
 
 describe('FormulaPanel', () => {
@@ -139,6 +156,39 @@ describe('createSimLayout + toolbar', () => {
     expect(layout.formulas.closest('.sim-formula-overlay')).toBeNull();
     layout.dispose();
     expect(host.childElementCount).toBe(0);
+  });
+
+  it('docks scene legends below a compact scene and back into the canvas when large', () => {
+    let fire = (): void => {};
+    class FakeRO {
+      constructor(cb: () => void) {
+        fire = cb;
+      }
+      observe(): void {}
+      disconnect(): void {}
+    }
+    vi.stubGlobal('ResizeObserver', FakeRO);
+    const host = document.createElement('div');
+    const layout = createSimLayout(host);
+    let h = 360;
+    Object.defineProperty(layout.scene, 'clientHeight', { get: () => h });
+    Object.defineProperty(layout.scene, 'clientWidth', { get: () => 900 });
+    const legend = document.createElement('div');
+    layout.addSceneLegend(legend);
+    const dock = host.querySelector<HTMLDetailsElement>('.sim-legend-dock')!;
+    expect(layout.compact).toBe(true);
+    expect(dock.hidden).toBe(false);
+    expect(dock.querySelector('summary')?.textContent).toBe('Legenda');
+    expect(legend.parentElement?.classList.contains('sim-legend-dock__body')).toBe(true);
+    expect(legend.hasAttribute('data-scene-legend')).toBe(true);
+    expect(layout.scene.classList.contains('sim-scene--compact')).toBe(true);
+    h = 496; // 1920×1080
+    fire();
+    expect(layout.compact).toBe(false);
+    expect(legend.parentElement).toBe(layout.sceneOverlay);
+    expect(dock.hidden).toBe(true);
+    layout.dispose();
+    vi.unstubAllGlobals();
   });
 
   it('toolbar drives the loop: Pausa/Riprendi and Passo', () => {

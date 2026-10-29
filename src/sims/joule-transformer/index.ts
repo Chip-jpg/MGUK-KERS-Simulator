@@ -23,8 +23,7 @@ import {
   LINE,
   LINE_C,
   LINE_HA,
-  PARTICLE_SPEED_PER_AMP,
-  PARTICLE_VMAX,
+  PARTICLE_V_FS,
   SAG_DRAW,
   THERMAL_SPEEDUP,
   T_LIMIT_C,
@@ -46,9 +45,9 @@ export const MODEL_NOTE_IT =
   'trasformatore ideale (nessuna perdita, accoppiamento perfetto), linea puramente resistiva, valori efficaci. ' +
   `Nella scena (scale illustrative, non in scala): spire N₁ : N₂ in proporzione; sezione del filo ∝ corrente (stessa densità di corrente); ` +
   `flusso nel nucleo Φₘₐₓ = √2·V/(2π·f·N) con f = ${AC_HZ} Hz, linee ∝ Φₘₐₓ; corrente alternata mostrata ${it(AC_HZ / AC_VISUAL_HZ)} volte più lenta, ` +
-  `particelle con velocità ∝ corrente istantanea (${it(PARTICLE_SPEED_PER_AMP, 3)} unità/s per A, massimo ${it(PARTICLE_VMAX, 1)} unità/s). ` +
+  `particelle con velocità ∝ corrente istantanea, con un’unica scala per le tre sezioni (il rapporto delle velocità è quello delle correnti, N₂/N₁): fondo scala = corrente efficace della sezione più carica arrotondata per eccesso alla serie 1-2-5, il cui picco √2·I corrisponde a ${it(PARTICLE_V_FS, 1)} unità/s. ` +
   `Conduttore di linea: alluminio Ø ${it(LINE.diameter * 1000)} mm, ${it(LINE.massPerMetre, 1)} kg/m, linea lunga ${it(LINE.length / 1000)} km (andata + ritorno); ` +
-  `temperatura da un modello termico concentrato per metro C'·dT/dt = R'·I² − h·π·D·(T − T₀), T₀ = 20 °C, con h = ${it(LINE.h)} W/(m²·K), tempo termico accelerato ${it(THERMAL_SPEEDUP)}×; ` +
+  `temperatura da un modello termico concentrato per metro C′·dT/dt = R′·I² − h·π·D·(T − T₀), T₀ = 20 °C, con h = ${it(LINE.h)} W/(m²·K), tempo termico accelerato ${it(THERMAL_SPEEDUP)}×; ` +
   `freccia della campata da ${it(LINE.span)} m calcolata con la catenaria (tiro ${it(LINE.tension / 1000)} kN a 20 °C, dilatazione α = 23·10⁻⁶ /K, allungamento elastico trascurato), disegnata a ${it(SAG_DRAW, 1)} unità per metro; ` +
   `una finestra accesa ogni ${it(WINDOW_W / 1e6, 1)} MW consegnati.`;
 
@@ -115,7 +114,7 @@ export function mountTransformer(
   const legend = el('div', { class: 'jt-legend' }, [
     el('span', {
       class: 'q-i',
-      text: `Corrente: particelle, velocità ∝ i istantanea (${it(PARTICLE_SPEED_PER_AMP, 3)} unità/s per A; 50 Hz rallentati ${it(AC_HZ / AC_VISUAL_HZ)}×)`,
+      text: `Corrente: particelle, velocità ∝ i istantanea, stessa scala per le tre sezioni (fondo scala 1-2-5 sulla corrente maggiore → ${it(PARTICLE_V_FS, 1)} unità/s; 50 Hz rallentati ${it(AC_HZ / AC_VISUAL_HZ)}×)`,
     }),
     el('span', { class: 'q-b', text: 'Flusso nel nucleo: numero di linee ∝ Φₘₐₓ = √2·V/(2π·f·N)' }),
     el('span', {
@@ -124,7 +123,8 @@ export function mountTransformer(
     }),
     el('span', { class: 'q-neutral', text: 'Freccia: catenaria calcolata' }),
   ]);
-  layout.sceneOverlay.append(legend, thermalLegend);
+  layout.addSceneLegend(legend);
+  layout.addSceneLegend(thermalLegend);
 
   let scene: TransformerScene | null = null;
   if (options.scene !== false) {

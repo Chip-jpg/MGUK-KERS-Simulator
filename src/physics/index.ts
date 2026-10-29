@@ -44,7 +44,8 @@ export {
 } from './vehicle';
 
 // numerical integration
-export { rk4Step } from './ode';
+export { createRk4Work, rk4Step } from './ode';
+export type { Rk4Work } from './ode';
 export type { OdeRhs } from './ode';
 
 import type { kersBrakingEvent } from './vehicle';

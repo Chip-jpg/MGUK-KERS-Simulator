@@ -31,7 +31,15 @@
  *   change the motion. Its magnitude is tiny (µN): the arrow length in the scene
  *   is qualitative (log scale).
  */
-import { MU_0, emfFaraday, fluxUniform, inducedCurrent, lenzSign, rk4Step } from '../../physics';
+import {
+  MU_0,
+  createRk4Work,
+  emfFaraday,
+  fluxUniform,
+  inducedCurrent,
+  lenzSign,
+  rk4Step,
+} from '../../physics';
 
 /** Which pole of the magnet faces the coil. */
 export type Pole = 'N' | 'S';
@@ -303,6 +311,9 @@ export function galvoTarget(i: number, iFs: number): number {
   return (Math.min(lim, Math.max(-lim, Number.isFinite(deg) ? deg : 0)) * Math.PI) / 180;
 }
 
+const GALVO_Y = [0, 0];
+const GALVO_WORK = createRk4Work(2);
+
 /** One RK4 step of the needle dynamics toward the static deflection `target` [rad]. */
 export function galvoStep(s: GalvoState, target: number, dt: number): GalvoState {
   const w0 = 2 * Math.PI * GALVO.f0;
@@ -310,7 +321,9 @@ export function galvoStep(s: GalvoState, target: number, dt: number): GalvoState
     y[1] as number,
     w0 * w0 * (target - (y[0] as number)) - 2 * GALVO.zeta * w0 * (y[1] as number),
   ];
-  const y = rk4Step(f, 0, [s.phi, s.omega], dt);
+  GALVO_Y[0] = s.phi;
+  GALVO_Y[1] = s.omega;
+  const y = rk4Step(f, 0, GALVO_Y, dt, GALVO_WORK); // no per-step arrays (QA-038)
   const lim = (GALVO.pinDeg * Math.PI) / 180;
   const phi = y[0] as number;
   // End pins: the needle stops there (inelastic).

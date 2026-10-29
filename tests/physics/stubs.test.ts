@@ -103,7 +103,17 @@ describe('physics API contract (§4.2)', () => {
         powerTrace: Array<{ t: N; pKers: N; pBrakes: N }>;
       }
     >();
+    // v0.6 (QA-038): one OPTIONAL trailing parameter (work buffers); every old call is valid
     expectTypeOf(physics.rk4Step).toEqualTypeOf<
+      (
+        f: (t: N, y: readonly N[]) => N[],
+        t: N,
+        y: readonly N[],
+        dt: N,
+        work?: { tmp: N[]; out: N[] },
+      ) => N[]
+    >();
+    expectTypeOf(physics.rk4Step).toMatchTypeOf<
       (f: (t: N, y: readonly N[]) => N[], t: N, y: readonly N[], dt: N) => N[]
     >();
   });

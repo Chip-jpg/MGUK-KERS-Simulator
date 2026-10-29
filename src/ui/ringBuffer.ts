@@ -7,6 +7,8 @@ export class RingBuffer {
   private readonly cols: Float64Array[];
   private head = 0;
   private size = 0;
+  /** Per column: the last `toArraysInto` wrote nulls (see there). */
+  private readonly withGaps: boolean[] = [];
 
   constructor(
     readonly capacity: number,
@@ -47,6 +49,34 @@ export class RingBuffer {
       }
     }
     return out as [number[], ...(number | null)[][]];
+  }
+
+  /**
+   * Chronological columns written INTO preallocated arrays (no allocation once the
+   * buffer is full): `out` holds one plain array per column and is resized to
+   * `length`. Used by the live plots on every redraw (QA-038). Returns `out`.
+   */
+  toArraysInto(out: (number | null)[][]): (number | null)[][] {
+    const nCols = this.cols.length;
+    while (out.length < nCols) out.push([]);
+    out.length = nCols;
+    for (let c = 0; c < nCols; c++) {
+      const col = this.cols[c] as Float64Array;
+      let gaps = false;
+      for (let k = 0; k < this.size && !gaps; k++)
+        gaps = Number.isNaN(col[(this.head + k) % this.capacity] as number);
+      let dst = out[c] as (number | null)[];
+      // A column that once held a null is a generic array (every double boxed): when the
+      // gaps are gone, start a fresh array so that V8 keeps the numbers unboxed.
+      if (!gaps && this.withGaps[c]) dst = out[c] = [];
+      this.withGaps[c] = gaps;
+      if (dst.length !== this.size) dst.length = this.size;
+      for (let k = 0; k < this.size; k++) {
+        const v = col[(this.head + k) % this.capacity] as number;
+        dst[k] = gaps && Number.isNaN(v) ? null : v;
+      }
+    }
+    return out;
   }
 
   /** Last sample's x, or undefined when empty. */

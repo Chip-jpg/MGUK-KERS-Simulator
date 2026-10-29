@@ -28,13 +28,21 @@ export function glowIntensity(T: number): number {
   const k = Math.round(Math.min(T, 2500));
   let v = lumCache.get(k);
   if (v === undefined) {
-    const L = Math.log10(blackbodyLuminance(k) / blackbodyLuminance(GLOW_ONSET_K));
-    const L2500 = Math.log10(blackbodyLuminance(2500) / blackbodyLuminance(GLOW_ONSET_K));
-    v = 2.6 * Math.pow(Math.max(0, L / L2500), 1.5);
+    // reference luminances computed once (QA-038), one Planck integration pair per miss
+    if (Y_ONSET === 0) {
+      Y_ONSET = blackbodyLuminance(GLOW_ONSET_K);
+      L_2500 = Math.log10(blackbodyLuminance(2500) / Y_ONSET);
+    }
+    const L = Math.log10(blackbodyLuminance(k) / Y_ONSET);
+    v = 2.6 * Math.pow(Math.max(0, L / L_2500), 1.5);
     lumCache.set(k, v);
   }
   return Math.max(0, v);
 }
+
+/** Cached Y(700 K) (relative to the LUT maximum) and log₁₀(Y(2500 K)/Y(700 K)). */
+let Y_ONSET = 0;
+let L_2500 = 1;
 
 const rgb: [number, number, number] = [0, 0, 0];
 

@@ -43,7 +43,22 @@ export interface SimLayout extends Disposable {
   setModelNote(textIT: string): void;
   /** Show the formulas enlarged over the scene ("Mostra formule"). */
   setFormulasOverlay(show: boolean): void;
+  /**
+   * Register a scene legend / HUD box. It is shown over the scene (in `sceneOverlay`) while
+   * the scene is large; when the scene is compact (height < {@link COMPACT_SCENE_HEIGHT} px or
+   * width < {@link COMPACT_SCENE_WIDTH} px, e.g. 1280×720) it moves OUT of the canvas into
+   * the collapsible "Legenda" block just below the scene, so it never covers the 3D view.
+   * In-canvas boxes are obstacles for the label layer (labels never sit on them).
+   */
+  addSceneLegend(element: HTMLElement): void;
+  /** True while legends are docked below the scene (compact scene). */
+  readonly compact: boolean;
 }
+
+/** Below this scene height [px] legends/HUD leave the canvas (QA-031). */
+export const COMPACT_SCENE_HEIGHT = 420;
+/** Below this scene width [px] legends/HUD leave the canvas. */
+export const COMPACT_SCENE_WIDTH = 640;
 
 export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {}): SimLayout {
   host.replaceChildren();
@@ -76,6 +91,37 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
     ]),
     formulasSlot,
   ]);
+
+  // Legend dock: collapsible block under the scene, used while the scene is compact.
+  const legendBody = el('div', { class: 'sim-legend-dock__body' });
+  const legendDock = el(
+    'details',
+    { class: 'sim-legend-dock', attrs: { open: true, hidden: true, 'data-testid': 'legend-dock' } },
+    [el('summary', { class: 'sim-legend-dock__summary', text: t.sim.legend }), legendBody],
+  );
+  const legends: HTMLElement[] = [];
+  let compact = false;
+  const placeLegends = (): void => {
+    for (const lg of legends) {
+      const parent = compact ? legendBody : sceneOverlay;
+      if (lg.parentElement !== parent) parent.append(lg);
+    }
+    legendDock.hidden = !compact || legends.length === 0;
+    scene.classList.toggle('sim-scene--compact', compact);
+  };
+  const evaluateCompact = (): void => {
+    const h = scene.clientHeight;
+    const w = scene.clientWidth;
+    if (h === 0 && w === 0) return; // detached / not laid out
+    const next = h < COMPACT_SCENE_HEIGHT || w < COMPACT_SCENE_WIDTH;
+    if (next !== compact) {
+      compact = next;
+      placeLegends();
+    }
+  };
+  const ro =
+    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => evaluateCompact());
+  ro?.observe(scene);
 
   const plots = el('div', { class: 'sim-plots__body' });
   const plotsSection = el(
@@ -111,7 +157,7 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
   }
 
   const root = el('div', { class: 'sim-layout' }, [
-    el('div', { class: 'sim-layout__main' }, [toolbar, stage]),
+    el('div', { class: 'sim-layout__main' }, [toolbar, stage, legendDock]),
     side,
     plotsSection,
     note,
@@ -129,7 +175,19 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
     note,
     setModelNote,
     setFormulasOverlay,
+    addSceneLegend(element) {
+      element.dataset['sceneLegend'] = '';
+      element.classList.add('sim-scene-legend');
+      if (!legends.includes(element)) legends.push(element);
+      evaluateCompact();
+      placeLegends();
+    },
+    get compact() {
+      return compact;
+    },
     dispose() {
+      ro?.disconnect();
+      legends.length = 0;
       formulasButton.dispose();
       root.remove();
     },

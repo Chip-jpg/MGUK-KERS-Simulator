@@ -35,7 +35,8 @@ const renderInfo = async (page: Page): Promise<RenderInfo> =>
 /** "1.234,5 V" → { value: 1234.5, unit: 'V' }. */
 function parseIT(text: string): { value: number; unit: string } {
   // \s also matches the NBSP that formatIT puts before the unit.
-  const m = /^\s*(-?[\d.]+(?:,\d+)?)\s*(.*)$/u.exec(text);
+  // formatIT writes negative numbers with the minus sign U+2212
+  const m = /^\s*(-?[\d.]+(?:,\d+)?)\s*(.*)$/u.exec(text.replace(/\u2212/g, '-'));
   if (!m) return { value: Number.NaN, unit: '' };
   return {
     value: Number((m[1] ?? '').replace(/\./g, '').replace(',', '.')),

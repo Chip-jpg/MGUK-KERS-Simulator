@@ -17,6 +17,7 @@ import {
   createGapField,
   dipoleField,
   loopField,
+  SOLENOID_MAX_LOOPS,
   solenoidField,
   type FieldFn,
   type GapGeometry,
@@ -383,6 +384,41 @@ export interface TraceJob {
   options: TraceOptions;
 }
 
+/**
+ * Relative cost of one evaluation of a field model (≈ number of elementary terms:
+ * a dipole = 1, a loop ≈ 4 for the elliptic integrals, a solenoid = its loops).
+ */
+export function fieldCost(spec: FieldSpec): number {
+  switch (spec.kind) {
+    case 'uniform':
+      return 0.2;
+    case 'dipole':
+      return 1;
+    case 'gap':
+      return 6;
+    case 'loop':
+      return 4;
+    case 'solenoid':
+      return 4 * (spec.loops ?? Math.min(Math.ceil(spec.N), SOLENOID_MAX_LOOPS));
+    case 'sum':
+      return spec.parts.reduce((s, p) => s + fieldCost(p), 0);
+  }
+}
+
+/**
+ * Upper-bound work of a trace job (QA-041): seeds × max vertices per line (× 2 when
+ * traced both ways) × 4 RK4 evaluations × {@link fieldCost}. Lines usually stop much
+ * earlier; the bound is only used to decide main thread vs worker BEFORE the first trace.
+ */
+export function estimateTraceCost(job: TraceJob): number {
+  const pts = job.options.maxPoints ?? 600;
+  const ways = job.options.direction === 0 ? 2 : 1;
+  return job.seeds.length * pts * ways * 4 * fieldCost(job.field);
+}
+
+/** Jobs above this {@link estimateTraceCost} start in the worker, even the first one. */
+export const HEAVY_TRACE_COST = 3e6;
+
 export function runTraceJob(job: TraceJob): TracedLine[] {
   const f = fieldFromSpec(job.field);
   return job.seeds.map((s) => traceFieldLine(f, s, job.options)).filter((l) => l.count >= 2);
@@ -445,7 +481,9 @@ export function seedDisc(
  * Flux-proportional seeding: from candidate points with weights w_k = |B(p_k)·n̂|
  * (flux through each candidate's equal-area cell), pick n seeds by stratified
  * sampling of the cumulative flux — so the number of lines through any patch is
- * ∝ its flux (line density ∝ |B|, Faraday's picture).
+ * ∝ its flux (line density ∝ |B|, Faraday's picture). A candidate is never picked
+ * twice (QA-042): when one cell carries more than total/n of the flux it gives one
+ * seed, not several coincident lines, so the result may hold fewer than n seeds.
  */
 export function seedByFlux(
   f: FieldFn,
@@ -462,12 +500,15 @@ export function seedByFlux(
   const out: Vec3[] = [];
   let acc = 0;
   let k = 0;
+  let last = -1;
   for (let i = 0; i < n; i++) {
     const target = ((i + 0.5) / n) * total;
     while (k < candidates.length - 1 && acc + (w[k] as number) < target) {
       acc += Number.isFinite(w[k] as number) ? (w[k] as number) : 0;
       k++;
     }
+    if (k === last) continue; // same cell again: a duplicate line, skip it
+    last = k;
     out.push([...(candidates[k] as Vec3)]);
   }
   return out;
