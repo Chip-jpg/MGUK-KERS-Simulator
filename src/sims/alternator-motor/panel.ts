@@ -28,7 +28,7 @@ export function createTheoryLinks(): HTMLElement {
 }
 
 export const MODEL_NOTE_IT =
-  'B uniforme, una spira rettangolare, nessuna saturazione o perdita nel ferro, alimentazione ideale; autoinduzione della spira trascurata, batteria in frenata modellata come carico resistivo equivalente, motore con alimentazione sincronizzata vₛ = Vₛ·sin θ (corrente sempre in fase con la f.e.m., coppia media positiva), velocità limitata a 150 rad/s.';
+  'B uniforme, una spira rettangolare, nessuna saturazione o perdita nel ferro, alimentazione ideale; autoinduzione della spira trascurata, batteria in frenata modellata come carico resistivo equivalente, motore con alimentazione sincronizzata vₛ = Vₛ·sin θ (corrente sempre in fase con la f.e.m., coppia media positiva), velocità limitata a 150 rad/s. Nella scena: linee di B calcolate per due espansioni polari affacciate (uniformi al centro, frange ai bordi); frecce della forza di Lorentz e archi delle coppie dai valori del modello (frecce in scala logaritmica); particelle di corrente con velocità ∝ i; nastri viola con raggio ∝ potenza media; temperatura dell’avvolgimento da un modello termico concentrato con massa termica illustrativa (C = 400 J/K, h·A = 2 W/K: non arriva mai all’incandescenza); carica della batteria su una capacità illustrativa di 5 kJ; raggio del volano ∝ J^¼.';
 
 /** Captions of the three nodes and of the loss node, per mode. */
 export const FLOW_LABELS_IT: Record<

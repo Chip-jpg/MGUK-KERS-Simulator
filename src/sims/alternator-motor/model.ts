@@ -427,3 +427,39 @@ export function noLoadSpeed(p: MachineParams): number {
   const kMax = p.N * p.B * coilArea(p);
   return kMax > 0 ? p.Vs / kMax : 0;
 }
+
+// --- scene-side quantities (illustrative, stated in the model note) ---------------------
+
+/**
+ * Illustrative thermal mass of the winding for the Joule-heating display:
+ * C ≈ 1 kg of copper (385 J/(kg·K)) → 400 J/K, convective h·A = 2 W/K. With the
+ * default parameters the winding warms by a few kelvin: it never glows (that
+ * would need ≈ 700 K), and the scene does not pretend otherwise.
+ */
+export const WINDING_THERMAL = { C: 400, hA: 2 } as const;
+
+/** Illustrative usable energy of the battery pack for the charge gauge [J]. */
+export const BATTERY_CAPACITY_J = 5000;
+
+/**
+ * State of charge after one step: + energy delivered to the battery (generator,
+ * E_out) or − energy drawn from it (motor, E_in), from the RK4 energy integrals
+ * of the two states. Clamped to [0, 1].
+ */
+export function socStep(
+  soc: number,
+  mode: MachineMode,
+  before: MachineState,
+  after: MachineState,
+  capacity: number = BATTERY_CAPACITY_J,
+): number {
+  const k = mode === 'generator' ? IDX.eOut : IDX.eIn;
+  const dE = (after.y[k] as number) - (before.y[k] as number);
+  const next = soc + (mode === 'generator' ? dE : -dE) / capacity;
+  return Math.min(1, Math.max(0, next));
+}
+
+/** Drawn flywheel radius [scene units] for J: a disc of fixed thickness has J ∝ R⁴, so R ∝ J^¼. */
+export function flywheelRadius(J: number, rMax = 1.35): number {
+  return rMax * Math.pow(Math.max(0, J) / params.J.max, 0.25);
+}

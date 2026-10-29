@@ -31,7 +31,7 @@
  *   change the motion. Its magnitude is tiny (µN): the arrow length in the scene
  *   is qualitative (log scale).
  */
-import { MU_0, emfFaraday, fluxUniform, inducedCurrent, lenzSign } from '../../physics';
+import { MU_0, emfFaraday, fluxUniform, inducedCurrent, lenzSign, rk4Step } from '../../physics';
 
 /** Which pole of the magnet faces the coil. */
 export type Pole = 'N' | 'S';
@@ -251,4 +251,118 @@ export function followStep(z: number, target: number, v: number, dt: number): nu
 /** Clamp a position into the allowed range [Z_NEAR, Z_FAR]. */
 export function clampZ(z: number): number {
   return Math.min(Z_FAR, Math.max(Z_NEAR, z));
+}
+
+// --- galvanometer (scene instrument) ----------------------------------------------
+
+/**
+ * Centre-zero moving-coil galvanometer that reads the induced current.
+ *
+ * The needle is a damped torsional oscillator (moving-coil meter): with
+ * deflection φ [rad], the restoring torque of the hairspring balances the
+ * electromagnetic torque k·i at the static deflection φ∞ = φ_fs · i / i_fs, and
+ * the motion obeys the 2nd-order law
+ *
+ *   φ'' + 2 ζ ω₀ φ' + ω₀² φ = ω₀² φ∞(t)
+ *
+ * (ω₀ = 2π f₀ natural angular frequency, ζ damping ratio, from the hairspring
+ * stiffness, the coil's moment of inertia and the eddy-current/air damping).
+ * It is integrated with RK4 in the fixed physics step. The full scale i_fs is
+ * set by an auto-ranging switch (1-2-5 series) so that the swing stays readable
+ * over the five decades of current the sliders allow; the needle stops at the
+ * end pins (±{@link GALVO.pinDeg}). The meter is a display device: its own
+ * resistance and its effect on the circuit are not modelled (R in the panel is
+ * the whole circuit resistance).
+ */
+export const GALVO = {
+  /** Natural frequency f₀ [Hz]. */
+  f0: 1.5,
+  /** Damping ratio ζ (slightly under-damped: a small overshoot, as in real meters). */
+  zeta: 0.6,
+  /** Deflection at full scale [deg]. */
+  fullScaleDeg: 50,
+  /** End pins [deg]. */
+  pinDeg: 56,
+  /** Smallest full scale of the auto-ranging switch [A]. */
+  minRange: 10e-6,
+  /** Peak-hold release time of the range switch [s]. */
+  rangeTau: 3,
+} as const;
+
+export interface GalvoState {
+  /** Needle deflection φ [rad] (+ = to the right = current counter-clockwise seen from the magnet). */
+  phi: number;
+  /** Angular velocity φ' [rad/s]. */
+  omega: number;
+}
+
+/** Static deflection [rad] for a current i on the full scale iFs (clamped at the pins). */
+export function galvoTarget(i: number, iFs: number): number {
+  const deg = (GALVO.fullScaleDeg * i) / iFs;
+  const lim = GALVO.pinDeg;
+  return (Math.min(lim, Math.max(-lim, Number.isFinite(deg) ? deg : 0)) * Math.PI) / 180;
+}
+
+/** One RK4 step of the needle dynamics toward the static deflection `target` [rad]. */
+export function galvoStep(s: GalvoState, target: number, dt: number): GalvoState {
+  const w0 = 2 * Math.PI * GALVO.f0;
+  const f = (_t: number, y: readonly number[]): number[] => [
+    y[1] as number,
+    w0 * w0 * (target - (y[0] as number)) - 2 * GALVO.zeta * w0 * (y[1] as number),
+  ];
+  const y = rk4Step(f, 0, [s.phi, s.omega], dt);
+  const lim = (GALVO.pinDeg * Math.PI) / 180;
+  const phi = y[0] as number;
+  // End pins: the needle stops there (inelastic).
+  if (phi > lim) return { phi: lim, omega: 0 };
+  if (phi < -lim) return { phi: -lim, omega: 0 };
+  return { phi, omega: y[1] as number };
+}
+
+// --- coil and magnet drawing (scene) -----------------------------------------------
+
+/** Turns drawn for N real turns: min(N, cap). The label always shows the real N. */
+export function visualTurns(N: number, cap: number): number {
+  return Math.max(1, Math.min(cap, Math.round(N)));
+}
+
+/**
+ * Layered winding of `turns` drawn turns with at most `perLayerMax` turns per
+ * layer (real coils are wound in layers, back and forth): number of layers and
+ * turns in the longest layer.
+ */
+export function windingLayout(
+  turns: number,
+  perLayerMax: number,
+): { layers: number; perLayer: number } {
+  const t = Math.max(1, Math.round(turns));
+  const layers = Math.ceil(t / Math.max(1, perLayerMax));
+  return { layers, perLayer: Math.ceil(t / layers) };
+}
+
+/** Number of point dipoles that represent the bar magnet when tracing field lines. */
+export const MAGNET_DIPOLES = 8;
+
+/**
+ * Positions (along the magnet axis, from its centre) of the K point dipoles of
+ * the finite dipole used for the drawn field lines: a uniformly magnetised bar
+ * is a line of equal dipoles m/K at the centres of K equal slices. Its far field
+ * is exactly the point dipole of the flux model.
+ */
+export function dipoleChain(length: number, k: number = MAGNET_DIPOLES): number[] {
+  return Array.from({ length: k }, (_, j) => -length / 2 + ((j + 0.5) * length) / k);
+}
+
+/**
+ * Visual gain of the induced field lines: their pulse speed/brightness factor is
+ * min(1,2; G · |B_ind| / |B̄|) with both fields at the coil. The real induced
+ * field is ~10⁻³ of the magnet's (µT vs mT), so without a gain it would be
+ * invisible; the labels always show the real values.
+ */
+export const INDUCED_VISUAL_GAIN = 500;
+
+/** Flow factor of the induced field lines (see {@link INDUCED_VISUAL_GAIN}). */
+export function inducedFlow(Bind: number, Bmag: number): number {
+  if (!(Math.abs(Bmag) > 0)) return 0;
+  return Math.min(1.2, (INDUCED_VISUAL_GAIN * Math.abs(Bind)) / Math.abs(Bmag));
 }

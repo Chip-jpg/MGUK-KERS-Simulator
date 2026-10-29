@@ -36,22 +36,39 @@
   color: var(--color-text-muted);
   font-size: var(--fs-xs);
 }
-.lenz-label {
+.lenz-legend {
   position: absolute;
-  top: 0;
-  left: 0;
-  margin: -0.7em 0 0 0.3em;
-  padding: 0 0.3em;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: min(26rem, 60%);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-bold);
-  white-space: nowrap;
-}
-.lenz-label--soft {
-  opacity: 0.85;
-}
-.lenz-label--pole {
-  margin-left: -1.5em;
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   color: var(--color-text);
+  font-size: var(--fs-xs);
+  line-height: 1.3;
+}
+.lenz-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 0.22em;
+  margin-right: 0.4em;
+  vertical-align: middle;
+  background: var(--q);
+}
+.lenz-legend__b {
+  --q: var(--q-b);
+}
+.lenz-legend__bi {
+  --q: repeating-linear-gradient(90deg, var(--q-b) 0 3px, transparent 3px 5px);
+}
+.lenz-legend__f {
+  --q: var(--q-f);
+}
+.lenz-legend__i {
+  --q: var(--q-i);
 }

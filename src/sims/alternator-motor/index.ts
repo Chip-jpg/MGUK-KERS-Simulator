@@ -15,7 +15,6 @@ import {
   createSimToolbar,
   createSlider,
   el,
-  onThemeChange,
   type FormulaItem,
   type FormulaPanel,
   type Slider,
@@ -30,7 +29,9 @@ import {
   instant,
   params,
   rpm,
+  socStep,
   step as modelStep,
+  WINDING_THERMAL,
   type MachineMode,
   type MachineParams,
   type MachineState,
@@ -43,6 +44,10 @@ import {
   createReadouts,
   type FlowPowers,
 } from './panel';
+import { createResetViewButton, snapshotRenderStats } from '../../render';
+import { createHeatBody } from '../../render/heat';
+import { autoRange, holdPeak } from '../../render/scale';
+import { F_LOG_RANGE, PARTICLE_SPEED_PER_AMP, sceneStats } from './constants';
 import type { MachineScene, SceneInfo } from './scene';
 
 export { params } from './model';
@@ -148,6 +153,9 @@ export interface AlternatorDebug {
   liveMounts: number;
   canvases: number;
   renderer: SceneInfo | null;
+  tier: string | null;
+  scene: typeof sceneStats;
+  foundation: Record<string, number>;
   mode: MachineMode;
   t: number;
   omega: number;
@@ -168,8 +176,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   let s: MachineState = initialState(mode, p);
   let s0: MachineState = s;
   const avg = { pConv: 0, pElec: 0, pJoule: 0, pMech: 0 };
-  let iRef = 1e-9;
-  let fRef = 1e-9;
+  let soc = 0.5;
+  let pPeak = 0;
+  let pRef = 1;
+  let tauPeak = 0;
+  const heat = createHeatBody(WINDING_THERMAL);
   let stepCount = 0;
   const offs: (() => void)[] = [];
 
@@ -218,10 +229,18 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
 
   // --- scene overlay --------------------------------------------------------
   const badge = el('div', { class: 'am-mode-badge' });
+  const legendEnergy = el('span', { class: 'q-energy', text: 'Energia: nastri, raggio ∝ P' });
   const legend = el('div', { class: 'am-legend' }, [
-    el('span', { class: 'q-b', text: 'Campo B' }),
-    el('span', { class: 'q-i', text: 'Corrente i' }),
-    el('span', { class: 'q-f', text: 'Forza di Lorentz F' }),
+    el('span', { class: 'q-b', text: 'Campo B: linee calcolate nel traferro' }),
+    el('span', {
+      class: 'q-i',
+      text: `Corrente i: particelle, ${ctx.formatIT(PARTICLE_SPEED_PER_AMP, 2)} unità/s per A`,
+    }),
+    el('span', {
+      class: 'q-f',
+      text: `Forza F e coppia τ: frecce ∝ log₁₀|F| (${F_LOG_RANGE[0]} N … ${F_LOG_RANGE[1] / 1000} kN)`,
+    }),
+    legendEnergy,
   ]);
   layout.sceneOverlay.append(badge, legend);
 
@@ -232,7 +251,10 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     .then(({ createMachineScene }) => {
       if (disposed) return;
       try {
-        scene = createMachineScene(layout.scene, layout.sceneOverlay, ctx.theme);
+        scene = createMachineScene(layout.scene, layout.sceneOverlay, ctx);
+        const resetView = createResetViewButton(scene.stage);
+        layout.toolbar.append(resetView.element);
+        offs.push(() => resetView.dispose());
       } catch (e) {
         console.warn('alternator-motor: WebGL non disponibile', e);
       }
@@ -240,7 +262,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     .finally(() => {
       if (!disposed) render();
     });
-  offs.push(onThemeChange((t) => scene?.setTheme(t)));
 
   // --- plots, flow, formulas -------------------------------------------------
   const flow = createEnergyFlow(layout.plots, mode);
@@ -274,7 +295,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     s = initialState(mode, p);
     s0 = s;
     avg.pConv = avg.pElec = avg.pJoule = avg.pMech = 0;
-    iRef = fRef = 1e-9;
+    pPeak = tauPeak = 0;
     stepCount = 0;
     plotEmf.clear();
     plotP.clear();
@@ -298,8 +319,14 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   }
 
   function physicsStep(dt: number): void {
+    const prev = s;
     s = modelStep(mode, p, s, dt);
     const q = instant(mode, p, s.y[0] as number, s.y[1] as number);
+    soc = socStep(soc, mode, prev, s);
+    heat.step(q.pJoule, dt);
+    pPeak = holdPeak(pPeak, Math.max(avg.pConv, avg.pElec), dt, 4);
+    pRef = autoRange(pRef, pPeak, 0.1);
+    tauPeak = holdPeak(tauPeak, Math.max(Math.abs(q.tauEm), Math.abs(q.tauShaft)), dt, 2);
     const a = dt / POWER_AVG_TAU;
     avg.pConv += a * (q.pConv - avg.pConv);
     avg.pElec += a * (q.pElec - avg.pElec);
@@ -347,17 +374,37 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     });
     // Same frame as the readouts: no one-frame lag between the two panels (QA-018).
     formulas.flush();
-    iRef = Math.max(iRef * 0.99, Math.abs(q.sideCurrent));
-    fRef = Math.max(fRef * 0.99, Math.abs(q.forceSide));
     if (scene) {
+      const kelvin = heat.T;
+      legendEnergy.textContent = `Energia: nastri, raggio ∝ P (spessore pieno = ${ctx.formatIT(pRef, pRef < 1 ? 1 : 0, 'W')})`;
+      const tauShaftName = gen ? 'τₑₛₜ (ruote)' : 'τ carico (ventola)';
       scene.update({
         mode,
         theta,
-        bRel: p.B / params.B.max,
-        L: p.L,
-        w: p.w,
-        iRel: q.sideCurrent / iRef,
-        fRel: q.forceSide / fRef,
+        omega,
+        p,
+        q,
+        pConv: avg.pConv,
+        pElec: avg.pElec,
+        pJoule: avg.pJoule,
+        pRef,
+        tauRef: Math.max(tauPeak, 1e-3),
+        T: kelvin,
+        soc,
+        labels: {
+          b: `B = ${ctx.formatIT(p.B, 2, 'T')}`,
+          emf: `ε = ${ctx.formatIT(q.emf, 1, 'V')}`,
+          i: `i = ${ctx.formatIT(q.i, 2, 'A')}`,
+          force: `F = ${ctx.formatIT(Math.abs(q.forceSide), 1, 'N')}`,
+          tauEm: `τₑₘ = ${ctx.formatIT(q.tauEm, 2, 'N·m')} (${gen ? 'frenante' : 'motrice'})`,
+          tauShaft: `${tauShaftName} = ${ctx.formatIT(Math.abs(q.tauShaft), 2, 'N·m')}`,
+          battery: `batteria: carica ${ctx.formatIT(soc * 100, 1, '%')}`,
+          heat: `avvolgimento ${ctx.formatIT(kelvin - 273.15, 1, '°C')} · calore Joule ${ctx.formatIT(avg.pJoule, 1, 'W')}`,
+          flywheel: `volano J = ${ctx.formatIT(p.J, 2, 'kg·m²')} · ω = ${ctx.formatIT(omega, 1, 'rad/s')}`,
+          pMech: `P mecc. = ${ctx.formatIT(avg.pConv, 1, 'W')}`,
+          pElec: `P batt. = ${ctx.formatIT(avg.pElec, 1, 'W')}`,
+          pJoule: `calore Joule ${ctx.formatIT(avg.pJoule, 1, 'W')}`,
+        },
       });
       scene.render();
     }
@@ -383,6 +430,9 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       liveMounts,
       canvases: layout.scene.querySelectorAll('canvas').length, // WebGL canvas only
       renderer: scene ? scene.info() : null,
+      tier: scene?.stage.tier ?? null,
+      scene: { ...sceneStats },
+      foundation: snapshotRenderStats(),
       mode,
       t: s.t,
       omega: s.y[1] as number,

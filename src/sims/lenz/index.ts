@@ -9,25 +9,32 @@ import {
   createSimToolbar,
   createSlider,
   el,
-  onThemeChange,
   type Slider,
 } from '../../ui';
 import { singularTurnsScale } from '../shared/turns';
 import {
   Z_FAR,
   Z_NEAR,
+  GALVO,
+  INDUCED_VISUAL_GAIN,
+  MAGNET_DIPOLES,
   autoStep,
+  galvoStep,
+  galvoTarget,
   clampZ,
   followStep,
   induction,
   initialAutoState,
   type AutoState,
   type Direction,
+  type GalvoState,
   type Induction,
   type Pole,
 } from './model';
 import { defaultParams, params, type LenzParams } from './params';
-import { createLenzScene, liveResources, type LenzScene } from './scene';
+import { createResetViewButton, snapshotRenderStats } from '../../render';
+import { autoRange, holdPeak } from '../../render/scale';
+import { createLenzScene, liveResources, PARTICLE_SPEED_FS, type LenzScene } from './scene';
 import { describeStatus } from './status';
 import './lenz.css';
 
@@ -36,17 +43,20 @@ export type { LenzParams } from './params';
 
 type Mode = 'auto' | 'manuale';
 
-export const MODEL_NOTE_IT =
-  'magnete come dipolo puntiforme sull’asse della bobina; flusso Φ = B̄·S con B̄ campo medio sulla sezione (equivale a B uniforme sulla sezione); bobina sottile; autoinduzione trascurata; moto del magnete imposto. La forza è calcolata come interazione dipolo–spira, ma la lunghezza delle frecce è qualitativa (scala logaritmica).';
+export const MODEL_NOTE_IT = `magnete come dipolo puntiforme sull’asse della bobina; flusso Φ = B̄·S con B̄ campo medio sulla sezione (equivale a B uniforme sulla sezione); bobina sottile; autoinduzione trascurata; moto del magnete imposto. La forza è calcolata come interazione dipolo–spira; la lunghezza della freccia F è in scala logaritmica (1 nN … 1 N). Nella scena le linee del magnete sono calcolate per un dipolo finito (${MAGNET_DIPOLES} dipoli puntiformi lungo la barra, stesso campo lontano del dipolo del modello) e seminate a flusso uguale dalla faccia vicina: quante attraversano la bobina cresce con Φ. Le linee tratteggiate del campo indotto sono calcolate per le spire percorse da i (integrali ellittici) con guadagno visivo ×${INDUCED_VISUAL_GAIN} (il campo indotto reale è circa mille volte più debole di quello del magnete: le etichette riportano i valori veri). Il galvanometro è un indicatore a zero centrale con risposta del 2° ordine (f₀ = ${String(GALVO.f0).replace('.', ',')} Hz, ζ = ${String(GALVO.zeta).replace('.', ',')}) e fondo scala automatico; le particelle di corrente si muovono a velocità ∝ i (fondo scala → ${PARTICLE_SPEED_FS} unità/s).`;
 
 /** Debug counters for the e2e leak check (exposed only when `debugEnabled()`). */
 const debug = { mounts: 0, disposes: 0, frames: 0 };
+let currentScene: LenzScene | null = null;
 
 function exposeDebug(getScene: () => LenzScene | null): () => void {
   return registerDebugHook('lenz', () => ({
     ...debug,
     live: liveResources(),
     renderer: getScene()?.info() ?? null,
+    render: getScene()?.info() ?? null,
+    tier: getScene()?.stage.tier ?? null,
+    foundation: snapshotRenderStats(),
     canvases: document.querySelectorAll('.sim-scene canvas').length,
   }));
 }
@@ -68,13 +78,16 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   let resetHistory = true;
   let t = 0;
   let stepCount = 0;
-  let animDt = 0;
+  let galvo: GalvoState = { phi: 0, omega: 0 };
+  let iPeak = 0;
+  let iRange: number = GALVO.minRange;
   let ind: Induction = induction({ ...p, pole }, z, z, 1 / 240);
 
   // --- scene -------------------------------------------------------------------
   let scene: LenzScene | null = null;
   try {
-    scene = createLenzScene(ctx.theme);
+    scene = createLenzScene(layout.scene, layout.sceneOverlay, ctx);
+    currentScene = scene;
   } catch {
     layout.scene.append(
       el('p', { class: 'sim-placeholder', text: 'WebGL non disponibile: scena 3D disattivata.' }),
@@ -92,20 +105,6 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     canvas.setAttribute('aria-valuemin', String(Z_NEAR * 100));
     canvas.setAttribute('aria-valuemax', String(Z_FAR * 100));
     canvas.classList.add('lenz-canvas');
-    layout.scene.prepend(canvas);
-    const ro = new ResizeObserver(() => {
-      scene?.resize(layout.scene.clientWidth, layout.scene.clientHeight);
-      if (loop.isPaused()) renderFrame();
-    });
-    ro.observe(layout.scene);
-    offs.push(() => ro.disconnect());
-    scene.resize(layout.scene.clientWidth || 800, layout.scene.clientHeight || 450);
-    offs.push(
-      onThemeChange((th) => {
-        scene?.setTheme(th);
-        if (loop.isPaused()) renderFrame();
-      }),
-    );
   }
 
   // Status badge (accessible, inside the scene region) + overlay labels.
@@ -116,14 +115,23 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     statusSub,
   ]);
   layout.scene.append(status);
-  const labels = {
-    bMag: el('span', { class: 'lenz-label text-q-b', text: 'B magnete' }),
-    bInd: el('span', { class: 'lenz-label lenz-label--soft text-q-b', text: 'B indotto' }),
-    current: el('span', { class: 'lenz-label text-q-i', text: 'i' }),
-    force: el('span', { class: 'lenz-label text-q-f', text: 'F' }),
-    face: el('span', { class: 'lenz-label lenz-label--pole', text: '' }),
-  };
-  layout.sceneOverlay.append(...Object.values(labels));
+  // Legend of the visual scales (honest: what is computed, what is a visual gain).
+  const legend = el('div', { class: 'lenz-legend' }, [
+    el('span', {
+      class: 'lenz-legend__b',
+      text: 'B magnete: linee calcolate (dipolo finito), 1 linea = flusso uguale',
+    }),
+    el('span', {
+      class: 'lenz-legend__bi',
+      text: `B indotto (tratteggio): linee calcolate, impulsi ×${INDUCED_VISUAL_GAIN}`,
+    }),
+    el('span', { class: 'lenz-legend__f', text: 'F: lunghezza ∝ log₁₀|F| (1 nN … 1 N)' }),
+    el('span', {
+      class: 'lenz-legend__i',
+      text: 'i: velocità particelle ∝ i (fondo scala galvanometro)',
+    }),
+  ]);
+  layout.sceneOverlay.append(legend);
 
   // --- controls ----------------------------------------------------------------
   const restartAuto = (): void => {
@@ -311,8 +319,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       resetHistory = false;
     }
     ind = induction(coilParams(), z0, z, dt);
+    // galvanometer: auto-ranging full scale (peak hold) + 2nd-order needle
+    iPeak = holdPeak(iPeak, ind.i, dt, GALVO.rangeTau);
+    iRange = autoRange(iRange, iPeak, GALVO.minRange);
+    galvo = galvoStep(galvo, galvoTarget(ind.i, iRange), dt);
     t += dt;
-    animDt += dt;
     stepCount += 1;
     if (stepCount % 4 === 0) {
       plotPhi.push(t, ind.phi * 1e6);
@@ -356,35 +367,28 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       canvas.setAttribute('aria-valuetext', `${ctx.formatIT(ind.z * 100, 1, 'cm')} dalla bobina`);
     }
     if (!scene) return;
+    const facing = ind.facePole ? `faccia ${ind.facePole} della bobina` : 'bobina';
     scene.render({
       z: ind.z,
       pole,
       a: p.a,
+      N: p.N,
       B: ind.B,
       Bind: ind.Bind,
       sign: ind.sign,
-      absI: Math.abs(ind.i),
+      i: ind.i,
+      range: iRange,
+      needle: galvo.phi,
       F: ind.F,
-      animDt,
+      labels: {
+        face: facing,
+        coil: `N = ${ctx.formatIT(p.N, 0)} spire · a = ${ctx.formatIT(p.a * 100, 1, 'cm')}`,
+        bMag: `B̄ = ${fmtSI(ctx, ind.B, 'T')} sulla bobina`,
+        bInd: `B indotto = ${fmtSI(ctx, ind.Bind, 'T')} (impulsi ×${INDUCED_VISUAL_GAIN})`,
+        current: `i = ${fmtSI(ctx, ind.i, 'A')} · fondo scala ±${fmtSI(ctx, iRange, 'A', 0)}`,
+        force: `F = ${fmtSI(ctx, Math.abs(ind.F), 'N')} · ${ind.force}`,
+      },
     });
-    animDt = 0;
-    const anchors = scene.anchors();
-    const show: Record<keyof typeof labels, boolean> = {
-      bMag: ind.B !== 0,
-      bInd: ind.sign !== 0,
-      current: ind.sign !== 0,
-      force: ind.F !== 0,
-      face: ind.facePole !== null,
-    };
-    labels.face.textContent = ind.facePole ? `faccia ${ind.facePole}` : '';
-    for (const k of Object.keys(labels) as Array<keyof typeof labels>) {
-      const a = anchors[k];
-      const node = labels[k];
-      node.hidden = !(show[k] && a.visible);
-      // "B indotto" ends at its anchor (left of the coil), the others start there.
-      const alignEnd = k === 'bInd' ? ' translateX(-100%)' : '';
-      node.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px)${alignEnd}`;
-    }
   }
 
   const loop = createLoop({ step, render: renderFrame }, { autoStart: !ctx.reducedMotion });
@@ -400,6 +404,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       modeSeg.set('auto');
       mode = 'auto';
       restartAuto();
+      galvo = { phi: 0, omega: 0 };
       t = 0;
       stepCount = 0;
       plotPhi.clear();
@@ -409,6 +414,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     },
   });
   disposables.push(toolbar);
+  if (scene) {
+    const resetView = createResetViewButton(scene.stage);
+    layout.toolbar.append(resetView.element);
+    disposables.push(resetView);
+  }
 
   // --- pointer drag + keyboard ---------------------------------------------------
   if (scene && canvas) {
@@ -419,17 +429,25 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       if (mode !== 'manuale') modeSeg.set('manuale', true);
     };
     offs.push(
-      on(canvas, 'pointerdown', (e) => {
-        if (!sc.hitMagnet(e.clientX, e.clientY)) return;
-        const x = sc.axisX(e.clientX, e.clientY);
-        if (x === null) return;
-        toManual();
-        dragging = true;
-        grab = x - z;
-        canvas.setPointerCapture(e.pointerId);
-        canvas.classList.add('is-dragging');
-        e.preventDefault();
-      }),
+      on(
+        canvas,
+        'pointerdown',
+        (e) => {
+          if (!sc.hitMagnet(e.clientX, e.clientY)) return;
+          const x = sc.axisX(e.clientX, e.clientY);
+          if (x === null) return;
+          toManual();
+          dragging = true;
+          // The magnet is grabbed: orbiting is suspended until the pointer is released.
+          sc.stage.controls.enabled = false;
+          grab = x - z;
+          canvas.setPointerCapture(e.pointerId);
+          canvas.classList.add('is-dragging');
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        },
+        true,
+      ),
       on(canvas, 'pointermove', (e) => {
         if (!dragging) {
           canvas.classList.toggle('is-over', sc.hitMagnet(e.clientX, e.clientY));
@@ -440,6 +458,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       }),
       on(canvas, 'pointerup', (e) => {
         dragging = false;
+        sc.stage.controls.enabled = true;
         canvas.classList.remove('is-dragging');
         if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
       }),
@@ -470,6 +489,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       offs.splice(0).forEach((off) => off());
       disposables.splice(0).forEach((d) => d.dispose());
       scene?.dispose();
+      if (currentScene === scene) currentScene = null;
       scene = null;
       layout.dispose();
       host.replaceChildren();
@@ -478,13 +498,22 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   };
 }
 
+/** Value with an automatic SI prefix (n, µ, m, none), Italian format. */
+function fmtSI(ctx: AppContext, x: number, unit: string, digits = 2): string {
+  const a = Math.abs(x);
+  const [k, pre] =
+    a === 0 || a >= 1 ? [1, ''] : a >= 1e-3 ? [1e3, 'm'] : a >= 1e-6 ? [1e6, 'µ'] : [1e9, 'n'];
+  return ctx.formatIT(x * k, digits, `${pre}${unit}`);
+}
+
 function on<K extends keyof HTMLElementEventMap>(
   target: HTMLElement,
   type: K,
   cb: (e: HTMLElementEventMap[K]) => void,
+  capture = false,
 ): () => void {
-  target.addEventListener(type, cb as EventListener);
-  return () => target.removeEventListener(type, cb as EventListener);
+  target.addEventListener(type, cb as EventListener, capture);
+  return () => target.removeEventListener(type, cb as EventListener, capture);
 }
 
 const sim: SimModule = {

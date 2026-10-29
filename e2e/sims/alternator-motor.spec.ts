@@ -6,7 +6,10 @@ import { expect, test, type Page } from '@playwright/test';
 interface Dbg {
   liveMounts: number;
   canvases: number;
-  renderer: { geometries: number; textures: number; programs: number } | null;
+  renderer: { tier: string; post: boolean; fieldLines: number } | null;
+  tier?: string | null;
+  scene?: { liveScenes: number; liveGeometries: number; liveMaterials: number };
+  foundation?: Record<string, number>;
   mode?: string;
   t?: number;
   omega?: number;
@@ -15,6 +18,27 @@ interface Dbg {
 }
 
 const URL = './#/sim/alternator-motor';
+
+const FOUNDATION_KEYS = [
+  'liveStages',
+  'liveRenderers',
+  'liveComposers',
+  'liveRenderTargets',
+  'livePmrem',
+  'liveMaterials',
+  'liveTextures',
+  'liveGeometries',
+  'liveWorkers',
+];
+
+/** Render-foundation counters (module singleton, readable after an unmount). */
+const foundation = (page: Page): Promise<Record<string, number>> =>
+  page.evaluate(
+    () =>
+      (
+        window as unknown as { __kersDebug?: { render?: () => Record<string, number> } }
+      ).__kersDebug?.render?.() ?? {},
+  );
 
 async function debug(page: Page): Promise<Dbg> {
   return page.evaluate(
@@ -56,6 +80,10 @@ test('loads without console errors, shows canvas, note, readouts and passes the 
     await expect(page.locator(`.am-theory-links a[href="#/teoria/${id}"]`)).toBeVisible();
   }
   await expect(page.locator('.sim-note')).toContainText('Modello semplificato');
+  await expect(page.getByRole('button', { name: /Ripristina vista/ })).toBeVisible();
+  // SwiftShader → tier "base"; the gap field lines are traced.
+  await expect.poll(async () => (await debug(page)).tier).toBe('base');
+  await expect.poll(async () => (await debug(page)).renderer?.fieldLines ?? 0).toBeGreaterThan(8);
   await expect(page.getByTestId('am-energy-flow')).toContainText(
     'Energia cinetica → energia elettrica → batteria (+ calore Joule)',
   );
@@ -115,33 +143,50 @@ test('sliders and mode toggle work by keyboard', async ({ page }) => {
 });
 
 test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async ({ page }) => {
-  test.setTimeout(120_000); // 20 navigations under software GL
+  test.setTimeout(180_000); // 20 navigations under software GL
   const errors = collectErrors(page);
   await page.goto(URL);
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
-  await page.waitForTimeout(300);
+  await expect.poll(async () => (await debug(page))?.renderer).not.toBeNull();
   const first = await debug(page);
   for (let k = 0; k < 20; k++) {
-    await page.goto('./#/teoria');
+    await page.evaluate(() => (location.hash = '#/teoria'));
     await expect(page.locator('canvas')).toHaveCount(0);
-    await page.goto(URL);
+    // every foundation resource (stage, composer, kit materials, ribbons, flows…) released
+    const fu = await foundation(page);
+    for (const key of FOUNDATION_KEYS) expect(fu[key], key).toBe(0);
+    await page.evaluate(() => (location.hash = '#/sim/alternator-motor'));
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
+    await expect.poll(async () => (await debug(page))?.renderer).not.toBeNull();
   }
   await page.waitForTimeout(300);
   const last = await debug(page);
   expect(last.liveMounts).toBe(1);
   expect(last.canvases).toBe(1);
-  expect(first.renderer).not.toBeNull();
-  // each mount has its own renderer: its counts must not grow from mount to mount
-  expect(last.renderer?.geometries).toBe(first.renderer?.geometries);
-  expect(last.renderer?.textures).toBe(first.renderer?.textures);
-  expect(last.renderer?.programs).toBe(first.renderer?.programs);
+  // the scene's own geometries/materials do not grow from mount to mount
+  expect(last.scene).toEqual(first.scene);
+  expect(last.scene?.liveScenes).toBe(1);
+  expect(last.foundation?.['liveStages']).toBe(1);
+  expect(last.foundation?.['liveMaterials']).toBe(first.foundation?.['liveMaterials']);
+  expect(last.foundation?.['liveGeometries']).toBe(first.foundation?.['liveGeometries']);
   // whole page: 1 WebGL canvas + the 2 uPlot canvases of this mount only
   expect(await page.locator('canvas').count()).toBe(3);
   expect(errors).toEqual([]);
-  console.warn(
-    `leak check: first=${JSON.stringify(first.renderer)} last=${JSON.stringify(last.renderer)}`,
-  );
+});
+
+test('quality "alta" via ?quality=: post-processing on, both modes, no console errors', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const errors = collectErrors(page);
+  await page.goto('./?quality=alta#/sim/alternator-motor');
+  await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
+  await expect.poll(async () => (await debug(page))?.tier, { timeout: 30_000 }).toBe('alta');
+  expect((await debug(page)).renderer?.post).toBe(true);
+  await page.getByText('Motore (accelerazione)').click();
+  await page.waitForTimeout(800);
+  expect((await debug(page)).mode).toBe('motor');
+  expect(errors).toEqual([]);
 });
 
 test('fps measurement (headless SwiftShader: informative only)', async ({ page }) => {
