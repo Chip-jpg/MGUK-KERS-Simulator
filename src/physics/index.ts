@@ -32,7 +32,16 @@ export {
 export { solenoidInductance, emfSelf, rlTimeConstant, rlCurrent, magneticEnergy } from './rl';
 
 // transformer & losses
-export { transformerSecondary, transformerCurrent, jouleLoss, lineLoss } from './transformer';
+export {
+  transformerSecondary,
+  transformerCurrent,
+  jouleLoss,
+  lineLoss,
+  logspace,
+  lineLossSweep,
+  lineLossSweepR,
+  lineLossSweepP,
+} from './transformer';
 
 // machine & vehicle
 export { lorentzForce } from './machine';
@@ -134,3 +143,36 @@ export {
   thermalSag,
   coreFluxPeak,
 } from './powerline';
+
+// Fix round 1 (v0.7): energy store, longitudinal drive model, plot ranges
+export { DEFAULT_RESTART_SOC, createBattery, batteryLimits, batteryStep } from './battery';
+export type { BatteryParams, BatteryState } from './battery';
+export {
+  DRIVE_V_STOP,
+  SPEED_PROFILE_GAIN,
+  DEMO_CAR_800KG,
+  DEMO_MGUK_120KW,
+  DEMO_MGUK_350KW,
+  DEMO_BATTERY_4MJ,
+  createDriveState,
+  kersDriveStep,
+  driveEnergyAccount,
+  speedProfileInput,
+} from './longitudinal';
+export type {
+  VehicleParams,
+  MgukParams,
+  DriveParams,
+  DriveInput,
+  DriveState,
+  MgukMode,
+  DriveStepResult,
+  SpeedProfilePoint,
+} from './longitudinal';
+export {
+  PLOT_RANGE_MARGIN,
+  PLOT_MIN_HALF_SPAN,
+  symmetricRange,
+  safeRange,
+  faradayRanges,
+} from './plotRange';

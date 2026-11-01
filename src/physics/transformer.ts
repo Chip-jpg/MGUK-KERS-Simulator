@@ -95,3 +95,86 @@ export function lineLoss(
   const loss = Rline * I * I;
   return { I, loss, fraction: P === 0 ? 0 : loss / P };
 }
+
+/**
+ * Logarithmically spaced values from a to b (both included), for log axes.
+ *
+ * x_k = a · (b/a)^(k/(n−1)),  k = 0 … n−1  (x_0 = a and x_{n−1} = b exactly)
+ *
+ * @param a - first value, > 0
+ * @param b - last value, > 0 (may be < a: decreasing sequence)
+ * @param n - number of points, integer ≥ 1 (n = 1 ⇒ [a])
+ * @returns n values
+ * @throws RangeError if a ≤ 0, b ≤ 0, n not an integer ≥ 1, or non-finite input
+ * @slide none (extension: plotting helper for the line-loss sweeps, F10)
+ */
+export function logspace(a: number, b: number, n: number): number[] {
+  const fn = 'logspace';
+  positive(fn, 'a', a);
+  positive(fn, 'b', b);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new RangeError(`${fn}: n must be an integer ≥ 1 (got ${n})`);
+  }
+  if (n === 1) return [a];
+  const step = Math.log(b / a) / (n - 1);
+  return Array.from({ length: n }, (_, k) => (k === n - 1 ? b : a * Math.exp(k * step)));
+}
+
+/**
+ * Line loss vs transmission voltage at fixed P and R_line ({@link lineLoss}
+ * evaluated at each voltage).
+ *
+ * loss(V) = R_line · P² / V²  ⇒  10× V ⇒ loss ÷ 100
+ *
+ * @param P - transmitted power [W], ≥ 0
+ * @param Rline - total line resistance [Ω], ≥ 0
+ * @param voltages - transmission voltages [V], each > 0
+ * @returns one `{ V, I, loss, fraction }` per voltage (same order)
+ * @throws RangeError as {@link lineLoss}
+ * @slide 23 (transport chain; slides 21–23)
+ */
+export function lineLossSweep(
+  P: number,
+  Rline: number,
+  voltages: readonly number[],
+): Array<{ V: number; I: number; loss: number; fraction: number }> {
+  return voltages.map((V) => ({ V, ...lineLoss(P, V, Rline) }));
+}
+
+/**
+ * Line loss vs line resistance at fixed P and V: loss(R) = R · P² / V²
+ * (linear in R).
+ *
+ * @param P - transmitted power [W], ≥ 0
+ * @param V - transmission voltage [V], > 0
+ * @param resistances - line resistances [Ω], each ≥ 0
+ * @returns one `{ R, I, loss, fraction }` per resistance (same order)
+ * @throws RangeError as {@link lineLoss}
+ * @slide 23 (transport chain; slides 21–23)
+ */
+export function lineLossSweepR(
+  P: number,
+  V: number,
+  resistances: readonly number[],
+): Array<{ R: number; I: number; loss: number; fraction: number }> {
+  return resistances.map((R) => ({ R, ...lineLoss(P, V, R) }));
+}
+
+/**
+ * Line loss vs transmitted power at fixed V and R_line: loss(P) = R · P² / V²
+ * (quadratic in P; fraction = R·P/V², linear in P).
+ *
+ * @param V - transmission voltage [V], > 0
+ * @param Rline - total line resistance [Ω], ≥ 0
+ * @param powers - transmitted powers [W], each ≥ 0
+ * @returns one `{ P, I, loss, fraction }` per power (same order)
+ * @throws RangeError as {@link lineLoss}
+ * @slide 23 (transport chain; slides 21–23)
+ */
+export function lineLossSweepP(
+  V: number,
+  Rline: number,
+  powers: readonly number[],
+): Array<{ P: number; I: number; loss: number; fraction: number }> {
+  return powers.map((P) => ({ P, ...lineLoss(P, V, Rline) }));
+}

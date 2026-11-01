@@ -42,7 +42,8 @@ Constants and helpers: `PHYSICS_DT = 1/240 s`; `MU_0`; `MU_0_SI2019`; `KERS_TRAC
 
 The visualisation-only modules have their own function tables: car dynamics §7, brake-disc
 temperature §8, field models §9 (`fields.ts`), lumped thermal model and black-body colour §10
-(`thermal.ts`), overhead line and core flux §11 (`powerline.ts`); §12 maps every visual to the
+(`thermal.ts`), overhead line and core flux §11 (`powerline.ts`); fix round 1 adds the battery §13,
+the longitudinal drive model §14, plot ranges §15 and line-loss sweeps §16; §12 maps every visual to the
 model quantity that drives it.
 
 ### μ₀ choice
@@ -554,3 +555,136 @@ Field lines are always traced from the §9 models; where their **number** carrie
 (rl-energy, joule-transformer, lenz) each drawn line represents the same flux. Particle
 velocities are signed with the current (counter-clockwise about n̂ for i > 0, §2) and still at
 i = 0.
+
+## 13. Energy store / battery (`src/physics/battery.ts`, fix round 1)
+
+`@slide none (extension: KERS energy store)`; the Joule term is the R·i² of slide 16. Used by
+the drive model (§14) and by `alternator-motor` (F9: the motor must stop when the store is
+empty). **Modello semplificato**: constant terminal voltage `vNominal`, constant efficiencies,
+no temperature, no SoC-dependent open-circuit voltage, no ageing; the terminal power is
+constant within a step (zero-order hold), so a step is exact (no ODE).
+
+| Function                          | Formula                                                                                                                                                                        | Units (in → out)         | Notes                                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `createBattery(p, soc0)`          | $E_{st} = soc_0\,C$; counters 0                                                                                                                                                | –, – → state             | soc0 ∈ [0, 1]; `depleted = (soc0 = 0)`.                                                                                      |
+| `batteryLimits(p, s, dt)`         | deploy: $\min(P_{dis,max},\,P : (P/\eta_d + kP^2)\,dt = soc\,C)$, 0 if depleted; harvest: $\min(P_{ch,max},\,\eta_c/2k,\,P : (\eta_c P - kP^2)\,dt = (1-soc)\,C)$, $k = R/V^2$ | –, –, s → W, W           | Terminal powers ≥ 0. η_c/(2k) is the charge power that maximises the stored power (∞ if R = 0). dt > 0.                      |
+| `batteryStep(p, s, pRequest, dt)` | charge ($P<0$): $\Delta E = (\eta_c\lvert P\rvert - kP^2)\,dt$; discharge: $\Delta E = -(P/\eta_d + kP^2)\,dt$; loss = terminal in − ΔE or −ΔE − terminal out                  | –, –, W, s → state, W, W | Granted `pTerminal` = request clipped to the limits (same sign). Lands **exactly** on soc = 0 or 1 when the headroom limits. |
+| `DEFAULT_RESTART_SOC`             | 0,05                                                                                                                                                                           | –                        | Hysteresis threshold.                                                                                                        |
+
+Sign convention: `pRequest`/`pTerminal` > 0 = discharge (deploy, battery → MGU-K), < 0 = charge
+(harvest). Current I = |P|/vNominal, Joule loss R·I² = k·P².
+
+**Balance (exact per step):** `eIn − eOut = C·Δsoc + ΔeLoss` (the loss is computed as the
+residual of the stored-energy change, so it closes to rounding).
+
+**Depletion with hysteresis:** when soc reaches 0, `depleted = true` and `pDeployMax = 0`
+until soc ≥ `restartSoc` (default 5 %); harvest is always allowed, also while depleted.
+
+**Defaults:** `DEMO_BATTERY_4MJ` (in `longitudinal.ts`): C = 4 MJ — **valore da verificare**
+(OPEN_FACTS row 4, DA VERIFICARE); η_c = η_d = 0,95, R = 0,05 Ω, V = 800 V, 400 kW each way,
+restart 5 %: illustrative.
+
+**Validation** (`tests/physics/battery.test.ts`): discharge/charge formulas to 6 digits; ideal
+store lossless; limits clip with the same sign; charge cap at the stored-power peak;
+property test (20 random stores × 600 random steps): 0 ≤ soc ≤ 1, pLoss ≥ 0,
+|granted| ≤ |request|, balance drift < 1e-9 relative; full deploy lands exactly on soc = 0
+(then `pDeployMax = 0`, harvest still > 0); full harvest lands exactly on 1; restart only at
+soc ≥ restartSoc; restartSoc = 0 restarts at the first joule; determinism.
+
+## 14. Longitudinal drive model (`src/physics/longitudinal.ts`, fix round 1)
+
+`@slide none (extension: KERS drive model; energy balance as in slides 16–17, generator/motor
+of 18–19)`. Used by `kers-drive`, `car-dynamics` (telemetry) and `drive-sim`: the car can
+accelerate (ICE + MGU-K deploy) and brake (MGU-K harvest + discs) in the same run.
+
+**Modello semplificato:** 1-D point mass on a straight, flat road; no tyre slip (forces reach
+the road as commanded), no gears, no weight transfer, no downforce, no wheel inertia, no
+reverse (v ≥ 0); MGU-K and battery with constant efficiencies (§13).
+
+Forces at speed v (v_s = `DRIVE_V_STOP` = 0,1 m/s, u = throttle, b = brake ∈ [0, 1]):
+
+| Force         | Formula                                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Aero drag     | $F_d = \tfrac12\rho\,C_dA\,v^2$                                                                                                                                     |
+| Rolling       | $F_r = c_{rr}\,m\,g$ (g = 9,80665 m/s²)                                                                                                                             |
+| ICE           | $F_{ice} = u\,\min(F_{drive,max},\,P_{eng,max}/\max(v, v_s))$                                                                                                       |
+| MGU-K deploy  | $F_{dep} = u\,\min(F_{drive,max},\,P_{dep}/\max(v, v_s))$, $P_{dep} = \min(P^{K}_{dep,max},\,\eta\,P^{batt}_{dep,max})$                                             |
+| Brake request | $F_{req} = b\,(F_{brake,max} + F_{hcap})$, $F_{hcap} = \min(F_{drive,max},\,P_{harv}/\max(v, v_s))$, $P_{harv} = \min(P^{K}_{harv,max},\,P^{batt}_{harv,max}/\eta)$ |
+| MGU-K harvest | $F_{harv} = \min(F_{req}, F_{hcap})$ (first)                                                                                                                        |
+| Discs         | $F_{disc} = F_{req} - F_{harv}$ (the rest)                                                                                                                          |
+
+$m\,a = F_{ice} + F_{dep} - F_{harv} - F_{disc} - F_r - F_d$. `MgukParams` powers are
+**mechanical, at the wheels**; electrical draw = mechanical/η (deploy), stored side =
+η·mechanical (harvest). The MGU-K force is limited by the traction cap `fDriveMax` in both
+directions (illustrative torque limit; it also keeps the low-speed P/v force finite).
+Below v_s, discs, harvest and rolling fade linearly to 0 (numerical regularisation of
+Coulomb-like friction): a car at rest with the brake pressed stays at rest (a = 0, no
+harvest); with no throttle and v < 1 cm/s the car is snapped to rest and the remaining ½mv²
+is booked to the discs (braking) or rolling (coasting).
+
+**Integration:** RK4 (`rk4Step`) on [x, v, E_engine, E_deploy, E_harvest, E_brakes, E_drag,
+E_roll]; the MGU-K power caps are frozen over the step (zero-order hold, controller at the
+physics rate); the final speed of each (sub)step is rebuilt from the integrated work
+(½mv′² = ½mv² + ΣW), so the balance closes to rounding error. The battery receives one net
+step with $P_{term} = (E_{dep}/\eta - \eta E_{harv})/dt$; the MGU-K loss is
+$E_{harv} + P_{term}dt - E_{dep}$. Stiff cases (tiny mass, huge forces) are split into equal
+substeps (bound on |∂a/∂v|, at most 4096); the demo car needs at most 3 substeps per 1/240 s.
+
+**Energy balance (tested):**
+$E_k + E_{stored} + E_{brakes} + E_{drag} + E_{roll} + E_{MGU\text{-}K,loss} + E_{batt,loss} = E_{k,0} + E_{stored,0} + E_{engine}$
+(`driveEnergyAccount` returns kinetic, stored, dissipated, engine).
+
+At soc = 0 the deploy cap is 0: only the ICE drives (F9/F1 cutoff), and deploy returns only
+when soc ≥ restartSoc.
+
+| Export                                    | Meaning                                                                                                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createDriveState(p, v0, soc0)`           | t = x = 0, counters 0. v0 ≥ 0.                                                                                                                                 |
+| `kersDriveStep(s, input, p, dt)`          | One step; returns state, a = Δv/dt, v, average powers `pKers` (+ deploy, − harvest), `pBrakes`, `pEngine`, `pDrag`, `pRoll`, soc, mode.                        |
+| `driveEnergyAccount(s, p)`                | `{ kinetic, stored, dissipated, engine }` [J].                                                                                                                 |
+| `speedProfileInput(profile, t, v, gain?)` | Target speed by linear interpolation (held at the ends); e = v_target − v; throttle = clamp(K·e), brake = clamp(−K·e), K = `SPEED_PROFILE_GAIN` = 0,5 per m/s. |
+| `DEMO_CAR_800KG`                          | m = 800 kg, C_dA = 1,1 m², ρ = 1,225, c_rr = 0,015, 12 kN traction, ICE 400 kW, discs 31,4 kN — **all illustrative**.                                          |
+| `DEMO_MGUK_120KW` / `DEMO_MGUK_350KW`     | 120 kW (OPEN_FACTS row 1, verified) / 350 kW (row 5, verified), η = 0,9 illustrative.                                                                          |
+
+**Validation** (`tests/physics/longitudinal.test.ts`): 2-minute random mixed throttle/brake run
+on the demo car, balance < 1e-9 relative; property test (8 random cars × 1500 random inputs):
+v ≥ 0, 0 ≤ soc ≤ 1, |pKers| ≤ MGU-K cap, balance < 1e-6; 800 kg 300 → 100 km/h:
+`kineticEnergyDelta` = 2,469 MJ and the drive model (drag/roll off) gives
+E_harvest + E_brakes = ΔE_k to 9 digits, harvest at 120 kW, stored = η·η_c·E_harvest;
+deploy cutoff at soc = 0 with the ICE still driving, restart only at restartSoc; soc = 0 at
+start; pDeployMax = 0 and pHarvestMax = 0; full battery ⇒ discs only; braking at v = 0 holds
+the car; coasting to rest; launch at the traction cap; 350 kW harvests more than 120 kW;
+light pedal = MGU-K only; masses 1 kg, 10⁶ kg and 1 g stay finite and balanced; determinism;
+speed-profile controller follows a profile within 3 m/s.
+
+## 15. Plot ranges (`src/physics/plotRange.ts`, fix round 1, F6)
+
+Pure helpers for analytic y-ranges. They **never throw and never return NaN, ±∞ or a
+zero-width range**: NaN counts as 0 (or as the other bound), ±∞ is clamped to ±1e300.
+
+| Function                                          | Formula                                                                                | Notes                                                                                                                     |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `symmetricRange(A, margin = 0,1, minHalf = 1e-9)` | $[-h, h]$, $h = \max(\lvert A\rvert(1 + margin),\ minHalf)$                            | Bad margin ⇒ 0; bad minHalf ⇒ 1e-9.                                                                                       |
+| `safeRange(min, max, minSpan = 2·10⁻⁹)`           | swap if reversed; widen to $\max(minSpan, 10^{-12}\lvert c\rvert)$ around the centre c | Always finite lo < hi.                                                                                                    |
+| `faradayRanges(B, S, N, ω, margin = 0,1)`         | Φ: `symmetricRange(BS)`; f.e.m.: `symmetricRange(NBSω, margin, max(1e-9, 10⁻³NBS))`    | Φ is **per turn** (as plotted by `faraday`), f.e.m. of the whole coil (slides 18–19). B = 0 or ω = 0 ⇒ small finite span. |
+
+**Validation** (`tests/physics/plotRange.test.ts`): margins exact; zero amplitude ⇒ minimum
+span; every combination of 0, −0, 1e-300, −5, 1e300, NaN, ±∞, MAX_VALUE gives a finite
+non-zero range; 2000 random near-zero-width ranges at magnitudes 10^±300; the whole
+`rotatingLoop` signal fits inside `faradayRanges`.
+
+## 16. Line-loss sweeps (`src/physics/transformer.ts`, fix round 1, F10)
+
+`@slide 23` (transport chain, slides 21–23), built on `lineLoss` (§1).
+
+| Function                            | Formula                                       | Notes                                                                |
+| ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| `logspace(a, b, n)`                 | $x_k = a\,(b/a)^{k/(n-1)}$, ends exact        | a, b > 0, integer n ≥ 1 (n = 1 ⇒ [a]); b < a allowed.                |
+| `lineLossSweep(P, Rline, voltages)` | `lineLoss(P, V, Rline)` per V: loss ∝ 1/V²    | 10× V ⇒ ÷10 current ⇒ ÷100 loss. Returns `{ V, I, loss, fraction }`. |
+| `lineLossSweepR(P, V, resistances)` | loss = R·P²/V² (linear in R)                  | Returns `{ R, I, loss, fraction }`.                                  |
+| `lineLossSweepP(V, Rline, powers)`  | loss = R·P²/V² (quadratic in P), fraction ∝ P | Returns `{ P, I, loss, fraction }`.                                  |
+
+Validity as `lineLoss` (purely resistive line, power factor 1, single-phase equivalent).
+**Validation** (`tests/physics/lineLossSweep.test.ts`): geometric spacing to 12 digits with
+exact ends; sweep = `lineLoss` point by point; 10 kV → 100 kV → 1000 kV divides the loss by
+100 (9 digits); R linear, P quadratic; invalid inputs throw `RangeError`.

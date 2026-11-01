@@ -253,3 +253,16 @@ assumptions that the repository does not match. The repository wins:
 9. **Branches.** Task branches `fix/<id>-<slug>` are squash-merged into
    `claude/quirky-cray-0kg1gn` (the only branch this session may push); merging to `main` and
    pushing tag `v0.7.0` are done by the owner.
+
+### D16.1 — P1 refinements of the §6.1 contract (accepted by the orchestrator)
+
+- `MgukParams` powers are **mechanical at the wheels**; battery limits are converted through
+  η (unlike `kersBrakingEvent`, whose Pₘₐₓ is electrical).
+- MGU-K force is capped at `fDriveMax` in both directions (no infinite P/v at low speed).
+- Below `DRIVE_V_STOP` = 0,1 m/s discs, harvest and rolling fade to zero; the car never reverses.
+- `faradayRanges` gives Φ **per turn** (±B·S), as the faraday sim plots it; f.e.m. ±N·B·S·ω,
+  with a non-zero fallback at ω = 0.
+- Plot-range helpers never throw (NaN → 0, ±∞ clamped); other physics functions throw `RangeError`.
+- Additive extras: `driveEnergyAccount`, `lineLossSweepR`, `lineLossSweepP`, `gain` argument of
+  `speedProfileInput`, `DEMO_CAR_800KG`, `DEMO_MGUK_120KW/350KW`, `DEMO_BATTERY_4MJ`
+  (4 MJ = "valore da verificare", OPEN_FACTS #4).
