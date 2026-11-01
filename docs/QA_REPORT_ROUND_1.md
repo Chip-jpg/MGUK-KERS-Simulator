@@ -137,3 +137,18 @@ educational drive, not a lap-time simulation. Presentation notes are untouched.
   Prettier LF convention without semantic edits to unrelated files.
 - GitHub CI is required to pass on the submitted branch before merging/tagging;
   workflow status is available on the release PR and repository Actions page.
+
+## Linux runner follow-up
+
+The first GitHub run passed 153 browser tests and found one platform-sensitive
+scene-coverage failure: the car-dynamics HUD/legend occupied 15.10 % of the
+1920×1080 scene, exceeding the unchanged 15 % limit. Numeric HUD rows now
+reserve 1.1 rem rather than 1.2 rem; text size, fixed width and all readout
+positions remain stable. The five-second sensor/fullscreen case and both
+car-dynamics scene-layout cases passed again locally.
+
+The full browser job took 17.2 minutes on the Linux runner, close to its
+20-minute limit. CI now runs four native Playwright shards with two workers
+each and distinct failure artifacts. Test discovery confirms 39 + 39 + 39 + 38
+= 155 cases (154 active plus the opt-in benchmark). No tests or thresholds
+were removed or relaxed.

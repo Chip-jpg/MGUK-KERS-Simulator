@@ -632,3 +632,8 @@ The app remains vanilla TypeScript/Three.js/uPlot. Existing `SimModule`,
   theory; P enlarges the open simulator, F controls independent fullscreen.
 - `joule-transformer/plots.ts` adds log-voltage, current and loss-fraction
   plots and selectable R/P views; the original ratio equation and bars remain.
+
+CI runs the browser suite in four native Playwright shards (two workers each),
+with per-shard failure artifacts. This keeps the expanded resource/visual
+regression suite within the existing 20-minute per-job budget without reducing
+coverage or assertion thresholds.

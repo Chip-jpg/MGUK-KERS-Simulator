@@ -335,7 +335,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     mguk: el('span', { class: 'cd-hud__energy' }),
     batt: el('span', { class: 'cd-hud__energy' }),
   };
-  Object.values(hudLines).forEach((n) => reserveTextReadout(n, '22rem', '1.2rem'));
+  Object.values(hudLines).forEach((n) => reserveTextReadout(n, '22rem', '1.1rem'));
   hud.append(...Object.values(hudLines));
   const legend = el('div', { class: 'cd-legend-scene' }, [
     el('span', {
