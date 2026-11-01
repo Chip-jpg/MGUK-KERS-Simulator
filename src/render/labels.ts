@@ -55,6 +55,8 @@ export interface Label {
 }
 
 export interface LabelLayerOptions {
+  /** Align stationary callouts to physical pixels for crisp HTML text. */
+  pixelSnap?: boolean;
   /** Occlusion tests for this layer (default true); false = never cast a ray. */
   occlude?: boolean;
 }
@@ -113,6 +115,7 @@ export function createLabelLayer(
 ): LabelLayer {
   const items: Item[] = []; // sorted by descending priority (insertByPriority)
   const layerOcclude = layerOptions.occlude ?? true;
+  const snap = layerOptions.pixelSnap ? Math.max(1, window.devicePixelRatio || 1) : 2;
   let occluding = 0; // labels that ask for the occlusion test
   const v = new THREE.Vector3();
   const dir = new THREE.Vector3();
@@ -263,8 +266,8 @@ export function createLabelLayer(
         it.occluded = ray.intersectObjects(stage.occluders, true, hits).length > 0;
       }
       if (it.occluded) occludedN++;
-      const x = Math.round(rect.x * 2) / 2;
-      const y = Math.round(rect.y * 2) / 2;
+      const x = Math.round(rect.x * snap) / snap;
+      const y = Math.round(rect.y * snap) / snap;
       if (x !== it.shownX || y !== it.shownY) {
         it.el.style.transform = `translate(${x}px, ${y}px)`;
         it.shownX = x;

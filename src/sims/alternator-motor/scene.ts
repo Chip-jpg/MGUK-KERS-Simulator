@@ -702,7 +702,7 @@ export function createMachineScene(
   // Callouts attach to the stationary housing/components, never to rotating arrow tips.
   // Group related readings so every value fits beside its component at 1280x720.
   container.classList.add('am-scene');
-  const labels = createLabelLayer(stage, overlay);
+  const labels = createLabelLayer(stage, overlay, { pixelSnap: true });
   const A = {
     n: v(-0.9, 2.45, 1.0),
     s: v(0.9, -1.9, 1.7),

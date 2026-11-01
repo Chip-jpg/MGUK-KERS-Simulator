@@ -19,7 +19,7 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Simulatori** — 8 simulatori 3D con guida finale e un approfondimento con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
-**Versione attuale: v0.7.3** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.7.4** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico

@@ -1,6 +1,6 @@
 [package]
 name = "kers-lab"
-version = "0.7.3"
+version = "0.7.4"
 description = "KERS Lab desktop shell (Tauri 2) wrapping the offline Vite build"
 license = "MIT"
 edition = "2021"
