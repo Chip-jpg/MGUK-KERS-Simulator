@@ -466,7 +466,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     if (scene) {
       const kelvin = heat.T;
       legendEnergy.textContent = `Energia: nastri, raggio ∝ P (spessore pieno = ${ctx.formatIT(pRef, pRef < 1 ? 1 : 0, 'W')})`;
-      const tauShaftName = gen ? 'τₑₛₜ (ruote)' : 'τ carico (ventola)';
+      const tauShaftName = gen ? 'τ ruote' : 'τ carico';
       scene.update({
         mode,
         theta,
@@ -485,14 +485,14 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
           emf: `ε = ${ctx.formatIT(q.emf, 1, 'V')}`,
           i: `i = ${ctx.formatIT(q.i, 2, 'A')}`,
           force: `F = ${ctx.formatIT(Math.abs(q.forceSide), 1, 'N')}`,
-          tauEm: `τₑₘ = ${ctx.formatIT(q.tauEm, 2, 'N·m')} (${gen ? 'frenante' : 'motrice'})`,
+          tauEm: `τₑₘ = ${ctx.formatIT(q.tauEm, 2, 'N·m')}`,
           tauShaft: `${tauShaftName} = ${ctx.formatIT(Math.abs(q.tauShaft), 2, 'N·m')}`,
-          battery: `batteria: carica ${ctx.formatIT(soc * 100, 1, '%')}`,
-          heat: `avvolgimento ${ctx.formatIT(kelvin - 273.15, 1, '°C')} · calore Joule ${ctx.formatIT(avg.pJoule, 1, 'W')}`,
-          flywheel: `volano J = ${ctx.formatIT(p.J, 2, 'kg·m²')} · ω = ${ctx.formatIT(omega, 1, 'rad/s')}`,
+          battery: `Batteria ${ctx.formatIT(soc * 100, 1, '%')}`,
+          heat: `T avv. = ${ctx.formatIT(kelvin - 273.15, 1, '°C')}`,
+          flywheel: `J = ${ctx.formatIT(p.J, 2, 'kg·m²')}\nω = ${ctx.formatIT(omega, 1, 'rad/s')}`,
           pMech: `P mecc. = ${ctx.formatIT(avg.pConv, 1, 'W')}`,
           pElec: `P batt. = ${ctx.formatIT(avg.pElec, 1, 'W')}`,
-          pJoule: `calore Joule ${ctx.formatIT(avg.pJoule, 1, 'W')}`,
+          pJoule: `P Joule = ${ctx.formatIT(avg.pJoule, 1, 'W')}`,
         },
       });
       scene.render();

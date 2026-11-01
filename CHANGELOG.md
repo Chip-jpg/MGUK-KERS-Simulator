@@ -7,6 +7,14 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-11-01
+
+### Corretto
+
+- Indicatori di **Alternatore ⇄ motore (MGU-K)** raggruppati per componente: sette riquadri leggibili, tutte le tredici misure conservate e nessuna duplicazione del calore Joule.
+- Forza e coppia non inseguono più la freccia rotante: gli indicatori restano fermi accanto al componente, con ancoraggi al telaio e dimensioni riservate.
+- Caratteri più grandi, sfondo pieno ad alto contrasto, righe separate e spazio sufficiente per valori e unità. Vista iniziale ferma; rotazione, fisica e comandi della camera restano disponibili.
+
 ## [0.7.2] - 2026-11-01
 
 ### Aggiunto

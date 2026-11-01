@@ -170,3 +170,21 @@
   font-size: var(--fs-lg);
   font-weight: var(--fw-bold);
 }
+
+/* Component callouts: opaque, readable and independent of rotor angle. */
+.am-scene .am-indicator {
+  color: var(--color-text);
+  background: var(--color-surface);
+  backdrop-filter: none;
+  font:
+    600 0.875rem/1.3 ui-monospace,
+    Consolas,
+    monospace;
+  white-space: pre-line;
+  padding: 0.3em 0.45em;
+  border-radius: 0.35rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+}
+.sim-presentation .am-scene .am-indicator {
+  font-size: 1rem;
+}
