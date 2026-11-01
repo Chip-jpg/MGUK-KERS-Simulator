@@ -588,3 +588,36 @@
 .drive-pedal strong {
   font-size: var(--fs-sm);
 }
+
+.drive-presets {
+  padding-block: 1rem;
+  border-block: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+}
+.drive-presets h3 {
+  margin: 0 0 0.6rem;
+  font-size: var(--fs-sm);
+}
+.drive-presets p {
+  margin: 0.6rem 0 0;
+  line-height: 1.5;
+}
+.drive-presets__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.drive-presets [aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+.drive-presets details {
+  margin-top: 0.6rem;
+}
+.drive-presets summary {
+  cursor: pointer;
+}
+.drive-presets a + a::before {
+  content: ' · ';
+}
