@@ -1,11 +1,15 @@
 import { PHYSICS_DT } from '../physics';
+import { fpsLimitToMaxFps, getFpsLimit, onFpsLimitChange } from './settings';
 import type { Disposable } from './types';
 
 /**
  * Render-loop helper implementing the §4.1 contract:
  *  - physics advances in fixed steps of dt = 1/240 s via an accumulator
  *    (deterministic, independent of the display refresh rate);
- *  - rendering happens at most `maxFps` (default 60) times per second;
+ *  - rendering follows the display refresh rate (uncapped, F7) unless a cap is set:
+ *    `options.maxFps`, or else the user's FPS limit from `src/core/settings.ts`
+ *    (`'auto'` | 60 | 30), followed live;
+ *  - at most `maxFrameTime` of simulated time and `maxStepsPerFrame` steps per frame;
  *  - the loop auto-pauses while `document.hidden` and resumes when visible
  *    (unless the user paused it);
  *  - `dispose()` cancels the RAF and removes every listener.
@@ -37,10 +41,20 @@ export interface LoopEnv {
 export interface LoopOptions {
   /** Physics step [s]. Default {@link PHYSICS_DT}. */
   dt?: number;
-  /** Render cap [frames/s]. Default 60. */
+  /**
+   * Fixed render cap [frames/s] (`Infinity` = uncapped). When omitted the loop follows
+   * the user's FPS limit setting live (`getFpsLimit()`, default `'auto'` = uncapped).
+   */
   maxFps?: number;
   /** Max simulated time per frame [s], avoids the "spiral of death". Default 0.25. */
   maxFrameTime?: number;
+  /**
+   * Max physics steps per frame (second spiral-of-death guard; leftover time is
+   * dropped). Default `ceil(maxFrameTime / dt) + 1` (61), which never cuts real time.
+   */
+  maxStepsPerFrame?: number;
+  /** Called after every rendered frame with the rAF timestamp [ms] (FPS counters). */
+  onFrame?(nowMs: number): void;
   /** Start running immediately. Default true. */
   autoStart?: boolean;
   env?: LoopEnv;
@@ -73,16 +87,41 @@ export function browserLoopEnv(): LoopEnv {
 /** Tolerance [ms] so a 60 Hz display is not throttled to 30 fps by timing jitter. */
 const FRAME_TOLERANCE_MS = 1;
 
+const frameListeners = new Set<(nowMs: number) => void>();
+
+/**
+ * Subscribe to every frame rendered by any running loop (the layout's FPS counter
+ * uses it, so every simulator gets it without wiring). Returns an unsubscribe function.
+ */
+export function onLoopFrame(cb: (nowMs: number) => void): () => void {
+  frameListeners.add(cb);
+  return () => frameListeners.delete(cb);
+}
+
+/** Minimum interval between renders [ms] for a cap in frames/s (0 = uncapped). */
+export function minFrameInterval(maxFps: number): number {
+  return Number.isFinite(maxFps) && maxFps > 0 ? 1000 / maxFps : 0;
+}
+
 export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}): Loop {
   const dt = options.dt ?? PHYSICS_DT;
-  const minFrameMs = 1000 / (options.maxFps ?? 60);
+  let minFrameMs = minFrameInterval(options.maxFps ?? fpsLimitToMaxFps(getFpsLimit()));
   const maxFrameTime = options.maxFrameTime ?? 0.25;
+  const maxSteps = Math.max(1, options.maxStepsPerFrame ?? Math.ceil(maxFrameTime / dt) + 1);
   const env = options.env ?? browserLoopEnv();
+  const offFpsLimit =
+    options.maxFps === undefined
+      ? onFpsLimitChange((limit) => {
+          minFrameMs = minFrameInterval(fpsLimitToMaxFps(limit));
+          nextRenderMs = lastRenderMs + minFrameMs;
+        })
+      : () => {};
 
   let rafId: number | null = null;
   let userPaused = options.autoStart === false;
   let disposed = false;
   let lastRenderMs = 0;
+  let nextRenderMs = 0;
   let lastStepMs = 0;
   let accumulator = 0;
 
@@ -90,19 +129,30 @@ export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}):
     rafId = null;
     if (disposed) return;
     schedule();
-    const sinceRender = timeMs - lastRenderMs;
-    if (sinceRender + FRAME_TOLERANCE_MS < minFrameMs) return; // render cap
-    // Keep the remainder so a 120/144 Hz display averages maxFps.
-    lastRenderMs = sinceRender > minFrameMs * 2 ? timeMs : timeMs - (sinceRender % minFrameMs);
+    if (minFrameMs > 0) {
+      if (timeMs + FRAME_TOLERANCE_MS < nextRenderMs) return; // render cap
+      // Deadline grid: a 120/144 Hz display averages maxFps; after a hitch, re-anchor.
+      nextRenderMs += minFrameMs;
+      if (nextRenderMs <= timeMs) nextRenderMs = timeMs + minFrameMs;
+    }
+    lastRenderMs = timeMs;
     // Physics consumes real elapsed time since the previous processed frame.
     const elapsed = timeMs - lastStepMs;
     lastStepMs = timeMs;
     accumulator += Math.min(Math.max(elapsed, 0) / 1000, maxFrameTime);
+    let steps = 0;
     while (accumulator >= dt) {
+      if (steps >= maxSteps) {
+        accumulator %= dt; // drop the backlog instead of spiralling
+        break;
+      }
       callbacks.step(dt);
       accumulator -= dt;
+      steps++;
     }
     callbacks.render(accumulator / dt);
+    options.onFrame?.(timeMs);
+    if (frameListeners.size > 0) for (const cb of frameListeners) cb(timeMs);
   };
 
   function schedule(): void {
@@ -112,6 +162,7 @@ export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}):
   function start(): void {
     if (disposed || userPaused || env.isHidden() || rafId !== null) return;
     lastRenderMs = lastStepMs = env.now(); // no catch-up after a pause
+    nextRenderMs = lastRenderMs + minFrameMs;
     schedule();
   }
 
@@ -148,6 +199,7 @@ export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}):
       disposed = true;
       stop();
       unsubscribe();
+      offFpsLimit();
     },
   };
 }

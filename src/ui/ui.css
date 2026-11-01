@@ -1,0 +1,11 @@
+/*
+ * UI-kit helpers not covered by the design stylesheets (src/styles, D1).
+ * F2 — heat quantity helpers (disc-brake dissipation), like .q-b … .q-energy.
+ */
+.q-heat {
+  --q: var(--q-heat);
+}
+
+.text-q-heat {
+  color: var(--q-heat);
+}

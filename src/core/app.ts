@@ -2,13 +2,22 @@ import '../styles/index.css';
 import { getTheory, findTheoryDoc, type TheoryDoc } from '../theory/content';
 import { renderTheoryIndex, renderTheoryPage } from '../theory/page';
 import { getQuality, onQualityChange, setQuality, type QualityTier } from '../render/quality';
-import { createSegmented } from '../ui/controls';
+import { createSegmented, createToggle } from '../ui/controls';
 import { el, listen } from '../ui/dom';
 import { createSimHeader, createSimLayout } from '../ui/simLayout';
 import { formatIT } from './format';
 import { t } from './i18n/it';
 import { availableSimIds, isSimId, loadSim, SIM_IDS, type SimId } from './registry';
 import { createRouter, formatRoute, routesEqual, type Route } from './router';
+import {
+  getFpsLimit,
+  getShowFps,
+  onFpsLimitChange,
+  onShowFpsChange,
+  parseFpsLimit,
+  setFpsLimit,
+  setShowFps,
+} from './settings';
 import { currentTheme, initTheme, onThemeChange, prefersReducedMotion, toggleTheme } from './theme';
 import type { AppContext, Disposable } from './types';
 
@@ -136,6 +145,34 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
   offs.push(() => quality.dispose());
   offs.push(onQualityChange((v) => quality.set(v)));
 
+  // Render rate (F7): Automatico = display refresh rate (default), or a 60 / 30 fps cap.
+  const fpsLimit = createSegmented<'auto' | '60' | '30'>({
+    labelIT: t.fps.limit,
+    options: [
+      { value: 'auto', labelIT: t.fps.auto },
+      { value: '60', labelIT: t.fps.fps60 },
+      { value: '30', labelIT: t.fps.fps30 },
+    ],
+    value: String(getFpsLimit()) as 'auto' | '60' | '30',
+    onChange: (v) => {
+      const limit = parseFpsLimit(v);
+      if (limit) setFpsLimit(limit);
+    },
+  });
+  fpsLimit.element.classList.add('fps-limit-control');
+  fpsLimit.element.title = t.fps.limitHint;
+  offs.push(() => fpsLimit.dispose());
+  offs.push(onFpsLimitChange((v) => fpsLimit.set(String(v) as 'auto' | '60' | '30')));
+  const showFps = createToggle({
+    labelIT: t.fps.show,
+    checked: getShowFps(),
+    onChange: (b) => setShowFps(b),
+  });
+  showFps.element.classList.add('fps-toggle');
+  showFps.element.title = t.fps.showHint;
+  offs.push(() => showFps.dispose());
+  offs.push(onShowFpsChange((b) => showFps.set(b)));
+
   const sidebar = el('aside', { class: 'sidebar' }, [
     el('div', { class: 'brand' }, [
       el('a', {
@@ -145,7 +182,12 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
       }),
       el('p', { class: 'brand__tagline', text: t.app.tagline }),
     ]),
-    el('div', { class: 'sidebar__theme' }, [themeButton, quality.element]),
+    el('div', { class: 'sidebar__theme' }, [
+      themeButton,
+      quality.element,
+      fpsLimit.element,
+      showFps.element,
+    ]),
     el('nav', { class: 'nav', attrs: { 'aria-label': t.nav.label } }, [
       el('ul', { class: 'nav__sections' }, [
         el('li', {}, [

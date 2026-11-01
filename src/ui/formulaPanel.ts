@@ -1,15 +1,27 @@
-import { formatIT } from '../core/format';
 import { t } from '../core/i18n/it';
 import type { Disposable } from '../core/types';
 import type { Quantity } from './colors';
 import { el } from './dom';
 import { renderTexInto } from './math';
+import {
+  DEFAULT_READOUT_MAX_ABS,
+  formatReadout,
+  readoutChars,
+  readoutPlaceholder,
+  writeReadout,
+  type ReadoutFormat,
+} from './valueReadout';
 
 /**
  * Live formula list: each row shows a KaTeX formula (rendered once) and,
  * optionally, a live numeric value formatted with `formatIT`. `update(values)`
  * can be called every physics step; the DOM is written at most once per
  * animation frame and only for values whose text changed.
+ *
+ * F4: the value sits in a fixed-width box (`.formula-row__number`, width reserved
+ * from `maxAbs` / `digits` / `signed` via `--readout-chars`, see `valueReadout.ts`),
+ * the unit in the sibling `.formula-row__unit`, so a changing value never moves the
+ * panel. Placeholder `-,--` until the first value.
  */
 export interface FormulaItem {
   /** Key used in `update({ [key]: value })`. */
@@ -28,6 +40,13 @@ export interface FormulaItem {
   quantity?: Quantity;
   /** TeX symbol shown before the live value (default: none → "= value"). */
   symbolTex?: string;
+  /**
+   * Largest |value| to reserve room for, in display units (after `scale`). Default
+   * {@link DEFAULT_READOUT_MAX_ABS} (99.999). Larger values show `>99.999,00`.
+   */
+  maxAbs?: number;
+  /** Reserve a sign column. Default true (unknown sign). */
+  signed?: boolean;
 }
 
 export interface FormulaPanelOptions {
@@ -41,7 +60,7 @@ export interface FormulaPanelOptions {
 export interface FormulaPanel extends Disposable {
   readonly element: HTMLElement;
   /** Queue new live values (SI units, before `scale`). Unknown keys are ignored. */
-  update(values: Record<string, number>): void;
+  update(values: Record<string, number | null>): void;
   /** Write pending values now (normally done on the next animation frame). */
   flush(): void;
 }
@@ -62,7 +81,10 @@ export function createFormulaPanel(
     [title ? el('h2', { class: 'panel-title', text: title }) : null, list],
   );
 
-  const outputs = new Map<string, { node: HTMLElement; item: FormulaItem; text: string }>();
+  const outputs = new Map<
+    string,
+    { node: HTMLElement; wrap: HTMLElement; item: FormulaItem; fmt: ReadoutFormat; text: string }
+  >();
   for (const item of items) {
     const formula = el('div', { class: 'formula-row__tex' });
     renderTexInto(formula, item.tex, false);
@@ -86,16 +108,26 @@ export function createFormulaPanel(
       dd.append(sym, ' = ');
     }
     if (item.unit !== undefined || item.digits !== undefined || item.symbolTex) {
-      const out = el('span', { class: 'formula-row__number', text: '—' });
+      const fmt: ReadoutFormat = {
+        digits: item.digits ?? 2,
+        maxAbs: item.maxAbs ?? DEFAULT_READOUT_MAX_ABS,
+        signed: item.signed ?? true,
+      };
+      const out = el('span', {
+        class: 'formula-row__number formula-row__number--na',
+        text: readoutPlaceholder(fmt.digits),
+      });
+      out.style.setProperty('--readout-chars', String(readoutChars(fmt)));
       dd.append(out);
-      outputs.set(item.key, { node: out, item, text: '—' });
+      if (item.unit) dd.append(el('span', { class: 'formula-row__unit', text: item.unit }));
+      outputs.set(item.key, { node: out, wrap: out, item, fmt, text: out.textContent ?? '' });
     }
     row.append(dd);
     list.append(row);
   }
   container.append(element);
 
-  let pending: Record<string, number> = {};
+  let pending: Record<string, number | null> = {};
   let frame: number | null = null;
   let disposed = false;
 
@@ -104,10 +136,19 @@ export function createFormulaPanel(
     for (const [key, v] of Object.entries(pending)) {
       const o = outputs.get(key);
       if (!o) continue;
-      const text = formatIT(v * (o.item.scale ?? 1), o.item.digits ?? 2, o.item.unit || undefined);
-      if (text !== o.text) {
-        o.text = text;
-        o.node.textContent = text;
+      const shown = v === null ? null : v * (o.item.scale ?? 1);
+      const r = formatReadout(shown, o.fmt);
+      if (r.text !== o.text) {
+        o.text = r.text;
+        writeReadout(
+          o.node,
+          o.wrap,
+          'formula-row__number',
+          r,
+          shown,
+          o.item.unit ?? '',
+          o.fmt.digits,
+        );
       }
     }
     pending = {};

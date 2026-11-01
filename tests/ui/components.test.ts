@@ -78,15 +78,16 @@ describe('FormulaPanel', () => {
     panel.update({ i: 0.0625, unknown: 3 });
     expect(frames).toHaveLength(1); // batched
     const nums = host.querySelectorAll('.formula-row__number');
-    expect(nums[0]?.textContent).toBe('—');
+    expect(nums[0]?.textContent).toBe('-,--'); // placeholder shaped like 2 digits
     frames[0]!();
-    expect(nums[0]?.textContent).toBe('1,23 V');
-    expect(nums[1]?.textContent).toBe('62,5 mA');
+    expect(nums[0]?.textContent).toBe('1,23'); // unit in the sibling .formula-row__unit
+    expect(host.querySelector('.formula-row__unit')?.textContent).toBe('V');
+    expect(nums[1]?.textContent).toBe('62,5');
     expect(nums).toHaveLength(2);
 
     panel.update({ emf: -0.001 });
     panel.flush();
-    expect(nums[0]?.textContent).toBe('0,00 V');
+    expect(nums[0]?.textContent).toBe('0,00');
     panel.dispose();
     expect(host.childElementCount).toBe(0);
     panel.update({ emf: 5 });
@@ -209,6 +210,7 @@ describe('createSimLayout + toolbar', () => {
       '❚❚Pausa',
       '⏭Passo',
       'ƒMostra formule',
+      '⛶Schermo intero (Schermo intero non disponibile in questo browser)', // jsdom: pseudo
     ]);
     buttons[0]!.click();
     expect(onReset).toHaveBeenCalled();

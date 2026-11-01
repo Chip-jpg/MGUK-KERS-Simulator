@@ -228,15 +228,25 @@ Guarantees:
 
 1. **Fixed physics step** `dt = PHYSICS_DT = 1/240 s`, accumulated from real elapsed
    time; physics is deterministic and independent of the display rate.
-2. **Render capped at 60 fps** (`maxFps`, default 60) — on 120/144 Hz displays frames
-   are skipped so the average is ≈ 60 fps (thermal budget, §1).
-3. **Spiral-of-death guard:** at most `maxFrameTime` (0.25 s) of simulated time per
-   frame.
+2. **≥ 60 fps floor, uncapped ceiling** (F7, D16): by default the loop renders on
+   every `requestAnimationFrame`, i.e. at the display refresh rate (60/120/144/165 Hz).
+   When `options.maxFps` is omitted the cap follows the user's setting live —
+   `src/core/settings.ts`: `getFpsLimit(): 'auto' | 60 | 30` (`'auto'` = uncapped),
+   `setFpsLimit`, `onFpsLimitChange`, stored in `localStorage['kers-lab.fpsLimit']`
+   (try/catch; sidebar "Limite FPS"). An explicit `maxFps` (`Infinity` = uncapped) wins.
+   Capped frames use a deadline grid, so a 144 Hz display averages exactly the cap.
+3. **Spiral-of-death guards:** at most `maxFrameTime` (0.25 s) of simulated time and at
+   most `maxStepsPerFrame` physics steps per frame (default `ceil(maxFrameTime/dt) + 1`
+   = 61; leftover backlog is dropped). Physics is identical at every frame rate: the
+   same sequence of 1/240 s steps (tested at 30/60/144/165 Hz, capped and uncapped).
 4. **Auto-pause** while `document.hidden`; on return no catch-up burst (the clock is
    re-anchored). A user `pause()` survives visibility changes; `resume()` undoes it;
    `stepOnce()` advances exactly one step and renders (for the "Step" button).
 5. **`dispose()`** cancels the pending `requestAnimationFrame` and removes the
-   `visibilitychange` listener; idempotent.
+   `visibilitychange` and FPS-limit listeners; idempotent.
+6. **Frame hooks:** `options.onFrame(nowMs)` runs after every rendered frame, and
+   `onLoopFrame(cb) → off` observes the frames of every running loop (the layout's FPS
+   counter uses it; plots still redraw at most `PLOT_MAX_HZ` = 30 Hz).
 
 The browser services are injectable (`options.env: LoopEnv`) so tests run the loop
 with a fake clock (see `tests/core/loop.test.ts`).
@@ -367,8 +377,82 @@ renderTex(tex, displayMode?): { html, error? }         // KaTeX, trust:false, th
 el(tag, { class, text, attrs, dataset }, children)     // tiny DOM helper; listen(), uniqueId()
 ```
 
-Also re-exported: `formatIT`, `createLoop`/`Loop`, `onThemeChange(cb) → off`,
-`currentTheme()`.
+Also re-exported: `formatIT`, `createLoop`/`Loop`/`LoopOptions`, `onLoopFrame`,
+`getFpsLimit`/`onFpsLimitChange`, `onThemeChange(cb) → off`, `currentTheme()`.
+
+### 9.2a Fix round 1 additions (F2, F4–F7; frozen names in FIX_ROUND_1.md §6.2)
+
+```ts
+// F4 — fixed-width readouts (valueReadout.ts)
+createValueReadout({ labelIT, unit, digits, maxAbs, signed?, quantity?, id? }): ValueReadout
+// { element: .readout > .readout__label + .readout__value + .readout__unit, set(v | null), text, dispose() }
+createReadoutGrid(container, items: (ReadoutSpec & { key })[], { titleIT?, live? }):
+  { element: .readout-grid, update(values: Record<string, number | null>), dispose() }
+readoutChars({ digits, maxAbs, signed }) · formatReadout(v, fmt) · readoutPlaceholder(digits)
+```
+
+- The value box reserves `--readout-chars` = sign + integer digits of `maxAbs` + grouping
+  dots + comma and decimals (min 4, and room for the overflow marker); CSS sets
+  `width: calc(var(--readout-chars) * 1ch)` in a monospace tabular font, so changing
+  values never move anything. The unit is a separate `.readout__unit` (`--readout-unit-chars`).
+- `null`/NaN → `-,--` (shape of the digits, `.readout--na`); |v| > `maxAbs` → `>400` /
+  `<−400` (`.readout--over`, real value in `title`), never a wider box. Negatives use "−".
+- `live: true` adds one visually-hidden `role="status"` region, updated at most once per
+  second. HUD grids over the scene go in `sceneOverlay` with `data-corner="tl|bl|br"`
+  (`tr` is the FPS counter's).
+- `createFormulaPanel` uses the same mechanism: `.formula-row__number` carries
+  `--readout-chars` and only the number; the unit is the sibling `.formula-row__unit`.
+  `FormulaItem` gains `maxAbs?` (default 99.999) and `signed?` (default true) — set them.
+
+```ts
+// F5 — fullscreen (fullscreen.ts); createSimLayout wires both automatically
+createFullscreenController(target, { onChange? }): { toggle(), enter(), exit(), isActive(),
+  isPseudo(), supported, dispose() }
+createFullscreenButton(controller): { element: .fs-button, refresh(), dispose() }
+FULLSCREEN_EVENT = 'kers:fullscreen'   // CustomEvent on document, detail { target, on }
+```
+
+`createSimLayout` adds the "Schermo intero (F)" button (`aria-pressed`) and binds `F`
+(not in text/number inputs, no Ctrl/Alt/Meta) while mounted; `layout.fullscreen` is the
+controller of `layout.root`, which gets `.sim-layout--fullscreen`. Without the API (or
+when refused) it is a pseudo fullscreen (class only, Esc exits) and the tooltip says
+"Schermo intero non disponibile in questo browser". Nothing is re-mounted; the stage and
+plots resize through their ResizeObservers, plots re-read `--plot-axis-font-size`.
+
+```ts
+// F7 — FPS counter (fpsCounter.ts), shown by every layout at the top-right of sceneOverlay
+createFpsCounter(container): { frame(nowMs), stats(), reset(), element: .fps-counter, dispose() }
+```
+
+Average fps, frame time and 1 % low over 2 s; toggled with `` ` `` or the sidebar switch
+"Mostra FPS" (`localStorage['kers-lab.showFps']`, off by default).
+
+```ts
+// F6 — plot range (plot.ts + pure helpers in plotScale.ts)
+createPlot(…, { yRange?: [min, max] | ((dataMin, dataMax) => [min, max]), yUnit?, syncKey?,
+  yAxis2?: { labelIT, factor }, hideXAxis? })
+plot.setYRange(range | null) · plot.yRange · plot.markEvent(x, labelIT?)
+sanitizeRange(r, fallback?) · stepRange(current, target, dtMs, tauMs = 100) · paddedRange(min, max)
+```
+
+The y range is owned by the wrapper: `setYRange` → `options.yRange` → padded range of the
+*visible* window. It is always sanitised (never NaN/∞/zero width; a flat signal gets
+±10 % or ±1) and eased toward its target (exponential, τ = 100 ms, ≈ 300 ms to settle).
+It survives chart recreation. The y axis has a fixed width and always-labelled ticks with
+the unit (`[V]` from the series unit, or `yLabelIT [yUnit]`). Do **not** recreate a plot
+or rescale its history when a parameter changes: set the analytic range and call
+`markEvent(t, 'B = 1 T')`. Debug: `window.__kersDebug.plots()` lists every live plot.
+
+```ts
+// F2 — car telemetry (carTelemetryPlots.ts)
+createCarTelemetryPlots(container, { windowS? = 20, height? = 140 }):
+  { push(t, { v, a, pKers, pBrakes, soc }), clear(), markEvent(t, labelIT?), plots, element: .telemetry, dispose() }
+```
+
+SI input (m/s, m/s², W, SoC 0–1), shown as km/h, m/s² (+ g on the right axis), kW, %.
+Four stacked `.telemetry__plot`s, shared 20 s window, linked crosshair, x ticks only on the
+bottom plot; colours per FIX_ROUND_1 §6.4 (`heat` = brakes, dashed; SoC dotted). `push`
+decimates to 600 samples per window, so it can be called every physics step.
 
 ### 9.3 Colours and theme
 
@@ -383,6 +467,7 @@ Tokens live in `src/styles/tokens.css` (`--color-*`, `--space-*`, `--fs-*`,
 | current i | `--q-i` (red) | `'i'` |
 | force F | `--q-f` (green) | `'f'` |
 | energy | `--q-energy` (purple) | `'energy'` |
+| heat (brake dissipation, F2) | `--q-heat` (orange) | `'heat'` |
 
 `src/ui/colors.ts` exports the same values resolved to hex for both themes
 (`PALETTES`, `getPalette(theme)`, `quantityColor()`, `quantityColorHex()` for

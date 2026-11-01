@@ -1,8 +1,16 @@
 import { t } from '../core/i18n/it';
+import { onLoopFrame } from '../core/loop';
 import { formatRoute } from '../core/router';
+import { getShowFps, onShowFpsChange, setShowFps } from '../core/settings';
 import type { Disposable, SimModule } from '../core/types';
 import { createButton } from './controls';
 import { el, uniqueId } from './dom';
+import { createFpsCounter } from './fpsCounter';
+import {
+  createFullscreenButton,
+  createFullscreenController,
+  type FullscreenController,
+} from './fullscreen';
 
 /**
  * Standard simulator page body. A `SimModule.mount(host, ctx)` calls
@@ -18,6 +26,12 @@ import { el, uniqueId } from './dom';
  *
  * The page header (title, summary, theory link) is rendered by the
  * shell from the SimModule metadata, outside `host`.
+ *
+ * Every layout also provides, with no sim wiring:
+ * - F5: a "Schermo intero (F)" toolbar button and the `F` key (fullscreen of `root`;
+ *   the scene canvas and plots follow through their ResizeObservers);
+ * - F7: the FPS counter over the scene (sidebar switch or the `` ` `` key), fed by
+ *   every running `createLoop`.
  */
 export interface SimLayoutOptions {
   /** Text after "Modello semplificato:" (§9: every simulator states its assumptions). */
@@ -53,6 +67,43 @@ export interface SimLayout extends Disposable {
   addSceneLegend(element: HTMLElement): void;
   /** True while legends are docked below the scene (compact scene). */
   readonly compact: boolean;
+  /** Fullscreen controller of `root` (button + `F` key are already wired). */
+  readonly fullscreen: FullscreenController;
+}
+
+/** Inputs where typing must not trigger the layout shortcuts (F, `). */
+const TYPING_INPUT_TYPES = new Set([
+  'text',
+  'number',
+  'search',
+  'email',
+  'password',
+  'tel',
+  'url',
+  'date',
+  'time',
+  'datetime-local',
+  'month',
+  'week',
+]);
+
+/** True when a key event comes from a place where the user is typing text. */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+  if (target instanceof HTMLInputElement) return TYPING_INPUT_TYPES.has(target.type || 'text');
+  return target instanceof HTMLElement && target.isContentEditable;
+}
+
+/** `F` / `f` without Ctrl/Alt/Meta (fullscreen shortcut). */
+export function isFullscreenKey(e: KeyboardEvent): boolean {
+  return (e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey;
+}
+
+/** Backtick (FPS counter shortcut); on keyboards without it, the key in its position. */
+export function isFpsKey(e: KeyboardEvent): boolean {
+  if (e.key === '`') return !e.metaKey;
+  return e.code === 'Backquote' && !e.ctrlKey && !e.altKey && !e.metaKey;
 }
 
 /** Below this scene height [px] legends/HUD leave the canvas (QA-031). */
@@ -164,6 +215,42 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
   ]);
   host.append(root);
 
+  // F5 — fullscreen of the whole layout (state kept: nothing is re-mounted).
+  const fullscreen = createFullscreenController(root);
+  const fsButton = createFullscreenButton(fullscreen);
+  toolbar.append(fsButton.element);
+
+  // F7 — FPS counter over the scene, fed by every running loop while shown.
+  // Top-right corner of the overlay is reserved for it (D1: HUD grids use tl, bl, br).
+  const fps = createFpsCounter(sceneOverlay);
+  let offFrames: (() => void) | null = null;
+  const showFps = (show: boolean): void => {
+    fps.element.hidden = !show;
+    if (show && !offFrames) {
+      fps.reset();
+      offFrames = onLoopFrame((now) => fps.frame(now));
+    } else if (!show && offFrames) {
+      offFrames();
+      offFrames = null;
+    }
+  };
+  showFps(getShowFps());
+  const offShowFps = onShowFpsChange(showFps);
+
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.defaultPrevented || e.repeat || isTypingTarget(e.target)) return;
+    if (!root.isConnected) return;
+    if (isFullscreenKey(e)) {
+      e.preventDefault();
+      void fullscreen.toggle();
+    } else if (isFpsKey(e)) {
+      e.preventDefault();
+      setShowFps(!getShowFps());
+    }
+  };
+  const doc = root.ownerDocument;
+  doc.addEventListener('keydown', onKey);
+
   return {
     root,
     toolbar,
@@ -185,7 +272,15 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
     get compact() {
       return compact;
     },
+    fullscreen,
     dispose() {
+      doc.removeEventListener('keydown', onKey);
+      offShowFps();
+      offFrames?.();
+      offFrames = null;
+      fps.dispose();
+      fsButton.dispose();
+      fullscreen.dispose();
       ro?.disconnect();
       legends.length = 0;
       formulasButton.dispose();

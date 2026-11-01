@@ -266,3 +266,13 @@ assumptions that the repository does not match. The repository wins:
 - Additive extras: `driveEnergyAccount`, `lineLossSweepR`, `lineLossSweepP`, `gain` argument of
   `speedProfileInput`, `DEMO_CAR_800KG`, `DEMO_MGUK_120KW/350KW`, `DEMO_BATTERY_4MJ`
   (4 MJ = "valore da verificare", OPEN_FACTS #4).
+
+### D16.2 — U1 interpretations (accepted by the orchestrator)
+
+- Physics-step guard: `maxStepsPerFrame` defaults to `ceil(maxFrameTime/dt) + 1` = 61, so a
+  slow frame never loses simulated time; the 0,25 s `maxFrameTime` cap stays the
+  spiral-of-death guard.
+- Without the Fullscreen API the button switches to a CSS "pseudo fullscreen"
+  (`.sim-layout--fullscreen` only, `Esc` exits) and says so in its accessible name.
+- A readout value above `maxAbs` shows `>400` / `<−400` inside the same box (real value in `title`).
+- Change request on `src/render/stage.ts` (DPR re-read on zoom / monitor change) is assigned to S5.

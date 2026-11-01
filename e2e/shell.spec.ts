@@ -95,6 +95,12 @@ test.describe('keyboard navigation', () => {
     await expect(
       page.getByRole('group', { name: 'Qualità grafica' }).locator('input:checked'),
     ).toBeFocused();
+    await page.keyboard.press('Tab'); // "Limite FPS" radio group (F7, one tab stop)
+    await expect(
+      page.getByRole('group', { name: 'Limite FPS' }).locator('input:checked'),
+    ).toBeFocused();
+    await page.keyboard.press('Tab'); // "Mostra FPS" switch
+    await expect(page.getByRole('switch', { name: 'Mostra FPS' })).toBeFocused();
     await page.keyboard.press('Tab'); // "Teoria"
     await expect(page.getByRole('link', { name: 'Teoria', exact: true })).toBeFocused();
     // Tab until the "Simulatori" section link.

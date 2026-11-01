@@ -10,9 +10,9 @@ import type { Theme } from '../core/types';
  */
 
 /** Physical quantities with a fixed colour across every simulator. */
-export type Quantity = 'b' | 'emf' | 'i' | 'f' | 'energy';
+export type Quantity = 'b' | 'emf' | 'i' | 'f' | 'energy' | 'heat';
 
-export const QUANTITIES: readonly Quantity[] = ['b', 'emf', 'i', 'f', 'energy'];
+export const QUANTITIES: readonly Quantity[] = ['b', 'emf', 'i', 'f', 'energy', 'heat'];
 
 /** Italian label of each quantity colour (legend / docs). */
 export const QUANTITY_LABEL_IT: Record<Quantity, string> = {
@@ -21,6 +21,7 @@ export const QUANTITY_LABEL_IT: Record<Quantity, string> = {
   i: 'Corrente',
   f: 'Forza',
   energy: 'Energia',
+  heat: 'Calore (freni)',
 };
 
 export interface Palette {
@@ -46,7 +47,10 @@ export interface Palette {
   grid: string;
   /** Neutral series colour for plots (not tied to a quantity). */
   neutral: string;
-  /** Fixed quantity colours: B blue, emf amber, current red, force green, energy purple. */
+  /**
+   * Fixed quantity colours: B blue, emf amber, current red, force green, energy purple,
+   * heat orange (disc-brake dissipation, F2).
+   */
   quantity: Record<Quantity, string>;
 }
 
@@ -70,6 +74,7 @@ export const PALETTES: Record<Theme, Palette> = {
       i: '#ff6b6b',
       f: '#4fd27f',
       energy: '#c29bff',
+      heat: '#ff9248',
     },
   },
   light: {
@@ -91,6 +96,7 @@ export const PALETTES: Record<Theme, Palette> = {
       i: '#c4271f',
       f: '#17783a',
       energy: '#7a3bc4',
+      heat: '#a8420a',
     },
   },
 };
