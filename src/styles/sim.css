@@ -250,10 +250,32 @@
   font-size: var(--fs-sm);
 }
 
+/* Live number of a formula row (F4): the same fixed box as .readout__value. The width is
+   reserved from --readout-chars (set by formulaPanel.ts); content never resizes it. */
 .formula-row__number {
+  display: inline-block;
+  width: calc(var(--readout-chars, 8) * 1ch);
+  overflow: hidden;
   color: var(--q, var(--color-text));
+  font-family: var(--font-readout);
+  font-variant-numeric: tabular-nums lining-nums;
   font-weight: var(--fw-bold);
-  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+/* Optional unit span after the number (static text, so it never moves the number). */
+.formula-row__unit {
+  margin-left: 0.3em;
+  color: var(--color-text-muted);
+}
+
+.formula-row__value {
+  min-height: calc(1em * var(--readout-line));
+  line-height: var(--readout-line);
+  white-space: nowrap;
 }
 
 /* Plot (uPlot) */
@@ -289,8 +311,46 @@
   font-weight: var(--fw-medium);
 }
 
+/* Legend numbers change every frame: reserve their width so the legend never reflows. */
+.plot .u-legend .u-value {
+  min-width: 12ch;
+  font-family: var(--font-readout);
+  text-align: right;
+  white-space: nowrap;
+}
+
 .plot .u-select {
   background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
+/* Telemetry stack (F2): v, a, P, SoC plots stacked on a shared time axis, one card. */
+
+.telemetry {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-2) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.telemetry .telemetry__plot {
+  margin: 0;
+  padding: var(--space-1) var(--space-3) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.telemetry .telemetry__plot + .telemetry__plot {
+  border-top: 1px solid var(--color-border);
+}
+
+.telemetry .telemetry__plot .plot__title {
+  margin-bottom: 0;
+  font-size: var(--fs-xs);
 }
 
 @media (max-width: 1100px) {
@@ -303,4 +363,115 @@
       'side'
       'note';
   }
+}
+
+/* --- Fullscreen (F5) --------------------------------------------------------
+ * The layout root fills the viewport with the page background (never the UA's black
+ * backdrop). Scene: left column, sticky, as tall as the viewport. Controls, readouts,
+ * plots and note: right column, scrolled by the root. `.sim-layout:fullscreen` is the
+ * fallback for a root that entered fullscreen without the class; it sits inside the
+ * forgiving :is() so engines without :fullscreen still apply the class rules. */
+
+:fullscreen {
+  background: var(--color-bg);
+}
+
+::backdrop {
+  background: var(--color-bg, #0e1117);
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) {
+  /* Projector type scale: readout and axis tokens grow for everything inside. */
+  --readout-font-size: var(--readout-font-size-fs);
+  --readout-label-size: var(--readout-label-size-fs);
+  --plot-axis-font-size: var(--plot-axis-font-size-fs);
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  padding: var(--space-3);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  background: var(--color-bg);
+  color: var(--color-text);
+  grid-template-columns: minmax(0, 1fr) var(--fs-side-width);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas:
+    'main side'
+    'main plots'
+    'main note';
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) .sim-layout__main {
+  position: sticky;
+  top: 0;
+  height: calc(100vh - 2 * var(--space-3));
+  height: calc(100dvh - 2 * var(--space-3));
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) .sim-stage {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) .sim-scene {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 16rem;
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) .sim-plots__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) .formula-row__value {
+  font-size: var(--fs-lg);
+}
+
+:is(.sim-layout--fullscreen, .sim-layout:fullscreen) .sim-toolbar .btn {
+  min-height: var(--touch-min);
+}
+
+@media (max-width: 1100px) {
+  :is(.sim-layout--fullscreen, .sim-layout:fullscreen) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'main'
+      'side'
+      'plots'
+      'note';
+  }
+
+  :is(.sim-layout--fullscreen, .sim-layout:fullscreen) .sim-layout__main {
+    position: static;
+    height: 70vh;
+    height: 70dvh;
+  }
+}
+
+/* Projector = light theme in fullscreen: readout text AAA (≥ 7:1). The quantity colour
+   stays as the 3 px left bar; numbers, labels and units use --color-text (15,8:1). */
+:root[data-theme='light'] :is(.sim-layout--fullscreen, .sim-layout:fullscreen) .readout {
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--q, transparent);
+}
+
+:root[data-theme='light']
+  :is(.sim-layout--fullscreen, .sim-layout:fullscreen)
+  :is(
+    .readout__value,
+    .readout__label,
+    .readout__unit,
+    .formula-row__number,
+    .formula-row__unit,
+    .formula-row__label
+  ) {
+  color: var(--color-text);
 }

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup — Pedali drive-sim</title>
+    <link rel="stylesheet" href="../src/styles/index.css" />
+    <link rel="stylesheet" href="./mockup.css" />
+    <script>
+      document.documentElement.dataset.theme = location.hash === '#light' ? 'light' : 'dark';
+      addEventListener('hashchange', () => location.reload());
+    </script>
+  </head>
+  <body>
+    <div class="mk-bar">
+      <h1>Pedali (F3, drive-sim)</h1>
+      <a href="#dark">Scuro</a> · <a href="#light">Chiaro</a> ·
+      <a href="./index.html">Indice</a>
+    </div>
+
+    <div class="mk-grid">
+      <section class="panel">
+        <h2 class="panel-title">Comandi</h2>
+        <div class="pedals" role="group" aria-label="Pedali">
+          <div
+            class="pedal pedal--brake"
+            role="slider"
+            tabindex="0"
+            aria-label="Freno"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="35"
+            aria-valuetext="35 %"
+            style="--pedal-value: 0.35"
+            data-active="true"
+          >
+            <span class="pedal__label">Freno</span>
+            <span class="pedal__value">35 %</span>
+            <span class="pedal__keys"><kbd>↓</kbd> / <kbd>S</kbd></span>
+          </div>
+          <div
+            class="pedal pedal--throttle"
+            role="slider"
+            tabindex="0"
+            aria-label="Acceleratore"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-valuetext="0 %"
+            style="--pedal-value: 0"
+          >
+            <span class="pedal__label">Gas</span>
+            <span class="pedal__value">0 %</span>
+            <span class="pedal__keys"><kbd>↑</kbd> / <kbd>W</kbd></span>
+          </div>
+        </div>
+        <p class="mk-caption">
+          Freno a sinistra, gas a destra (come in auto). Barra analogica 0–100 % dal basso; tutto il
+          pedale è il bersaglio touch (≥ 64 × 200 px). Tieni premuto ↑/W o ↓/S.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">Gas al 100 %</h2>
+        <div class="pedals">
+          <div class="pedal pedal--brake" style="--pedal-value: 0">
+            <span class="pedal__label">Freno</span>
+            <span class="pedal__value">0 %</span>
+            <span class="pedal__keys"><kbd>↓</kbd> / <kbd>S</kbd></span>
+          </div>
+          <div class="pedal pedal--throttle" style="--pedal-value: 1" data-active="true">
+            <span class="pedal__label">Gas</span>
+            <span class="pedal__value">100 %</span>
+            <span class="pedal__keys"><kbd>↑</kbd> / <kbd>W</kbd></span>
+          </div>
+        </div>
+        <div class="mk-stack" style="margin-top: var(--space-4)">
+          <span class="mguk-state" data-mode="deploy">Erogazione</span>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

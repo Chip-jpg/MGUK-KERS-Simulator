@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup — Schermo intero</title>
+    <link rel="stylesheet" href="../src/styles/index.css" />
+    <link rel="stylesheet" href="./mockup.css" />
+    <script>
+      document.documentElement.dataset.theme = location.hash === '#light' ? 'light' : 'dark';
+      addEventListener('hashchange', () => location.reload());
+    </script>
+  </head>
+  <body>
+    <!-- Static copy of the createSimLayout DOM with .sim-layout--fullscreen.
+         #light = projector rules (light theme in fullscreen: AAA readouts). -->
+    <div class="sim-layout sim-layout--fullscreen">
+      <div class="sim-layout__main">
+        <div class="sim-toolbar" role="group" aria-label="Comandi">
+          <button class="btn" type="button">↺ Reimposta</button>
+          <button class="btn" type="button">❚❚ Pausa</button>
+          <button class="btn btn--ghost sim-toolbar__formulas" type="button" aria-pressed="false">
+            ƒ Mostra formule
+          </button>
+          <button
+            class="btn btn--ghost fs-button"
+            type="button"
+            aria-pressed="true"
+            title="Esci da schermo intero (F)"
+          >
+            ⤡ Esci (F)
+          </button>
+          <a href="#dark">Scuro</a><a href="#light">Proiettore</a>
+        </div>
+        <div class="sim-stage">
+          <div class="sim-scene">
+            <div class="mk-scene">scena 3D (cresce fino a riempire l'altezza)</div>
+            <div class="sim-scene__overlay">
+              <div class="readout-grid" data-corner="tl">
+                <div class="readout q-energy">
+                  <span class="readout__label">v</span>
+                  <span class="readout__value" style="--readout-chars: 5">287,5</span>
+                  <span class="readout__unit">km/h</span>
+                </div>
+              </div>
+              <span class="fps-counter">120 fps</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sim-layout__side">
+        <section class="sim-controls panel">
+          <h2 class="panel-title">Parametri</h2>
+          <div class="pedals">
+            <div class="pedal pedal--brake" style="--pedal-value: 0">
+              <span class="pedal__label">Freno</span>
+              <span class="pedal__keys"><kbd>↓</kbd> / <kbd>S</kbd></span>
+            </div>
+            <div class="pedal pedal--throttle" style="--pedal-value: 0.8" data-active="true">
+              <span class="pedal__label">Gas</span>
+              <span class="pedal__keys"><kbd>↑</kbd> / <kbd>W</kbd></span>
+            </div>
+          </div>
+        </section>
+        <section class="panel mk-stack">
+          <h2 class="panel-title">Valori</h2>
+          <div class="readout-grid">
+            <div class="readout q-f">
+              <span class="readout__label">Accelerazione</span>
+              <span class="readout__value" style="--readout-chars: 6">12,40</span>
+              <span class="readout__unit">m/s²</span>
+            </div>
+            <div class="readout q-energy">
+              <span class="readout__label">P MGU-K</span>
+              <span class="readout__value" style="--readout-chars: 6">120,0</span>
+              <span class="readout__unit">kW</span>
+            </div>
+            <div class="readout q-energy">
+              <span class="readout__label">SoC</span>
+              <span class="readout__value" style="--readout-chars: 5">12,8</span>
+              <span class="readout__unit">%</span>
+            </div>
+          </div>
+          <div class="soc-bar soc-bar--low" style="--soc: 0.128">
+            <span class="soc-bar__fill"></span>
+          </div>
+          <span class="battery-state" data-state="low">Batteria quasi scarica</span>
+          <span class="mguk-state" data-mode="deploy">Erogazione</span>
+        </section>
+      </div>
+
+      <section class="sim-plots">
+        <h2 class="panel-title">Grafici</h2>
+        <div class="sim-plots__body">
+          <div class="telemetry">
+            <figure class="plot telemetry__plot">
+              <figcaption class="plot__title">v [km/h]</figcaption>
+              <div style="height: 70px"></div>
+            </figure>
+            <figure class="plot telemetry__plot">
+              <figcaption class="plot__title">a [m/s²]</figcaption>
+              <div style="height: 70px"></div>
+            </figure>
+            <figure class="plot telemetry__plot">
+              <figcaption class="plot__title">P [kW]</figcaption>
+              <div style="height: 70px"></div>
+            </figure>
+            <figure class="plot telemetry__plot">
+              <figcaption class="plot__title">SoC [%]</figcaption>
+              <div style="height: 70px"></div>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <p class="sim-note" role="note">
+        <strong>Modello semplificato:</strong> moto rettilineo, MGU-K con rendimento costante.
+      </p>
+    </div>
+  </body>
+</html>

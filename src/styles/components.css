@@ -460,3 +460,408 @@ div.math-error {
   color: var(--color-danger) !important;
   font-family: var(--font-mono);
 }
+
+/* =========================================================================
+ * Fix round 1 components (docs/DESIGN.md). Class names are frozen in
+ * docs/FIX_ROUND_1.md §6.3; the DOM is emitted by src/ui/** and the sims.
+ * ========================================================================= */
+
+/* --- Value readout (F4): a box that never changes size with its content --- */
+
+.readout {
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
+  align-items: baseline;
+  column-gap: 0.4em;
+  height: calc(1em * var(--readout-line));
+  overflow: hidden;
+  font-size: var(--readout-font-size);
+  line-height: var(--readout-line);
+  white-space: nowrap;
+}
+
+.readout__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: var(--readout-label-size);
+  text-overflow: ellipsis;
+}
+
+/* Reserved width = --readout-chars × 1ch (set by the component from sign + integer digits
+   of maxAbs + grouping dots + decimal comma + decimals). Monospace with tabular figures:
+   every glyph, "−" and "," included, is exactly 1ch wide. Overflow never grows the box: it
+   ends in "…" so a truncated number is visibly not a value (a sizing bug, see DESIGN.md). */
+.readout__value {
+  display: inline-block;
+  width: calc(var(--readout-chars, 6) * 1ch);
+  overflow: hidden;
+  color: var(--q, var(--color-text));
+  font-family: var(--font-readout);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: var(--fw-bold);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.readout__unit {
+  /* Fixed column: "V" and "km/h" take the same room, the value never moves. */
+  width: calc(var(--readout-unit-chars) * 1ch);
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-family: var(--font-readout);
+  font-size: 0.85em;
+  text-align: left;
+}
+
+.readout--na .readout__value {
+  color: var(--color-text-muted);
+  font-weight: var(--fw-normal);
+}
+
+/* Grid of readouts: label · value · unit columns aligned across rows (subgrid). */
+.readout-grid {
+  display: grid;
+  grid-template-columns: minmax(var(--readout-label-min), 1fr) auto auto;
+  align-items: baseline;
+  column-gap: 0.4em;
+  row-gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  font-size: var(--readout-font-size);
+}
+
+.readout-grid > :not(.readout) {
+  grid-column: 1 / -1;
+}
+
+.readout-grid > .readout {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--q, transparent);
+}
+
+/* HUD variant: a readout grid over the scene, pinned to a fixed corner (data-corner). */
+.sim-scene__overlay .readout-grid {
+  position: absolute;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  font-size: var(--fs-sm);
+}
+
+.sim-scene__overlay .readout-grid,
+.sim-scene__overlay .readout-grid[data-corner='bl'] {
+  bottom: var(--space-3);
+  left: var(--space-3);
+}
+
+.sim-scene__overlay .readout-grid[data-corner='tl'] {
+  top: var(--space-3);
+  bottom: auto;
+}
+
+.sim-scene__overlay .readout-grid[data-corner='tr'] {
+  top: var(--space-3);
+  right: var(--space-3);
+  bottom: auto;
+  left: auto;
+}
+
+.sim-scene__overlay .readout-grid[data-corner='br'] {
+  right: var(--space-3);
+  left: auto;
+}
+
+/* --- Fullscreen button (F5) ---------------------------------------------- */
+
+.fs-button {
+  min-width: 2.25rem;
+}
+
+.fs-button[aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* --- FPS counter (F7, toggled with `) ------------------------------------- */
+
+.fps-counter {
+  display: inline-block;
+  width: 9ch;
+  padding: 0.1rem var(--space-2);
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-readout);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: right;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.fps-counter[hidden] {
+  display: none;
+}
+
+/* Over the scene: fixed top-right corner, above the canvas and the label layer. */
+.sim-scene .fps-counter,
+.sim-stage .fps-counter {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 3;
+}
+
+/* --- Battery: SoC bar + state badge (F9) ---------------------------------- */
+
+.soc-bar {
+  position: relative;
+  width: 100%;
+  min-width: 8rem;
+  height: var(--soc-bar-height);
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+}
+
+/* 15 % threshold tick (non-text marker, border-strong ≥ 3:1 on surface-2). */
+.soc-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--soc-low-threshold);
+  width: 2px;
+  background: var(--color-border-strong);
+}
+
+/* Width from an inline style (width: 42%) or from --soc (0–1) on .soc-bar. */
+.soc-bar__fill {
+  display: block;
+  width: calc(var(--soc, 0) * 100%);
+  max-width: 100%;
+  height: 100%;
+  background: var(--state-ok);
+  transition: width var(--duration) linear;
+}
+
+/* Low: amber with diagonal hatching, so the state is not carried by colour alone. */
+.soc-bar--low .soc-bar__fill {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 4px,
+      color-mix(in srgb, var(--color-surface) 45%, transparent) 4px 7px
+    ),
+    var(--state-low);
+}
+
+/* Empty: dashed red outline (same 1 px width: the bar never changes size between states). */
+.soc-bar--empty {
+  border-style: dashed;
+  border-color: var(--state-empty);
+}
+
+.soc-bar--empty .soc-bar__fill {
+  background: var(--state-empty);
+}
+
+.battery-state,
+.mguk-state {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  min-height: 1.75rem;
+  padding: 0.1rem var(--space-3) 0.1rem var(--space-2);
+  border: 1px solid var(--state-color, var(--color-border-strong));
+  background: color-mix(in srgb, var(--state-color, transparent) 14%, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+}
+
+.battery-state {
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  white-space: normal;
+}
+
+/* Icon glyph from CSS (text presentation, U+FE0E); the Italian text is in the DOM. */
+.battery-state::before,
+.mguk-state::before {
+  flex: none;
+  width: 1.1em;
+  color: var(--state-color, currentColor);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  text-align: center;
+}
+
+.battery-state[data-state='ok'] {
+  --state-color: var(--state-ok);
+}
+
+.battery-state[data-state='ok']::before {
+  content: '\2713'; /* ✓ */
+}
+
+.battery-state[data-state='low'] {
+  --state-color: var(--state-low);
+}
+
+.battery-state[data-state='low']::before {
+  content: '\26A0\FE0E'; /* ⚠ */
+}
+
+.battery-state[data-state='empty'] {
+  --state-color: var(--state-empty);
+  font-weight: var(--fw-bold);
+}
+
+.battery-state[data-state='empty']::before {
+  content: '\2715'; /* ✕ */
+}
+
+/* --- MGU-K state badge (F1/F3) -------------------------------------------- */
+
+.mguk-state {
+  min-width: 9.5rem; /* widest label ("Erogazione") + icon: no reflow when the mode flips */
+  border-radius: var(--radius-pill);
+}
+
+.mguk-state[data-mode='deploy'] {
+  --state-color: var(--mguk-deploy);
+}
+
+.mguk-state[data-mode='deploy']::before {
+  content: '\25B2'; /* ▲ energy out of the battery to the wheels */
+}
+
+.mguk-state[data-mode='harvest'] {
+  --state-color: var(--mguk-harvest);
+}
+
+.mguk-state[data-mode='harvest']::before {
+  content: '\25BC'; /* ▼ energy from the wheels into the battery */
+}
+
+.mguk-state[data-mode='idle'] {
+  --state-color: var(--mguk-idle);
+  border-style: dashed;
+}
+
+.mguk-state[data-mode='idle']::before {
+  content: '\25CB'; /* ○ */
+}
+
+/* --- Pedals (drive-sim, F3) ------------------------------------------------ */
+
+.pedals {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+/* One pedal: vertical analog bar 0–100 % drawn from --pedal-value (0–1) on the element,
+   label / value / key hint below. Whole control ≥ 44 × 44 px; <button> or role="slider". */
+.pedal {
+  --pedal-color: var(--color-accent);
+  display: grid;
+  grid-template-rows: var(--pedal-height);
+  grid-auto-rows: auto;
+  justify-items: center;
+  gap: var(--space-1);
+  min-width: max(var(--pedal-width), var(--touch-min));
+  min-height: var(--touch-min);
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-tight);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pedal::before {
+  content: '';
+  grid-row: 1;
+  width: 100%;
+  min-width: 1.75rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    to top,
+    var(--pedal-color) calc(var(--pedal-value, 0) * 100%),
+    var(--color-surface-2) 0
+  );
+}
+
+.pedal--throttle {
+  --pedal-color: var(--pedal-throttle);
+}
+
+.pedal--brake {
+  --pedal-color: var(--pedal-brake);
+}
+
+.pedal:hover {
+  border-color: var(--pedal-color);
+}
+
+.pedal:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.pedal[aria-pressed='true'],
+.pedal[data-active='true'] {
+  border-color: var(--pedal-color);
+  box-shadow: inset 0 0 0 1px var(--pedal-color);
+}
+
+.pedal__label {
+  font-weight: var(--fw-bold);
+}
+
+.pedal__value {
+  width: 5ch; /* "100 %" */
+  white-space: nowrap;
+  font-family: var(--font-readout);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pedal__keys {
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+
+.pedal kbd {
+  padding: 0 0.3em;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}

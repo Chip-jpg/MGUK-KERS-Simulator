@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup — Readout a griglia fissa</title>
+    <link rel="stylesheet" href="../src/styles/index.css" />
+    <link rel="stylesheet" href="./mockup.css" />
+    <script>
+      document.documentElement.dataset.theme = location.hash === '#light' ? 'light' : 'dark';
+      addEventListener('hashchange', () => location.reload());
+    </script>
+  </head>
+  <body>
+    <div class="mk-bar">
+      <h1>Readout a griglia fissa (F4)</h1>
+      <a href="#dark">Scuro</a> · <a href="#light">Chiaro</a> ·
+      <a href="./index.html">Indice</a>
+    </div>
+
+    <div class="mk-grid">
+      <section class="panel">
+        <h2 class="panel-title">Grandezze</h2>
+        <!-- valueReadout: maxAbs 400 km/h, 1 decimale → "400,0" = 5 car.; signed → +1 = 6 -->
+        <div class="readout-grid">
+          <div class="readout q-energy">
+            <span class="readout__label">Velocità</span>
+            <span class="readout__value" style="--readout-chars: 5">312,4</span>
+            <span class="readout__unit">km/h</span>
+          </div>
+          <div class="readout q-f">
+            <span class="readout__label">Accelerazione</span>
+            <span class="readout__value" style="--readout-chars: 6">−4,52</span>
+            <span class="readout__unit">m/s²</span>
+          </div>
+          <div class="readout q-energy">
+            <span class="readout__label">P MGU-K</span>
+            <span class="readout__value" style="--readout-chars: 6">120,0</span>
+            <span class="readout__unit">kW</span>
+          </div>
+          <div class="readout readout--na">
+            <span class="readout__label">Rendimento</span>
+            <span class="readout__value" style="--readout-chars: 5">-,--</span>
+            <span class="readout__unit">%</span>
+          </div>
+          <div class="readout q-i">
+            <span class="readout__label">Corrente</span>
+            <span class="readout__value" style="--readout-chars: 8">1.234,56</span>
+            <span class="readout__unit">A</span>
+          </div>
+        </div>
+        <p class="mk-caption">
+          Stessa larghezza per "0,0", "−123,4" e "-,--": la colonna valore è
+          <code>--readout-chars × 1ch</code>, il testo è allineato a destra.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">Stesso readout, valori diversi</h2>
+        <div class="mk-stack">
+          <div class="readout q-emf">
+            <span class="readout__label">f.e.m.</span>
+            <span class="readout__value" style="--readout-chars: 7">0,00</span>
+            <span class="readout__unit">V</span>
+          </div>
+          <div class="readout q-emf">
+            <span class="readout__label">f.e.m.</span>
+            <span class="readout__value" style="--readout-chars: 7">−999,99</span>
+            <span class="readout__unit">V</span>
+          </div>
+          <div class="readout q-emf readout--na">
+            <span class="readout__label">f.e.m.</span>
+            <span class="readout__value" style="--readout-chars: 7">-,--</span>
+            <span class="readout__unit">V</span>
+          </div>
+          <div class="readout q-emf">
+            <span class="readout__label">f.e.m. (fuori scala)</span>
+            <span class="readout__value" style="--readout-chars: 7">12.345,678</span>
+            <span class="readout__unit">V</span>
+          </div>
+        </div>
+        <p class="mk-caption">Fuori scala: il testo viene tagliato, la scatola non cresce.</p>
+      </section>
+
+      <section>
+        <div class="sim-scene" style="height: 16rem">
+          <div class="mk-scene">scena 3D</div>
+          <div class="sim-scene__overlay">
+            <div class="readout-grid" data-corner="tl">
+              <div class="readout q-energy">
+                <span class="readout__label">v</span>
+                <span class="readout__value" style="--readout-chars: 5">212,0</span>
+                <span class="readout__unit">km/h</span>
+              </div>
+            </div>
+            <div class="readout-grid" data-corner="br">
+              <div class="readout q-energy">
+                <span class="readout__label">SoC</span>
+                <span class="readout__value" style="--readout-chars: 5">47,3</span>
+                <span class="readout__unit">%</span>
+              </div>
+            </div>
+            <span class="fps-counter">144 fps</span>
+          </div>
+        </div>
+        <p class="mk-caption">
+          HUD ancorati agli angoli della scena (data-corner), contatore FPS in alto a destra.
+        </p>
+      </section>
+    </div>
+  </body>
+</html>

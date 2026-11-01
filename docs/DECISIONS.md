@@ -246,9 +246,9 @@ assumptions that the repository does not match. The repository wins:
    the renamed module (the existing cross-sim import is kept, path updated by S3).
    `kersBrakingEvent` stays in the frozen §4.2 API.
 7. **Render loop contract (§5) changes**: no 60 fps cap by default; limit setting
-   *Automatico (schermo) / 60 / 30* in `localStorage['kers-lab.fpsLimit']`; physics unchanged
+   _Automatico (schermo) / 60 / 30_ in `localStorage['kers-lab.fpsLimit']`; physics unchanged
    (dt = 1/240 s, accumulator, max simulated time per frame).
-8. **F8 interpretation**: "motore traslatorio" = the *Moto traslatorio* mode (B·l·v) of
+8. **F8 interpretation**: "motore traslatorio" = the _Moto traslatorio_ mode (B·l·v) of
    `faraday`, the only match in the repo. `emfMotional` stays in `src/physics` and in theory.
 9. **Branches.** Task branches `fix/<id>-<slug>` are squash-merged into
    `claude/quirky-cray-0kg1gn` (the only branch this session may push); merging to `main` and

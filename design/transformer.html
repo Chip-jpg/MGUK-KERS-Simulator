@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="it" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup — Grafici trasformatore</title>
+    <link rel="stylesheet" href="../src/styles/index.css" />
+    <link rel="stylesheet" href="./mockup.css" />
+    <script>
+      document.documentElement.dataset.theme = location.hash === '#light' ? 'light' : 'dark';
+      addEventListener('hashchange', () => location.reload());
+    </script>
+    <style>
+      :root {
+        --mk-heat: var(--q-heat, #ff9248);
+      }
+      :root[data-theme='light'] {
+        --mk-heat: var(--q-heat, #a8420a);
+      }
+      .mk-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .mk-band {
+        fill: var(--color-surface-2);
+      }
+      .mk-ref {
+        stroke: var(--color-border-strong);
+        stroke-dasharray: 3 3;
+      }
+      .mk-tx {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+        gap: var(--space-4);
+        max-width: 64rem;
+      }
+      .mk-bars {
+        display: grid;
+        grid-template-columns: 6rem 1fr auto;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--fs-sm);
+      }
+      .mk-bar-fill {
+        height: 1.25rem;
+        border-radius: var(--radius-sm);
+        background: var(--mk-heat);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mk-bar">
+      <h1>Trasformatore e linea (F10)</h1>
+      <a href="#dark">Scuro</a> · <a href="#light">Chiaro</a> ·
+      <a href="./index.html">Indice</a>
+    </div>
+
+    <div class="mk-tx">
+      <div class="mk-stack">
+        <figure class="plot">
+          <figcaption class="plot__title">
+            Perdite in linea vs tensione di trasmissione (scala log)
+          </figcaption>
+          <svg
+            class="mk-svg"
+            viewBox="0 0 520 190"
+            role="img"
+            aria-label="Perdite in funzione della tensione"
+          >
+            <!-- x: log10 V from 2 (100 V) to 6 (1 MV): x = 50 + (log10 V − 2) × 115 -->
+            <rect class="mk-band" x="246" y="10" width="78" height="150" />
+            <rect class="mk-band" x="325" y="10" width="31" height="150" />
+            <line class="mk-ref" x1="122" y1="10" x2="122" y2="160" />
+            <line class="mk-ref" x1="211" y1="10" x2="211" y2="160" />
+            <text x="96" y="22">380/220 V</text>
+            <text x="200" y="22">10 kV</text>
+            <text x="252" y="22">20–132 kV</text>
+            <text x="326" y="36">220–380 kV</text>
+            <line class="mk-axis" x1="50" y1="160" x2="510" y2="160" />
+            <line class="mk-axis" x1="50" y1="10" x2="50" y2="160" />
+            <path
+              fill="none"
+              stroke="var(--mk-heat)"
+              stroke-width="2.5"
+              d="M50,12 C120,20 170,60 211,95 S300,150 510,158"
+            />
+            <circle
+              cx="211"
+              cy="95"
+              r="6"
+              fill="var(--color-accent)"
+              stroke="var(--color-bg)"
+              stroke-width="2"
+            />
+            <text x="218" y="108">punto di lavoro</text>
+            <text x="44" y="176">100 V</text>
+            <text x="155" y="176">1 kV</text>
+            <text x="265" y="176">10 kV</text>
+            <text x="375" y="176">100 kV</text>
+            <text x="480" y="176">1 MV</text>
+            <text x="4" y="16">100 %</text>
+            <text x="20" y="160">0</text>
+          </svg>
+        </figure>
+        <figure class="plot">
+          <figcaption class="plot__title">
+            Corrente in linea I vs tensione V (stesso asse x)
+          </figcaption>
+          <svg
+            class="mk-svg"
+            viewBox="0 0 520 110"
+            role="img"
+            aria-label="Corrente in funzione della tensione"
+          >
+            <line class="mk-ref" x1="211" y1="5" x2="211" y2="85" />
+            <line class="mk-axis" x1="50" y1="85" x2="510" y2="85" />
+            <line class="mk-axis" x1="50" y1="5" x2="50" y2="85" />
+            <path fill="none" stroke="var(--q-i)" stroke-width="2.5" d="M50,8 L510,82" />
+            <circle
+              cx="211"
+              cy="34"
+              r="6"
+              fill="var(--color-accent)"
+              stroke="var(--color-bg)"
+              stroke-width="2"
+            />
+            <text x="44" y="100">100 V</text>
+            <text x="265" y="100">10 kV</text>
+            <text x="480" y="100">1 MV</text>
+          </svg>
+        </figure>
+      </div>
+
+      <div class="mk-stack">
+        <fieldset class="segmented">
+          <legend class="segmented__legend">Grafico perdite</legend>
+          <div class="segmented__options">
+            <input class="segmented__input" type="radio" name="mk-tab" id="mk-r" checked />
+            <label class="segmented__label" for="mk-r">Perdite vs R</label>
+            <input class="segmented__input" type="radio" name="mk-tab" id="mk-p" />
+            <label class="segmented__label" for="mk-p">Perdite vs P</label>
+          </div>
+        </fieldset>
+        <figure class="plot">
+          <figcaption class="plot__title">Perdite vs resistenza di linea R</figcaption>
+          <svg
+            class="mk-svg"
+            viewBox="0 0 260 120"
+            role="img"
+            aria-label="Perdite in funzione di R"
+          >
+            <line class="mk-axis" x1="30" y1="100" x2="255" y2="100" />
+            <line class="mk-axis" x1="30" y1="5" x2="30" y2="100" />
+            <path fill="none" stroke="var(--mk-heat)" stroke-width="2.5" d="M30,98 L250,20" />
+            <circle cx="120" cy="66" r="5" fill="var(--color-accent)" />
+            <text x="230" y="114">R [Ω]</text>
+          </svg>
+        </figure>
+        <section class="panel">
+          <h2 class="panel-title">Bassa vs alta tensione</h2>
+          <div class="mk-bars">
+            <span>400 V</span><span class="mk-bar-fill" style="width: 100%"></span><span>38 %</span>
+            <span>132 kV</span><span class="mk-bar-fill" style="width: 2%"></span
+            ><span>0,0004 %</span>
+          </div>
+          <p class="mk-caption">10× tensione → 100× meno perdite (stessa potenza, stessa linea).</p>
+        </section>
+        <p class="callout">Trasformatore ideale; nella realtà ci sono perdite nel nucleo.</p>
+      </div>
+    </div>
+  </body>
+</html>

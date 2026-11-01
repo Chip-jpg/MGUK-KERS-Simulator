@@ -6,15 +6,15 @@ Orchestrator baseline (task **B0**), 2026-11-01, on `claude/quirky-cray-0kg1gn` 
 
 ## 1. Baseline (before any change)
 
-| Gate | Result |
-|---|---|
-| `npm ci` | OK |
-| `npm run lint` | OK, 0 problems |
-| `npm run format:check` | OK |
-| `npm run typecheck` | OK |
-| `npm test` (Vitest) | **54 files, 533 tests passed** |
-| `npm run build` | OK |
-| `npm run e2e` (Playwright, Chromium 1243, SwiftShader) | **128 passed** (8,9 min) |
+| Gate                                                   | Result                         |
+| ------------------------------------------------------ | ------------------------------ |
+| `npm ci`                                               | OK                             |
+| `npm run lint`                                         | OK, 0 problems                 |
+| `npm run format:check`                                 | OK                             |
+| `npm run typecheck`                                    | OK                             |
+| `npm test` (Vitest)                                    | **54 files, 533 tests passed** |
+| `npm run build`                                        | OK                             |
+| `npm run e2e` (Playwright, Chromium 1243, SwiftShader) | **128 passed** (8,9 min)       |
 
 FPS recorded by the existing e2e on software GL (headless SwiftShader, not representative of
 a real GPU): lenz 16,3 fps, rl-energy 14,3 fps (rAF rate). Real-GPU numbers must be measured
@@ -26,15 +26,15 @@ Every simulator is `src/sims/<id>/` with `index.ts` (SimModule + mount), `model.
 sim logic over `src/physics`), `panel.ts` (formula items), `scene.ts` (Three.js on
 `src/render/`). Registry order = `SIM_IDS` in `src/core/registry.ts` = sidebar order.
 
-| Id | Files | What it shows | Has the car |
-|---|---|---|---|
-| `faraday` | index, model, panel, scene, format | Rotating coil in a uniform field (Φ(t), f.e.m.(t), lamp); **second mode "Moto traslatorio"** (bar on rails, B·l·v) with sliders `l`, `v` | no |
-| `lenz` | index, model, panel-less (params, status), scene, lenz.css | Magnet approaching/leaving a coil, induced current, galvanometer, opposing force | no |
-| `alternator-motor` | index, model, panel, scene, constants, style.css | One-coil machine in generator (braking) / motor (acceleration) mode, Lorentz forces, energy ribbons; **SoC shown but cosmetic** (`socStep`, 5 kJ, clamped) | no |
-| `kers-braking` | index, model, panel, scene, style.css | Constant-deceleration braking event v₁ → v₂, ΔE_k, MGU-K limited by Pₘₐₓ and η, rest to discs (thermal), presets 120 / 350 kW | **yes** (shared car) |
-| `joule-transformer` | index, model, panel, params, scene, visual, style.css | Ideal transformer + line losses, transport-chain diorama, "10× tensione → 100× meno perdite" | no |
-| `rl-energy` | index, model, panel, params, scene, visual, style.css | RL transient, τ = L/R, ½LI², energy balance | no |
-| `car-dynamics` | index, model, panel, forces, scene, style.css | Combined braking MGU-K + discs, Pacejka tyres, drag/downforce, rear-axle limit | **yes** (shared car) |
+| Id                  | Files                                                      | What it shows                                                                                                                                              | Has the car          |
+| ------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `faraday`           | index, model, panel, scene, format                         | Rotating coil in a uniform field (Φ(t), f.e.m.(t), lamp); **second mode "Moto traslatorio"** (bar on rails, B·l·v) with sliders `l`, `v`                   | no                   |
+| `lenz`              | index, model, panel-less (params, status), scene, lenz.css | Magnet approaching/leaving a coil, induced current, galvanometer, opposing force                                                                           | no                   |
+| `alternator-motor`  | index, model, panel, scene, constants, style.css           | One-coil machine in generator (braking) / motor (acceleration) mode, Lorentz forces, energy ribbons; **SoC shown but cosmetic** (`socStep`, 5 kJ, clamped) | no                   |
+| `kers-braking`      | index, model, panel, scene, style.css                      | Constant-deceleration braking event v₁ → v₂, ΔE_k, MGU-K limited by Pₘₐₓ and η, rest to discs (thermal), presets 120 / 350 kW                              | **yes** (shared car) |
+| `joule-transformer` | index, model, panel, params, scene, visual, style.css      | Ideal transformer + line losses, transport-chain diorama, "10× tensione → 100× meno perdite"                                                               | no                   |
+| `rl-energy`         | index, model, panel, params, scene, visual, style.css      | RL transient, τ = L/R, ½LI², energy balance                                                                                                                | no                   |
+| `car-dynamics`      | index, model, panel, forces, scene, style.css              | Combined braking MGU-K + discs, Pacejka tyres, drag/downforce, rear-axle limit                                                                             | **yes** (shared car) |
 
 Shared: `src/sims/shared/car/**` (procedural single-seater, track, discs), `src/sims/shared/turns.ts`.
 UI kit: `src/ui/` (`plot.ts` uPlot wrapper, `formulaPanel.ts` readouts, `simLayout.ts`,
@@ -52,21 +52,21 @@ Script: Playwright, 1280×720, `vite preview` of the baseline build.
 **F4 — readouts move.** Bounding boxes of `.formula-row__number/.formula-row__value` sampled
 every 0,5 s for 5 s while the first slider is moved (arrows, then `End`):
 
-| Sim | Readouts | Samples that moved | Max shift |
-|---|---|---|---|
-| faraday | 12 | 21 | 18,1 px |
-| alternator-motor | 16 | 128 | 587 px |
-| kers-braking | 14 | 4 | 9 px |
-| joule-transformer | 14 | 7 | 9,1 px |
-| lenz | 14 | 10 | 9,1 px |
-| rl-energy | 16 | 0 | 0 px |
-| car-dynamics | 18 | 4 | 9,1 px |
+| Sim               | Readouts | Samples that moved | Max shift |
+| ----------------- | -------- | ------------------ | --------- |
+| faraday           | 12       | 21                 | 18,1 px   |
+| alternator-motor  | 16       | 128                | 587 px    |
+| kers-braking      | 14       | 4                  | 9 px      |
+| joule-transformer | 14       | 7                  | 9,1 px    |
+| lenz              | 14       | 10                 | 9,1 px    |
+| rl-energy         | 16       | 0                  | 0 px      |
+| car-dynamics      | 18       | 4                  | 9,1 px    |
 
 Required after the fix: 0 px everywhere (scene HUD labels included where they are readouts).
 
 **F6 — Faraday y-scale lost.** `docs/media/fix-round-1/F6-faraday-before.png` vs
 `F6-faraday-after-slider-changes.png`: after moving B, S, N, ω to max and back to min, the plots
-redraw the whole trace history (computed with the *old* parameters) multiplied by the *new*
+redraw the whole trace history (computed with the _old_ parameters) multiplied by the _new_
 display prefix: the axis reads "25.000 µWb" and "10.000.000 µV" while the current signal
 (≈ 9,8 µWb, 5 µV) is a flat line at 0. Root causes seen in `src/sims/faraday/index.ts` and
 `src/ui/plot.ts`: (1) the plot is destroyed and recreated when the display prefix changes, and
@@ -82,18 +82,18 @@ Screenshot `docs/media/fix-round-1/F9-alternator-motor-motor-mode.png`. There is
 
 ## 4. Fix → files map
 
-| Fix | Task | Files (new **bold**) |
-|---|---|---|
-| F1 acceleration in braking sims | P1, S3, S2 | **`src/physics/battery.ts`**, **`src/physics/longitudinal.ts`** (vehicle + MGU-K controller + `kersDriveStep`); `src/sims/kers-braking/**` → **`src/sims/kers-drive/**`**; `src/core/registry.ts`, `src/core/router.ts` (redirect), `src/core/i18n/it.ts`; `src/sims/alternator-motor/**` |
-| F2 live telemetry plots | U1, S3, S5 (car-dynamics), S6 | **`src/ui/carTelemetryPlots.ts`**, `src/ui/plot.ts`; `kers-drive`, `car-dynamics`, `drive-sim` |
-| F3 drive-sim | S6 | **`src/sims/drive-sim/**`**, registry, it.ts, e2e |
-| F4 fixed readouts | D1, U1, S1–S6 | **`src/ui/valueReadout.ts`**, `src/ui/formulaPanel.ts`, `src/styles/components.css`, every sim `index.ts`/`panel.ts`, scene HUD labels; **`e2e/readout-stability.spec.ts`** |
-| F5 fullscreen | U1, S1–S6 | **`src/ui/fullscreen.ts`**, `src/ui/simLayout.ts`, `src/ui/toolbar.ts`, `src/render/stage.ts` resize (read-only contract: stage already uses ResizeObserver — U1 verifies), **`e2e/fullscreen.spec.ts`** |
-| F6 plot scale | P1 (range helpers), U1 (`plot.ts`), S1 (faraday) , S5 | `src/physics/` range helpers, `src/ui/plot.ts`, `src/sims/faraday/index.ts`, **`e2e/plot-scale.spec.ts`** |
-| F7 uncapped FPS | U1, all S | `src/core/loop.ts`, **`src/ui/fpsCounter.ts`**, **`src/core/settings.ts`** (FPS limit, localStorage), `src/core/app.ts` (settings switch), `docs/ARCHITECTURE.md` §5 |
-| F8 remove moto traslatorio | S1, T1 | `src/sims/faraday/{index,model,panel,scene}.ts`, `tests/sims/faraday/**`, `e2e/sims/faraday.spec.ts`, README table, `content/theory/03-faraday-neumann.md` (text pointing to the control). `emfMotional` stays in `src/physics` (frozen API §4.2, theory). |
-| F9 battery + cutoff | P1, S2 | `src/physics/battery.ts` (+ tests), `src/sims/alternator-motor/**` |
-| F10 transformer plots | P1, S4 | `src/physics/transformer.ts`/`powerline.ts` helpers, `src/sims/joule-transformer/**` |
+| Fix                             | Task                                                  | Files (new **bold**)                                                                                                                                                                                                                                                                      |
+| ------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1 acceleration in braking sims | P1, S3, S2                                            | **`src/physics/battery.ts`**, **`src/physics/longitudinal.ts`** (vehicle + MGU-K controller + `kersDriveStep`); `src/sims/kers-braking/**` → **`src/sims/kers-drive/**`**; `src/core/registry.ts`, `src/core/router.ts` (redirect), `src/core/i18n/it.ts`; `src/sims/alternator-motor/**` |
+| F2 live telemetry plots         | U1, S3, S5 (car-dynamics), S6                         | **`src/ui/carTelemetryPlots.ts`**, `src/ui/plot.ts`; `kers-drive`, `car-dynamics`, `drive-sim`                                                                                                                                                                                            |
+| F3 drive-sim                    | S6                                                    | **`src/sims/drive-sim/**`**, registry, it.ts, e2e                                                                                                                                                                                                                                         |
+| F4 fixed readouts               | D1, U1, S1–S6                                         | **`src/ui/valueReadout.ts`**, `src/ui/formulaPanel.ts`, `src/styles/components.css`, every sim `index.ts`/`panel.ts`, scene HUD labels; **`e2e/readout-stability.spec.ts`**                                                                                                               |
+| F5 fullscreen                   | U1, S1–S6                                             | **`src/ui/fullscreen.ts`**, `src/ui/simLayout.ts`, `src/ui/toolbar.ts`, `src/render/stage.ts` resize (read-only contract: stage already uses ResizeObserver — U1 verifies), **`e2e/fullscreen.spec.ts`**                                                                                  |
+| F6 plot scale                   | P1 (range helpers), U1 (`plot.ts`), S1 (faraday) , S5 | `src/physics/` range helpers, `src/ui/plot.ts`, `src/sims/faraday/index.ts`, **`e2e/plot-scale.spec.ts`**                                                                                                                                                                                 |
+| F7 uncapped FPS                 | U1, all S                                             | `src/core/loop.ts`, **`src/ui/fpsCounter.ts`**, **`src/core/settings.ts`** (FPS limit, localStorage), `src/core/app.ts` (settings switch), `docs/ARCHITECTURE.md` §5                                                                                                                      |
+| F8 remove moto traslatorio      | S1, T1                                                | `src/sims/faraday/{index,model,panel,scene}.ts`, `tests/sims/faraday/**`, `e2e/sims/faraday.spec.ts`, README table, `content/theory/03-faraday-neumann.md` (text pointing to the control). `emfMotional` stays in `src/physics` (frozen API §4.2, theory).                                |
+| F9 battery + cutoff             | P1, S2                                                | `src/physics/battery.ts` (+ tests), `src/sims/alternator-motor/**`                                                                                                                                                                                                                        |
+| F10 transformer plots           | P1, S4                                                | `src/physics/transformer.ts`/`powerline.ts` helpers, `src/sims/joule-transformer/**`                                                                                                                                                                                                      |
 
 ## 5. Where the repository differs from the brief
 
@@ -126,59 +126,127 @@ orchestrator (recorded in D16+). SI units inside, Italian only in UI strings.
 ```ts
 // battery.ts
 export interface BatteryParams {
-  capacityJ: number;          // usable energy [J] (> 0)
-  etaCharge: number;          // (0,1]: stored = absorbed·etaCharge
-  etaDischarge: number;       // (0,1]: delivered = drawn·etaDischarge
-  rInternal: number;          // [Ω] ≥ 0, Joule loss R·I² with I = |P|/vNominal
-  vNominal: number;           // [V] > 0
-  pChargeMax: number;         // [W] ≥ 0, limit on absorbed terminal power
-  pDischargeMax: number;      // [W] ≥ 0, limit on delivered terminal power
-  restartSoc: number;         // hysteresis threshold in [0,1] (default 0.05)
+  capacityJ: number; // usable energy [J] (> 0)
+  etaCharge: number; // (0,1]: stored = absorbed·etaCharge
+  etaDischarge: number; // (0,1]: delivered = drawn·etaDischarge
+  rInternal: number; // [Ω] ≥ 0, Joule loss R·I² with I = |P|/vNominal
+  vNominal: number; // [V] > 0
+  pChargeMax: number; // [W] ≥ 0, limit on absorbed terminal power
+  pDischargeMax: number; // [W] ≥ 0, limit on delivered terminal power
+  restartSoc: number; // hysteresis threshold in [0,1] (default 0.05)
 }
 export interface BatteryState {
-  soc: number;                // [0,1]
-  depleted: boolean;          // true once soc hit 0; false again only when soc ≥ restartSoc
-  eIn: number; eOut: number;  // cumulative terminal energy absorbed / delivered [J]
-  eLoss: number;              // cumulative losses (η + Joule) [J]
+  soc: number; // [0,1]
+  depleted: boolean; // true once soc hit 0; false again only when soc ≥ restartSoc
+  eIn: number;
+  eOut: number; // cumulative terminal energy absorbed / delivered [J]
+  eLoss: number; // cumulative losses (η + Joule) [J]
 }
 export function createBattery(p: BatteryParams, soc0: number): BatteryState;
-export function batteryLimits(p: BatteryParams, s: BatteryState, dt: number):
-  { pDeployMax: number; pHarvestMax: number };          // [W] ≥ 0, SoC- and depletion-aware
-export function batteryStep(p: BatteryParams, s: BatteryState, pRequest: number, dt: number):
-  { state: BatteryState; pTerminal: number; pLoss: number };
+export function batteryLimits(
+  p: BatteryParams,
+  s: BatteryState,
+  dt: number,
+): { pDeployMax: number; pHarvestMax: number }; // [W] ≥ 0, SoC- and depletion-aware
+export function batteryStep(
+  p: BatteryParams,
+  s: BatteryState,
+  pRequest: number,
+  dt: number,
+): { state: BatteryState; pTerminal: number; pLoss: number };
 // pRequest > 0 = discharge (deploy), < 0 = charge (harvest); pTerminal = actually granted
 // (same sign convention, |pTerminal| ≤ |pRequest|). Never soc < 0 or > 1.
 
 // longitudinal.ts
-export interface VehicleParams { m: number; cdA: number; rho: number; crr: number;
-  fDriveMax: number; pEngineMax: number; fBrakeMax: number }   // ICE force/power, disc brake force
-export interface MgukParams { pDeployMax: number; pHarvestMax: number; eta: number }
-export interface DriveParams { vehicle: VehicleParams; mguk: MgukParams; battery: BatteryParams }
-export interface DriveInput { throttle: number; brake: number }   // each in [0,1]
-export interface DriveState { t: number; x: number; v: number; battery: BatteryState;
-  eEngine: number; eDeploy: number; eHarvest: number; eBrakes: number;
-  eDrag: number; eRoll: number; eMgukLoss: number }              // cumulative [J]
+export interface VehicleParams {
+  m: number;
+  cdA: number;
+  rho: number;
+  crr: number;
+  fDriveMax: number;
+  pEngineMax: number;
+  fBrakeMax: number;
+} // ICE force/power, disc brake force
+export interface MgukParams {
+  pDeployMax: number;
+  pHarvestMax: number;
+  eta: number;
+}
+export interface DriveParams {
+  vehicle: VehicleParams;
+  mguk: MgukParams;
+  battery: BatteryParams;
+}
+export interface DriveInput {
+  throttle: number;
+  brake: number;
+} // each in [0,1]
+export interface DriveState {
+  t: number;
+  x: number;
+  v: number;
+  battery: BatteryState;
+  eEngine: number;
+  eDeploy: number;
+  eHarvest: number;
+  eBrakes: number;
+  eDrag: number;
+  eRoll: number;
+  eMgukLoss: number;
+} // cumulative [J]
 export type MgukMode = 'deploy' | 'harvest' | 'idle';
-export interface DriveStepResult { state: DriveState; a: number; v: number;
-  pKers: number;      // MGU-K mechanical power at the wheels [W], + deploy, − harvest
-  pBrakes: number;    // disc-brake dissipation [W] ≥ 0
-  pEngine: number; pDrag: number; pRoll: number; soc: number; mode: MgukMode }
+export interface DriveStepResult {
+  state: DriveState;
+  a: number;
+  v: number;
+  pKers: number; // MGU-K mechanical power at the wheels [W], + deploy, − harvest
+  pBrakes: number; // disc-brake dissipation [W] ≥ 0
+  pEngine: number;
+  pDrag: number;
+  pRoll: number;
+  soc: number;
+  mode: MgukMode;
+}
 export function createDriveState(p: DriveParams, v0: number, soc0: number): DriveState;
-export function kersDriveStep(s: DriveState, input: DriveInput, p: DriveParams, dt: number): DriveStepResult;
+export function kersDriveStep(
+  s: DriveState,
+  input: DriveInput,
+  p: DriveParams,
+  dt: number,
+): DriveStepResult;
 // v never < 0 (braking at v = 0 holds the car); RK4 on dt; deterministic.
 // Braking split: MGU-K harvests first up to min(pHarvestMax, battery limit), discs take the rest.
-export function speedProfileInput(profile: readonly SpeedProfilePoint[], t: number, v: number): DriveInput;
-export interface SpeedProfilePoint { t: number; v: number }     // target speed [m/s] vs time [s]
+export function speedProfileInput(
+  profile: readonly SpeedProfilePoint[],
+  t: number,
+  v: number,
+): DriveInput;
+export interface SpeedProfilePoint {
+  t: number;
+  v: number;
+} // target speed [m/s] vs time [s]
 
 // plotRange.ts (F6)
-export function symmetricRange(amplitude: number, margin?: number, minHalfSpan?: number): [number, number];
-export function safeRange(min: number, max: number, minSpan?: number): [number, number];   // never NaN/∞/zero-width
-export function faradayRanges(B: number, S: number, N: number, omega: number, margin?: number):
-  { phi: [number, number]; emf: [number, number] };    // ±B·S·(N if perTurns) and ±N·B·S·ω with margin
+export function symmetricRange(
+  amplitude: number,
+  margin?: number,
+  minHalfSpan?: number,
+): [number, number];
+export function safeRange(min: number, max: number, minSpan?: number): [number, number]; // never NaN/∞/zero-width
+export function faradayRanges(
+  B: number,
+  S: number,
+  N: number,
+  omega: number,
+  margin?: number,
+): { phi: [number, number]; emf: [number, number] }; // ±B·S·(N if perTurns) and ±N·B·S·ω with margin
 // transformer.ts / powerline.ts additions (F10)
 export function logspace(a: number, b: number, n: number): number[];
-export function lineLossSweep(P: number, Rline: number, voltages: readonly number[]):
-  Array<{ V: number; I: number; loss: number; fraction: number }>;
+export function lineLossSweep(
+  P: number,
+  Rline: number,
+  voltages: readonly number[],
+): Array<{ V: number; I: number; loss: number; fraction: number }>;
 ```
 
 ### 6.2 Shared UI (U1) — `src/ui/`, exported from `src/ui/index.ts`

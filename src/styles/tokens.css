@@ -103,3 +103,53 @@
     --duration: 0ms;
   }
 }
+
+/*
+ * Fix round 1 component tokens (docs/DESIGN.md). Kept in their own blocks so the
+ * palette blocks above stay the single source mirrored by src/ui/colors.ts.
+ */
+
+:root {
+  /* Readouts (F4): fixed box, digits reserved via --readout-chars (set by valueReadout.ts). */
+  --font-readout: var(--font-mono);
+  --readout-font-size: var(--fs-base);
+  --readout-label-size: var(--fs-xs);
+  --readout-line: 1.5;
+  --readout-unit-chars: 5;
+  --readout-label-min: 6rem;
+
+  /* Fullscreen / projector (F5): bigger readout and axis type. */
+  --readout-font-size-fs: 1.5rem;
+  --readout-label-size-fs: var(--fs-sm);
+  --plot-axis-font-size: 12px;
+  --plot-axis-font-size-fs: 16px;
+  --fs-side-width: minmax(22rem, 30rem);
+
+  /* Touch targets (WCAG 2.5.5 AAA size: 44 × 44 CSS px). */
+  --touch-min: 44px;
+
+  /* Pedals (drive-sim), battery bar. */
+  --pedal-height: 10rem;
+  --pedal-width: 4rem;
+  --soc-bar-height: 1.25rem;
+  --soc-low-threshold: 15%;
+
+  /* State colours that are aliases of palette tokens (contrast already tested). */
+  --state-ok: var(--q-energy);
+  --state-empty: var(--color-danger);
+  --mguk-deploy: var(--q-energy);
+  --mguk-harvest: var(--color-accent);
+  --mguk-idle: var(--color-text-muted);
+  --pedal-throttle: var(--q-f);
+  --pedal-brake: var(--color-danger);
+}
+
+:root,
+:root[data-theme='dark'] {
+  /* Battery low (< 15 %): amber, distinct glyph + text, never colour alone. */
+  --state-low: #e3b341;
+}
+
+:root[data-theme='light'] {
+  --state-low: #7d5300;
+}
