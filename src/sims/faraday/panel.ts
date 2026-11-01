@@ -6,7 +6,7 @@
 import type { FormulaItem } from '../../ui';
 import { chooseScale, type DisplayScale } from './format';
 import type { FaradayMode, FaradayParams } from './model';
-import { emfMotional, rotatingLoop } from '../../physics';
+import { rotatingLoop } from '../../physics';
 
 export interface PanelScales {
   phi: DisplayScale;
@@ -19,11 +19,7 @@ export function panelScales(mode: FaradayMode, p: FaradayParams): PanelScales {
     const V0 = rotatingLoop(p.B, p.S, p.N, p.omega, 0).V0;
     return { phi: chooseScale(p.B * p.S, 'Wb'), emf: chooseScale(V0, 'V') };
   }
-  // Largest flux: bar at the far end of the rails (x = 1,1 m).
-  return {
-    phi: chooseScale(p.B * p.l * 1.1, 'Wb'),
-    emf: chooseScale(emfMotional(p.B, p.l, p.v), 'V'),
-  };
+  return { phi: chooseScale(p.B * p.S, 'Wb'), emf: chooseScale(p.N * p.B * p.S * p.omega, 'V') };
 }
 
 /** Stable identity of the scales (rebuild the panel only when this changes). */
@@ -88,46 +84,5 @@ export function formulaItems(mode: FaradayMode, s: PanelScales): FormulaItem[] {
       },
     ];
   }
-  return [
-    {
-      key: 'x',
-      tex: 'x(t)',
-      labelIT: 'Posizione della sbarretta lungo i binari',
-      unit: 'm',
-      digits: 2,
-      symbolTex: 'x',
-    },
-    {
-      key: 'phi',
-      tex: '\\Phi_B = B\\,l\\,x',
-      labelIT: 'Flusso attraverso il circuito (B perpendicolare al piano dei binari)',
-      quantity: 'b',
-      symbolTex: '\\Phi_B',
-      ...phi,
-    },
-    {
-      key: 'emfMot',
-      tex: `|${FEM}| = B\\,l\\,v`,
-      labelIT: 'F.e.m. di movimento',
-      quantity: 'emf',
-      symbolTex: `|${FEM}|`,
-      ...emf,
-    },
-    {
-      key: 'emfFlux',
-      tex: `${FEM} = -\\dfrac{\\Delta\\Phi_B}{\\Delta t}`,
-      labelIT: 'Calcolata dalla variazione di flusso nell’ultimo passo (Δt = 1/240 s)',
-      quantity: 'emf',
-      symbolTex: FEM,
-      ...emf,
-    },
-    {
-      key: 'peak',
-      tex: `\\max_{\\text{andata e ritorno}} |${FEM}|`,
-      labelIT: 'Picco f.e.m. misurato sui campioni simulati',
-      quantity: 'emf',
-      symbolTex: '\\text{Picco}',
-      ...emf,
-    },
-  ];
+  return [];
 }

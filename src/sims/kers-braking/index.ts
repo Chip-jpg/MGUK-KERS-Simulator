@@ -1,3 +1,5 @@
+import { createCarTelemetryPlots } from '../../ui/telemetry';
+import { reserveTextReadout } from '../../ui/readout';
 /**
  * Simulator `kers-braking` — "Frenata e recupero di energia".
  *
@@ -100,6 +102,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     brakes: el('span', { class: 'kers-hud__brakes' }),
     stored: el('span', { class: 'kers-hud__kers' }),
   };
+  Object.values(hudLines).forEach((n) => reserveTextReadout(n, '22rem', '1.2rem'));
   hud.append(...Object.values(hudLines));
   layout.addSceneLegend(hud);
 
@@ -272,6 +275,12 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     }),
   );
   const balance = createBalance(layout.plots);
+  const telemetry = createCarTelemetryPlots(layout.plots);
+  layout.controls.append(
+    el('p', {
+      text: 'SoC illustrativo: batteria inizialmente vuota, capacità 4 MJ; questo confronto mantiene la decelerazione imposta. Per la macchina reversibile seleziona Accelerazione e frenata.',
+    }),
+  );
 
   // --- Loop ---
   const loop = createLoop(
@@ -329,6 +338,15 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   function draw(): void {
     const st = stateAt(values, simT);
     const r = summary.result;
+    powersAt(si, simT < values.tBrake ? simT : values.tBrake, pw);
+    telemetry.push({
+      t: simT,
+      v: st.v,
+      a: simT >= values.tBrake ? 0 : (si.v2 - si.v1) / values.tBrake,
+      pKers: simT >= values.tBrake ? 0 : -pw.pMech,
+      pBrakes: simT >= values.tBrake ? 0 : pw.pDiscs,
+      soc: Math.min(1, st.stored / 4e6),
+    });
     const fmt = ctx.formatIT;
     if (scene) {
       const done = simT >= values.tBrake;
@@ -373,6 +391,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   }
 
   function recompute(): void {
+    telemetry.clear();
     summary = summarize(values);
     si = toSI(values);
     zoneDistance = r0Distance();
@@ -438,6 +457,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       formulas.dispose();
       plot.dispose();
       balance.dispose();
+      telemetry.dispose();
       scene?.dispose();
       scene = null;
       layout.dispose();

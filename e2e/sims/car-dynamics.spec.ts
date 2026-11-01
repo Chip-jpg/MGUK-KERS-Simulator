@@ -218,8 +218,8 @@ test('mount/unmount ×20 does not leak canvases, mounts or GPU objects', async (
     expect(last.car[key], key).toBe(first.car[key]);
   expect(last.car['liveCars']).toBe(1);
   expect(last.foundation['liveStages']).toBe(1);
-  // whole page: 1 WebGL canvas + the 3 uPlot canvases of this mount only
-  expect(await page.locator('canvas').count()).toBe(4);
+  // whole page: 1 WebGL canvas + the 9 uPlot canvases of this mount only
+  expect(await page.locator('canvas').count()).toBe(10);
   expect(await page.locator('.cd-balance').count()).toBe(1);
   expect(errors).toEqual([]);
   console.warn(
@@ -308,7 +308,7 @@ test('fps measurement (headless SwiftShader: informative only)', async ({ page }
     return (get() - f0) / ((performance.now() - w0) / 1000);
   });
   console.warn(
-    `car-dynamics: rAF ${fps.toFixed(1)} fps, scene draws/s ${drawRate.toFixed(1)} (cap 60)`,
+    `car-dynamics: rAF ${fps.toFixed(1)} fps, scene draws/s ${drawRate.toFixed(1)} (automatic display refresh)`,
   );
   expect(fps).toBeGreaterThan(5);
 });

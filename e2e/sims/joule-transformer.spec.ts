@@ -187,7 +187,7 @@ test('mount/unmount ×20 without leaks; fps measurement', async ({ page }) => {
   for (const key of FOUNDATION_KEYS) expect(last.foundation[key], key).toBe(first.foundation[key]);
   expect(last.scene?.memory.geometries).toBe(first.scene?.memory.geometries);
   expect(last.scene?.memory.textures).toBe(first.scene?.memory.textures);
-  expect(await page.locator('canvas').count()).toBe(1);
+  expect(await page.locator('canvas').count()).toBe(6);
 
   const frames = await page.evaluate(
     () =>

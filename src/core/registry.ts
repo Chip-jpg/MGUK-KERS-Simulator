@@ -5,11 +5,12 @@ export const SIM_IDS = [
   'faraday',
   'lenz',
   'alternator-motor',
-  'kers-braking',
+  'kers-drive',
   'joule-transformer',
   'rl-energy',
   // Phase 4 (optional, advanced)
   'car-dynamics',
+  'drive-sim',
 ] as const;
 
 export type SimId = (typeof SIM_IDS)[number];
@@ -109,6 +110,8 @@ export async function loadSimModules(
     return i === -1 ? SIM_IDS.length : i;
   };
   const ids = [...loaders.keys()].sort((a, b) => rank(a) - rank(b));
-  const mods = await Promise.all(ids.map((id) => loadSim(id, target, loaders)));
+  const mods = await Promise.all(
+    ids.filter((id) => id !== 'kers-braking').map((id) => loadSim(id, target, loaders)),
+  );
   return mods.filter((m): m is SimModule => m !== undefined);
 }

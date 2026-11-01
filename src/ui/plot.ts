@@ -6,6 +6,7 @@ import type { Disposable, Theme } from '../core/types';
 import { getPalette, type Quantity } from './colors';
 import { el } from './dom';
 import { RingBuffer } from './ringBuffer';
+import { finiteRange, rangeTicks } from '../physics/plot-range';
 
 /**
  * uPlot wrapper for live plots: ring-buffered `push()` (redraw at most
@@ -32,6 +33,7 @@ export interface PlotSeries {
   width?: number;
   /** Fill the area under the curve with a translucent tint. */
   fill?: boolean;
+  points?: boolean;
 }
 
 export interface PlotOptions {
@@ -52,6 +54,11 @@ export interface PlotOptions {
   xWindow?: number;
   /** Fixed y range; default auto-scale. */
   yRange?: [number, number];
+  /** Logarithmic x axis (positive samples only). */
+  xLog?: boolean;
+  xRange?: [number, number];
+  xMarkers?: readonly { value: number; labelIT: string }[];
+  syncKey?: string;
   /** Initial theme (default: the one on `<html>`). The plot follows later toggles itself. */
   theme?: Theme;
 }
@@ -65,6 +72,8 @@ export interface Plot extends Disposable {
   setData(xs: readonly number[], ...ys: readonly (readonly number[])[]): void;
   /** Remove all samples. */
   clear(): void;
+  /** New analytical range; converges over 200 ms instead of jumping each frame. */
+  setYRange(range: [number, number]): void;
   /** The live uPlot instance (null after dispose). */
   readonly chart: uPlot | null;
 }
@@ -101,7 +110,7 @@ export function tickDigits(splits: readonly number[]): number {
 
 const axisValues = (_u: uPlot, splits: number[]): string[] => {
   const d = tickDigits(splits);
-  return splits.map((v) => formatIT(v, d));
+  return splits.map((v) => (Number.isFinite(v) ? formatIT(v, d) : ''));
 };
 
 export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
@@ -110,6 +119,10 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
   const nSeries = o.series.length;
   const buffer = new RingBuffer(capacity, Math.max(1, nSeries));
   let theme: Theme = o.theme ?? currentTheme();
+  let targetRange = o.yRange;
+  let shownRange = targetRange?.slice() as [number, number] | undefined;
+  let rangeChangedMs = -Infinity;
+  let fromRange = shownRange;
 
   const host = el('div', { class: 'plot__chart' });
   const element = el('figure', { class: 'plot', attrs: { 'aria-label': o.titleIT } }, [
@@ -123,23 +136,31 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
 
   const buildOptions = (): uPlot.Options => {
     const p = getPalette(theme);
+    const projector = !!container.closest('.sim-presentation');
+    const fontSize = projector ? 16 : 12;
     const axisCommon = {
       stroke: p.textMuted,
       grid: { stroke: p.grid, width: 1 },
       ticks: { stroke: p.grid, width: 1 },
       values: axisValues,
-      font: '12px system-ui, sans-serif',
-      labelFont: '12px system-ui, sans-serif',
+      font: `${fontSize}px system-ui, sans-serif`,
+      labelFont: `${fontSize}px system-ui, sans-serif`,
     };
     const xLabel = o.xLabelIT ? `${o.xLabelIT}${o.xUnit ? ` [${o.xUnit}]` : ''}` : undefined;
     return {
       width: width(),
       height,
       legend: { show: true, live: true },
-      cursor: { drag: { x: false, y: false }, points: { size: 6 } },
+      cursor: {
+        drag: { x: false, y: false },
+        points: { size: 6 },
+        ...(o.syncKey ? { sync: { key: o.syncKey, scales: ['x', null] as [string, null] } } : {}),
+      },
       scales: {
         x: {
           time: false,
+          ...(o.xLog ? { distr: 3 } : {}),
+          ...(o.xRange ? { range: (): [number, number] => o.xRange! } : {}),
           ...(o.xWindow
             ? {
                 range: (_u: uPlot, _min: number, max: number): uPlot.Range.MinMax => [
@@ -149,13 +170,36 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
               }
             : {}),
         },
-        y: o.yRange
-          ? { range: (): uPlot.Range.MinMax => [o.yRange?.[0] ?? 0, o.yRange?.[1] ?? 1] }
-          : {},
+        y: { range: (_u, min, max): uPlot.Range.MinMax => shownRange ?? finiteRange(min, max) },
       },
       axes: [
-        { ...axisCommon, ...(xLabel ? { label: xLabel } : {}) },
-        { ...axisCommon, size: 60, ...(o.yLabelIT ? { label: o.yLabelIT } : {}) },
+        {
+          ...axisCommon,
+          ...(xLabel ? { label: xLabel } : {}),
+          ...(o.xLog
+            ? {
+                splits: (_u: uPlot, _axis: number, min: number, max: number) =>
+                  [1, 10, 100, 400].filter((v) => v >= min && v <= max),
+                filter: (_u: uPlot, splits: number[]) => splits,
+              }
+            : {}),
+        },
+        {
+          ...axisCommon,
+          size: 70,
+          ...(o.yLabelIT ? { label: o.yLabelIT } : {}),
+          splits: (_u, _axis, min, max) => rangeTicks(min, max),
+          values: (u, splits) => {
+            const abs = Math.max(...splits.map(Math.abs));
+            const labels =
+              abs > 0 && (abs < 1e-4 || abs >= 1e8)
+                ? splits.map((v) => (v === 0 ? '0' : v.toExponential(2).replace('.', ',')))
+                : axisValues(u, splits);
+            element.dataset['yTicks'] = labels.join('|');
+            element.dataset['yUnit'] = o.yLabelIT ?? '';
+            return labels;
+          },
+        },
       ],
       series: [
         {
@@ -167,15 +211,46 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
           return {
             label: s.labelIT,
             stroke: color,
-            width: s.width ?? 2,
+            width: (s.width ?? 2) * (projector ? 1.5 : 1),
             ...(s.dash ? { dash: s.dash } : {}),
             ...(s.fill ? { fill: `${color}26` } : {}),
-            points: { show: false },
+            points: { show: s.points ?? false, size: s.points ? 10 : 0 },
             value: (_u, v) =>
               v === null || v === undefined ? '—' : formatIT(v, s.digits ?? 3, s.unit),
           };
         }),
       ],
+      hooks: {
+        draw: [
+          (u) => {
+            element.dataset['xMin'] = String(u.scales['x']?.min);
+            element.dataset['xMax'] = String(u.scales['x']?.max);
+            if (!o.xMarkers) return;
+            const c = u.ctx;
+            c.save();
+            c.strokeStyle = p.textMuted;
+            c.fillStyle = p.textMuted;
+            c.lineWidth = devicePixelRatio;
+            c.font = `${12 * devicePixelRatio}px system-ui`;
+            o.xMarkers.forEach((m, i) => {
+              if (m.value < (u.scales['x']?.min ?? 0) || m.value > (u.scales['x']?.max ?? 0))
+                return;
+              const x = u.valToPos(m.value, 'x', true);
+              c.setLineDash([3 * devicePixelRatio, 4 * devicePixelRatio]);
+              c.beginPath();
+              c.moveTo(x, u.bbox.top);
+              c.lineTo(x, u.bbox.top + u.bbox.height);
+              c.stroke();
+              c.fillText(
+                m.labelIT,
+                Math.min(x + 3, u.bbox.left + u.bbox.width - 45 * devicePixelRatio),
+                u.bbox.top + (14 + (i % 3) * 15) * devicePixelRatio,
+              );
+            });
+            c.restore();
+          },
+        ],
+      },
     };
   };
 
@@ -198,6 +273,14 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
       return;
     }
     lastDraw = now;
+    if (targetRange && fromRange) {
+      const mix = Math.min(1, Math.max(0, (now - rangeChangedMs) / 200));
+      shownRange = [
+        fromRange[0] + (targetRange[0] - fromRange[0]) * mix,
+        fromRange[1] + (targetRange[1] - fromRange[1]) * mix,
+      ];
+      if (mix < 1) scheduleRedraw();
+    }
     chart?.setData(data(), true);
   };
   const scheduleRedraw = (): void => {
@@ -210,6 +293,13 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
     chart?.destroy();
     chart = new uPlot(buildOptions(), data(), host);
   });
+  const layout = container.closest('.sim-layout');
+  const presentation = (): void => {
+    if (disposed) return;
+    chart?.destroy();
+    chart = new uPlot(buildOptions(), data(), host);
+  };
+  layout?.addEventListener('kers-presentation-change', presentation);
 
   let lastWidth = width();
   const ro =
@@ -248,6 +338,15 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
       buffer.clear();
       scheduleRedraw();
     },
+    setYRange(range) {
+      const safe =
+        range.every(Number.isFinite) && range[1] > range[0] ? range : finiteRange(...range);
+      if (targetRange?.[0] === safe[0] && targetRange[1] === safe[1]) return;
+      fromRange = shownRange ?? safe;
+      targetRange = safe;
+      rangeChangedMs = performance.now();
+      scheduleRedraw();
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -255,6 +354,7 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
       frame = null;
       ro?.disconnect();
       offTheme();
+      layout?.removeEventListener('kers-presentation-change', presentation);
       chart?.destroy();
       chart = null;
       element.remove();

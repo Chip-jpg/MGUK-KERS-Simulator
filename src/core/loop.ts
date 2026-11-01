@@ -1,11 +1,12 @@
 import { PHYSICS_DT } from '../physics';
 import type { Disposable } from './types';
+import { getFpsLimit, recordFrame } from './performance';
 
 /**
  * Render-loop helper implementing the §4.1 contract:
  *  - physics advances in fixed steps of dt = 1/240 s via an accumulator
  *    (deterministic, independent of the display refresh rate);
- *  - rendering happens at most `maxFps` (default 60) times per second;
+ *  - rendering follows display rAF by default; optional 60/30 caps;
  *  - the loop auto-pauses while `document.hidden` and resumes when visible
  *    (unless the user paused it);
  *  - `dispose()` cancels the RAF and removes every listener.
@@ -37,7 +38,7 @@ export interface LoopEnv {
 export interface LoopOptions {
   /** Physics step [s]. Default {@link PHYSICS_DT}. */
   dt?: number;
-  /** Render cap [frames/s]. Default 60. */
+  /** Render cap [frames/s]. Default persisted setting (automatic/display). */
   maxFps?: number;
   /** Max simulated time per frame [s], avoids the "spiral of death". Default 0.25. */
   maxFrameTime?: number;
@@ -75,7 +76,6 @@ const FRAME_TOLERANCE_MS = 1;
 
 export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}): Loop {
   const dt = options.dt ?? PHYSICS_DT;
-  const minFrameMs = 1000 / (options.maxFps ?? 60);
   const maxFrameTime = options.maxFrameTime ?? 0.25;
   const env = options.env ?? browserLoopEnv();
 
@@ -84,24 +84,34 @@ export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}):
   let disposed = false;
   let lastRenderMs = 0;
   let lastStepMs = 0;
+  let lastMeasuredMs = 0;
   let accumulator = 0;
 
   const frame = (timeMs: number): void => {
     rafId = null;
     if (disposed) return;
     schedule();
+    const setting = getFpsLimit();
+    const cap = options.maxFps ?? (setting === 'auto' ? Infinity : Number(setting));
+    const minFrameMs = Number.isFinite(cap) && cap > 0 ? 1000 / cap : 0;
     const sinceRender = timeMs - lastRenderMs;
     if (sinceRender + FRAME_TOLERANCE_MS < minFrameMs) return; // render cap
-    // Keep the remainder so a 120/144 Hz display averages maxFps.
-    lastRenderMs = sinceRender > minFrameMs * 2 ? timeMs : timeMs - (sinceRender % minFrameMs);
+    // Advance the target deadline even when a rounded rAF arrives just early.
+    // Modulo would leave an early deadline unchanged and render twice per period.
+    recordFrame(timeMs - lastMeasuredMs);
+    lastMeasuredMs = timeMs;
+    lastRenderMs =
+      minFrameMs === 0 || sinceRender > minFrameMs * 2 ? timeMs : lastRenderMs + minFrameMs;
     // Physics consumes real elapsed time since the previous processed frame.
     const elapsed = timeMs - lastStepMs;
     lastStepMs = timeMs;
     accumulator += Math.min(Math.max(elapsed, 0) / 1000, maxFrameTime);
-    while (accumulator >= dt) {
+    let steps = 0;
+    while (accumulator + 1e-12 >= dt && steps++ < 60) {
       callbacks.step(dt);
-      accumulator -= dt;
+      accumulator = Math.max(0, accumulator - dt);
     }
+    if (accumulator >= dt) accumulator %= dt;
     callbacks.render(accumulator / dt);
   };
 
@@ -112,6 +122,7 @@ export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}):
   function start(): void {
     if (disposed || userPaused || env.isHidden() || rafId !== null) return;
     lastRenderMs = lastStepMs = env.now(); // no catch-up after a pause
+    lastMeasuredMs = lastStepMs;
     schedule();
   }
 

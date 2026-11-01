@@ -3,8 +3,7 @@
  * (`src/render`, D14): a permanent-magnet lab rig with laminated-iron pole shoes,
  * the field in the gap drawn as COMPUTED field lines (`gapField`, fringing at the
  * edges, flow speed ∝ |B|), the rotating N-turn coil as a wound bundle of
- * enamelled copper with slip rings, brushes and leads to a small lamp, and — in
- * the second mode — copper rails with a sliding bar.
+ * enamelled copper with slip rings, brushes and leads to a small lamp, with no moving-bar experiment.
  *
  * What is physics and what is illustration:
  *  - field-line shape: two-sheet pole model `gapField` (uniform in the core, as
@@ -15,7 +14,7 @@
  *    direction = sign of the f.e.m.) and P ∝ f.e.m.² (lamp brightness = (f.e.m./V₀)²).
  *    No new quantity is claimed.
  * Geometry is original and abstract; visual sizes are ∝ physical ones (coil side ∝
- * √S, bar ∝ l, drawn turns ∝ N up to a cap) but the rig is not to scale.
+ * √S, drawn turns ∝ N up to a cap) but the rig is not to scale.
  */
 import * as THREE from 'three';
 import type { AppContext } from '../../core/types';
@@ -36,7 +35,7 @@ import {
   type TraceJob,
 } from '../../render';
 import { quantityColorHex } from '../../ui';
-import { params, X_MAX, X_MIN, type FaradayMode, type FaradayParams } from './model';
+import { params, type FaradayMode, type FaradayParams } from './model';
 
 /** Live resource counters across all mounts (read by the e2e leak check). */
 export const sceneStats = {
@@ -63,9 +62,6 @@ export interface SceneState {
   alpha: number;
   /** emf / peak (−1…1): drives the brush glow, current particles and lamp. */
   emfRatio: number;
-  /** Motional: bar position x [m] and velocity sign. */
-  x: number;
-  dir: number;
   /** Pre-formatted label texts (Italian, formatIT). */
   labels?: SceneLabels;
 }
@@ -94,19 +90,12 @@ const FACE_HZ = 2.3;
 const LOOP_SIDE_MAX = 2.6;
 const RING_Y = [-1.72, -2.02] as const;
 const RING_R = 0.16;
-const RAIL_Z0 = -1.8;
-const RAIL_LEN = 3.6;
-const BAR_SCALE = 2.8; // scene units per metre of l
 const WIRE_R = 0.024;
 const PROJ_X = GAP_HALF - 0.08;
 const LAMP_Z = 2.85;
 const ROTATING_VIEW = {
   position: [-3.3, 3.7, 9.0] as [number, number, number],
   target: [0.25, -0.55, 0.3] as [number, number, number],
-};
-const MOTIONAL_VIEW = {
-  position: [-5.6, 3.9, 7.4] as [number, number, number],
-  target: [0, -0.25, 0] as [number, number, number],
 };
 /** Drawn turns: ∝ N up to this cap per tier. */
 const TURN_CAP = { alta: 24, bilanciata: 16, base: 8 } as const;
@@ -151,7 +140,7 @@ export function createFaradayScene(
 ): FaradayScene {
   const stage = createStage(container, ctx, {
     ariaLabel:
-      'Scena 3D: magnete permanente con espansioni polari in ferro laminato, linee del campo B calcolate nel traferro, bobina di N spire che ruota con anelli e spazzole collegati a una lampadina (oppure la sbarretta che scorre sui binari) e l’area proiettata attraversata dal flusso.',
+      'Scena 3D: magnete permanente con espansioni polari in ferro laminato, linee del campo B calcolate nel traferro, bobina di N spire che ruota con anelli e spazzole collegati a una lampadina e l’area proiettata attraversata dal flusso.',
     camera: { ...ROTATING_VIEW, fov: 36 },
     controls: { minDistance: 4, maxDistance: 22 },
     floorY: FLOOR_Y,
@@ -518,63 +507,11 @@ export function createFaradayScene(
   bRef.computeLineDistances();
   scene.add(bRef);
 
-  // --- motional: board, rails, bar, resistor -------------------------------------------------
-  const railGroup = new THREE.Group();
-  scene.add(railGroup);
-  const board = mesh(geo(chamferBox(0.03, 1, 1, 0.004, 1)), 'glass');
-  board.renderOrder = 4;
-  const railGeo = geo(chamferBox(0.07, 0.07, RAIL_LEN + 0.55, 0.02, 1));
-  const railTop = mesh(railGeo, 'copper');
-  const railBottom = mesh(railGeo, 'copper');
-  const connGeo = geo(new THREE.CylinderGeometry(0.035, 0.035, 1, 12));
-  const connector = mesh(connGeo, 'copper');
-  const resistor = mesh(geo(new THREE.CylinderGeometry(0.075, 0.075, 1, 24)), 'ceramic');
-  const barGeo = geo(new THREE.CylinderGeometry(0.05, 0.05, 1, 20));
-  const bar = mesh(barGeo, 'copper');
-  const shoeGeo2 = geo(chamferBox(0.13, 0.1, 0.16, 0.02, 1));
-  const shoeT = mesh(shoeGeo2, 'brass');
-  const shoeB = mesh(shoeGeo2, 'brass');
-  const areaMat = makeFill();
-  const areaFill = new THREE.Mesh(fillGeo, areaMat);
-  areaFill.renderOrder = 5;
-  const vShaft = new THREE.Mesh(
-    geo(new THREE.CylinderGeometry(0.022, 0.022, 1, 10).rotateX(Math.PI / 2)),
-    normalMat,
-  );
-  const vHead = new THREE.Mesh(
-    geo(new THREE.ConeGeometry(0.075, 0.22, 16).rotateX(Math.PI / 2)),
-    normalMat,
-  );
-  railGroup.add(
-    board,
-    railTop,
-    railBottom,
-    connector,
-    resistor,
-    bar,
-    shoeT,
-    shoeB,
-    areaFill,
-    vShaft,
-    vHead,
-  );
-  const railFlow = createCurrentFlow(stage, {
-    path: [v(0, 0, 0), v(0, 1, 0)],
-    closed: true,
-    count: 44,
-    radius: 0.036,
-    speedPerAmp: 1.4,
-    vMax: 1.6,
-    smooth: false,
-  });
-
   stage.castShadows(rig);
   stage.castShadows(coil);
   stage.castShadows(brushes);
   stage.castShadows(lamp, false);
   bulb.castShadow = false;
-  stage.castShadows(railGroup);
-  board.castShadow = false;
 
   // --- labels ------------------------------------------------------------------------------------
   const labels = createLabelLayer(stage, overlay);
@@ -587,7 +524,6 @@ export function createFaradayScene(
     phi: v(),
     emf: v(0, RING_Y[0] + 0.05, RING_R + 0.55),
     load: v(1.05, BASE_TOP + 1.12, LAMP_Z),
-    v: v(),
   };
   const L: Record<keyof typeof anchors, Label> = {
     n: labels.add({ text: 'N', anchor: anchors.n, size: 'lg', priority: 9, occlude: false }),
@@ -618,13 +554,6 @@ export function createFaradayScene(
       size: 'sm',
       occlude: false,
     }),
-    v: labels.add({
-      text: 'v',
-      anchor: anchors.v,
-      quantity: 'accent',
-      priority: 7,
-      occlude: false,
-    }),
   };
 
   // --- theme -----------------------------------------------------------------------------------------
@@ -635,7 +564,6 @@ export function createFaradayScene(
     normalMat.color.setHex(accent);
     normalMat.emissive.setHex(accent);
     (projMat.uniforms['uColor'] as { value: THREE.Color }).value.setHex(b);
-    (areaMat.uniforms['uColor'] as { value: THREE.Color }).value.setHex(b);
     outlineMat.color.setHex(t === 'dark' ? 0x9da7b3 : 0x57606a);
     arcMat.color.setHex(accent);
     bRefMat.color.setHex(b);
@@ -668,16 +596,7 @@ export function createFaradayScene(
   // --- per-frame update ----------------------------------------------------------------------------
   let time = 0;
   let lastMs = performance.now();
-  let viewMode: FaradayMode | null = null;
   const render = (s: SceneState): void => {
-    if (s.mode !== viewMode) {
-      // Each experiment has its own home view: the rail plane (⟂ B) is best seen from above-left.
-      if (viewMode !== null) {
-        if (s.mode === 'motional') stage.setView(MOTIONAL_VIEW.position, MOTIONAL_VIEW.target);
-        else stage.setView(ROTATING_VIEW.position, ROTATING_VIEW.target);
-      }
-      viewMode = s.mode;
-    }
     const now = performance.now();
     time += Math.min(0.1, (now - lastMs) / 1000);
     lastMs = now;
@@ -695,11 +614,9 @@ export function createFaradayScene(
     bRef.visible = rotating;
     coilFlow.setVisible(rotating);
     leadFlow.setVisible(rotating);
-    railGroup.visible = !rotating;
-    railFlow.setVisible(!rotating);
     // brush glow ∝ |f.e.m.|
     kit.get('glowEmf', 'brush').emissiveIntensity = 0.05 + 2.4 * absR;
-    for (const u of [projMat, areaMat]) (u.uniforms['uTime'] as { value: number }).value = time;
+    for (const u of [projMat]) (u.uniforms['uTime'] as { value: number }).value = time;
 
     if (rotating) {
       buildCoil(p.S, p.N);
@@ -746,56 +663,7 @@ export function createFaradayScene(
       L.alpha.setVisible(true);
       L.phi.setVisible(true);
       L.load.setVisible(true);
-      L.v.setVisible(false);
       anchors.emf.set(0, RING_Y[0] + 0.12, RING_R + 0.55);
-    } else {
-      const lVis = p.l * BAR_SCALE;
-      const zBar = RAIL_Z0 + ((s.x - X_MIN) / (X_MAX - X_MIN)) * RAIL_LEN;
-      const zEnd = RAIL_Z0 - 0.3;
-      board.scale.set(1, lVis + 0.7, RAIL_LEN + 1.1);
-      board.position.set(0.1, 0, RAIL_Z0 + RAIL_LEN / 2 - 0.25);
-      railTop.position.set(0, lVis / 2, RAIL_Z0 + RAIL_LEN / 2 - 0.1);
-      railBottom.position.set(0, -lVis / 2, RAIL_Z0 + RAIL_LEN / 2 - 0.1);
-      connector.position.set(0, 0, zEnd);
-      connector.scale.set(1, lVis, 1);
-      const rLen = Math.min(0.55, lVis * 0.55);
-      resistor.position.set(0, 0, zEnd);
-      resistor.scale.set(1, rLen, 1);
-      bar.position.set(0, 0, zBar);
-      bar.scale.set(1, lVis + 0.3, 1);
-      shoeT.position.set(0, lVis / 2, zBar);
-      shoeB.position.set(0, -lVis / 2, zBar);
-      const w = Math.max(1e-3, zBar - zEnd);
-      areaFill.position.set(-0.01, 0, zEnd + w / 2);
-      areaFill.scale.set(1, lVis, w);
-      (areaMat.uniforms['uScale'] as { value: THREE.Vector2 }).value.set(w, lVis);
-      (areaMat.uniforms['uOpacity'] as { value: number }).value =
-        0.16 + 0.24 * Math.min(1, p.B / 0.5);
-      const vLen = 0.25 + 0.5 * (p.v / params.v.max);
-      vShaft.scale.set(1, 1, vLen);
-      vShaft.position.set(0, lVis / 2 + 0.38, zBar + (s.dir * vLen) / 2);
-      vHead.rotation.y = s.dir > 0 ? 0 : Math.PI;
-      vHead.position.set(0, lVis / 2 + 0.38, zBar + s.dir * (vLen + 0.1));
-      anchors.v.set(0, lVis / 2 + 0.68, zBar + s.dir * (vLen / 2));
-      anchors.phi.set(0, -lVis / 2 - 0.35, zEnd + w / 2);
-      anchors.emf.set(0, 0.0, zBar + 0.45);
-      // counter-clockwise about +x (= n̂ of the rail circuit): top rail moves +z
-      const xo = -0.075;
-      railFlow.setPath(
-        [
-          v(xo, lVis / 2, zEnd),
-          v(xo, lVis / 2, zBar),
-          v(xo, -lVis / 2, zBar),
-          v(xo, -lVis / 2, zEnd),
-        ],
-        true,
-      );
-      railFlow.setCurrent(ratio);
-      L.normal.setVisible(false);
-      L.alpha.setVisible(false);
-      L.phi.setVisible(true);
-      L.load.setVisible(false);
-      L.v.setVisible(true);
     }
     const t = s.labels;
     if (t) {
@@ -834,7 +702,6 @@ export function createFaradayScene(
       field.dispose();
       coilFlow.dispose();
       leadFlow.dispose();
-      railFlow.dispose();
       for (const g of [...geometries]) dropGeo(g);
       for (const m of materials.splice(0)) {
         m.dispose();

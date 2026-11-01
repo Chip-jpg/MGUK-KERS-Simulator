@@ -32,7 +32,7 @@ test.describe('navigation smoke', () => {
 
     await nav.getByRole('link', { name: 'Simulatori', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Simulatori' })).toBeVisible();
-    await expect(page.locator('.sim-index > li')).toHaveCount(7);
+    await expect(page.locator('.sim-index > li')).toHaveCount(8);
 
     await page.goto('./#/sim/faraday');
     await expect(page.locator('.sim-scene')).toBeVisible();
@@ -57,6 +57,9 @@ test.describe('navigation smoke', () => {
     page,
   }) => {
     await page.goto('./#/teoria');
+    const simulatorHrefs = await page
+      .locator('.nav a[href^="#/sim/"]')
+      .evaluateAll((as) => as.map((a) => a.getAttribute('href')));
     const hrefs = await page
       .locator('.theory-index a.card__link')
       .evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
@@ -65,7 +68,9 @@ test.describe('navigation smoke', () => {
       await expect(page.locator('.prose')).toBeVisible();
       await expect(page.locator('.math-error, .katex-error'), href).toHaveCount(0);
       for (const a of await page.locator('.prose a[href^="#"]').all()) {
-        expect(await a.getAttribute('href')).toMatch(/^#\/teoria\/[a-z0-9-]+$/);
+        const target = await a.getAttribute('href');
+        if (target?.startsWith('#/sim/')) expect(simulatorHrefs).toContain(target);
+        else expect(target).toMatch(/^#\/teoria\/[a-z0-9-]+$/);
       }
     }
   });

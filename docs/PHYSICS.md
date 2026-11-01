@@ -554,3 +554,83 @@ Field lines are always traced from the §9 models; where their **number** carrie
 (rl-energy, joule-transformer, lenz) each drawn line represents the same flux. Particle
 velocities are signed with the current (counter-clockwise about n̂ for i > 0, §2) and still at
 i = 0.
+
+# Additions in v0.7.0
+
+Existing electromagnetic helpers, analytical braking events, RL integration,
+Pacejka tyres and brake thermal functions retain their previous contracts.
+
+## Finite battery (`src/physics/battery.ts`)
+
+`BatterySpec` uses capacity Ecap [J], terminal voltage V [V], resistance R [Ω],
+terminal charge/discharge limits [W], efficiencies in (0,1] and restart SoC [-].
+Positive terminal power P means discharge. With I=P/V:
+
+- discharge: dE/dt = −P/ηdis − RI²;
+- charge (P<0): dE/dt = −P·ηcharge − RI²;
+- heat = −dE/dt − P ≥ 0; SoC = E/Ecap.
+
+`batteryStep` solves the energy/power bound before updating the store (including
+I²R), clamps energy to [0,Ecap], and latches motor cutoff until 5 % by default.
+The R>0 charge branch is restricted to the monotone useful charging domain.
+`createBattery` validates and initializes a store. The constant-voltage model
+does not represent battery electrochemistry. 4 MJ in the drive is illustrative;
+it must not be confused with the historical 4 MJ deployment-per-lap figure.
+
+`batteryMachineStep` wraps the existing rotor RK4 equations. It locates the
+available-energy/power duty interval by bisection, opens the motor circuit for
+the rest of the step (i=0, τem=0), and allows the shaft load to slow the rotor.
+The generator's existing equivalent resistance remains connected: rejected
+charge power goes to that load as dump heat. Conversion losses are shown
+separately from winding Joule heat. Mode switches preserve battery state;
+explicit Ricarica represents an external recharge.
+
+## Longitudinal drive (`src/physics/drive.ts`)
+
+`kersDriveStep(state,input,dt,spec)` advances at dt=1/240 s using RK4. Inputs are
+throttle and brake fractions; brake takes precedence. Internal units are SI:
+
+Fdrag=½ρCdA·v²; Froll=Crr·mg; Fengine=min(Fmax,Pengine/v);
+ma=Fengine+Fmguk−Fdiscs−Fdrag−Froll; dx/dt=v.
+
+The MGU-K uses the same battery in both directions. Deploy mechanical power is
+ηmachine·Pbatt; harvest mechanical power is Pbatt/ηmachine (both negative).
+Motor force and power are independently bounded, including the zero-speed
+force limit. Requested braking is shared between regeneration and discs;
+unavailable/full battery capacity sends the remainder to the discs. Resistive
+forces are limited near zero speed so the one-direction car never reverses.
+Work/heat integrals use the same RK4 stages as speed, enabling the gate:
+
+½mv² + Ebatt + Edissipated = Etotal,initial + Wengine, relative error < 10⁻⁶.
+
+Illustrative defaults: m=800 kg, ρ=1.225 kg/m³, CdA=0.8 m², Crr=0.012,
+engine force=10 kN / power=500 kW, motor force=5 kN, disc force=16 kN,
+ηmachine=0.9, ηbattery=0.95, capacity=4 MJ. These are educational choices,
+not specifications of an actual F1 car. The displayed 120 kW default matches
+the historical verified preset in OPEN_FACTS; arbitrary slider values are
+user-selected examples, not regulation claims. Existing 2025/2026 presets
+remain in the constant-deceleration comparison.
+
+The guided scenario detects 300 and 100 km/h crossings within the fixed step;
+800 kg gives ΔEk=2,469135802 MJ. Its duration follows the force model, rather
+than imposing the older illustrative three-second braking time.
+
+The unchanged Pacejka and analytical comparison models show a **virtual** SoC
+from accumulated recovered energy / 4 MJ, starting empty. They retain their
+original imposed braking and do not gain a battery control constraint.
+
+## Plot ranges and transmission
+
+`amplitudeRange` and `finiteRange` return finite nonzero spans; `rangeTicks`
+provides explicit 1/2/5 ticks even at a zero signal. Faraday continues to show
+per-turn flux (±BS), not flux linkage (±NBS); emf range is ±NBSω, both with
+15 % margin. Parameter changes clear the old trace and show an explicit
+parameter-change notice; range changes in unchanged units interpolate over
+200 ms. ω=0 keeps the current coil angle and zero emf.
+
+`transmissionSweep(P,R,Vop)` samples 1–400 kV logarithmically, inserts the
+operating voltage and teaching reference voltages, and calls `lineLoss` for
+every value. R and P views also use `lineLoss`; no clipped loss percentage is
+presented as valid. The shared operating voltage is obtained from the existing
+`transformerSecondary`. Historical teaching-chain references 380 V / 220 V
+are explicitly labelled below the left endpoint of the 1 kV plot domain.

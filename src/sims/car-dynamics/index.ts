@@ -1,3 +1,4 @@
+import { reserveTextReadout } from '../../ui/readout';
 /**
  * Simulator `car-dynamics` — "Dinamica della vettura: frenata combinata MGU-K + freni"
  * (Phase 4, approfondimento).
@@ -9,6 +10,7 @@
  * constant-deceleration model of `kers-braking` come from the same result.
  */
 import './style.css';
+import { createCarTelemetryPlots } from '../../ui/telemetry';
 import {
   createButton,
   createFormulaPanel,
@@ -333,6 +335,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     mguk: el('span', { class: 'cd-hud__energy' }),
     batt: el('span', { class: 'cd-hud__energy' }),
   };
+  Object.values(hudLines).forEach((n) => reserveTextReadout(n, '22rem', '1.2rem'));
   hud.append(...Object.values(hudLines));
   const legend = el('div', { class: 'cd-legend-scene' }, [
     el('span', {
@@ -448,6 +451,16 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     height: 200,
   });
   const balance = createBalance(layout.plots);
+  const telemetry = createCarTelemetryPlots(layout.plots);
+  layout.controls.append(
+    el(
+      'p',
+      {
+        text: 'Telemetria SoC: batteria illustrativa inizialmente vuota, capacità 4 MJ. Per accelerare con la stessa auto: ',
+      },
+      [el('a', { text: 'Accelerazione e frenata →', attrs: { href: '#/sim/kers-drive' } })],
+    ),
+  );
 
   let curve = pacejkaCurve(values.mu);
   let curveMu = values.mu;
@@ -527,6 +540,14 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     const s = sampleAt(z, simT);
     const si = summary.si;
     const e = energiesOf(s, si.eta, si.m, si.v1);
+    telemetry.push({
+      t: simT,
+      v: s.v,
+      a: simT >= z.tBrake ? 0 : -s.decel,
+      pKers: simT >= z.tBrake ? 0 : -s.pMguk,
+      pBrakes: simT >= z.tBrake ? 0 : s.pBrakesFront + s.pBrakesRear,
+      soc: Math.min(1, e.stored / 4e6),
+    });
     const fmt = ctx.formatIT;
     if (scene) {
       const done = simT >= z.tBrake;
@@ -600,6 +621,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   }
 
   function recompute(): void {
+    telemetry.clear();
     summary = summarize(values, aero);
     const z = summary.zone;
     simT = 0;
@@ -681,6 +703,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       plotP.dispose();
       plotK.dispose();
       balance.dispose();
+      telemetry.dispose();
       scene?.dispose();
       scene = null;
       layout.dispose();

@@ -28,6 +28,7 @@ export function parseRoute(hash: string): Route {
     case 'teoria':
       return validId ? { kind: 'teoria', id: validId } : { kind: 'teoria' };
     case 'sim':
+      if (validId === 'kers-braking') return { kind: 'sim', id: 'kers-drive' };
       return validId ? { kind: 'sim', id: validId } : { kind: 'sim' };
     default:
       return DEFAULT_ROUTE;

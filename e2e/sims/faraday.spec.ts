@@ -123,7 +123,7 @@ test.describe('sim faraday', () => {
     expect(errors).toEqual([]);
   });
 
-  test('sliders work by keyboard; mode switch shows f.e.m. = B·l·v', async ({ page }) => {
+  test('sliders work by keyboard; rotating coil is the only experiment', async ({ page }) => {
     await page.goto('./#/sim/faraday');
     const range = page.locator('#faraday-N-range');
     await range.focus();
@@ -132,18 +132,8 @@ test.describe('sim faraday', () => {
     await page.keyboard.press('End');
     await expect(page.locator('#faraday-N-number')).toHaveValue('500');
 
-    await page.getByText('Moto traslatorio', { exact: true }).click();
-    await expect(page.locator('#faraday-l-range')).toBeVisible();
-    await expect(page.locator('#faraday-S-range')).toBeHidden();
-    // default B = 0,5 T, l = 0,5 m, v = 1 m/s ⇒ 0,25 V
-    await expect(row(page, 'emfMot')).toHaveText(/^250\smV$/);
-    await page.locator('#faraday-v-range').focus();
-    await page.keyboard.press('ArrowRight'); // v = 1,1 m/s
-    await expect(row(page, 'emfMot')).toHaveText(/^275\smV$/);
-    // −ΔΦ/Δt computed from the simulated flux has magnitude B·l·v (except a bounce step).
-    await expect
-      .poll(async () => Math.abs(toSI((await row(page, 'emfFlux').textContent()) ?? '', 'V')))
-      .toBeCloseTo(0.275, 3);
+    await expect(page.getByText('Moto traslatorio', { exact: true })).toHaveCount(0);
+    await expect(page.locator('#faraday-S-range')).toBeVisible();
   });
 
   test('quality "alta" via ?quality=: post-processing chain, shadows, IBL; no errors', async ({
@@ -162,7 +152,7 @@ test.describe('sim faraday', () => {
     const f = await foundation(page);
     expect(f['liveComposers']).toBe(1);
     expect(f['liveRenderTargets']).toBeGreaterThan(2);
-    await page.getByText('Moto traslatorio', { exact: true }).click();
+    await expect(page.getByText('Moto traslatorio', { exact: true })).toHaveCount(0);
     await page.waitForTimeout(300);
     expect(errors).toEqual([]);
   });

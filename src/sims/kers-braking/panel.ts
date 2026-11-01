@@ -1,3 +1,4 @@
+import { reserveTextReadout } from '../../ui/readout';
 /**
  * DOM panels of the `kers-braking` simulator: regulation presets, energy
  * balance card (numbers + stacked bar) and per-lap context. No Three.js here.
@@ -189,6 +190,9 @@ export function createBalance(container: HTMLElement): BalanceHandle {
       lap2026,
     ],
   );
+  element
+    .querySelectorAll<HTMLElement>('.kers-out, .cd-out')
+    .forEach((n) => reserveTextReadout(n, '12rem'));
   container.append(element);
 
   const set = (key: OutKey, text: string): void => {

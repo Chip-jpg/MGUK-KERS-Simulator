@@ -23,10 +23,11 @@ describe('registry', () => {
       'faraday',
       'lenz',
       'alternator-motor',
-      'kers-braking',
+      'kers-drive',
       'joule-transformer',
       'rl-energy',
       'car-dynamics',
+      'drive-sim',
     ]);
   });
 

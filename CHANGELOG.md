@@ -7,6 +7,23 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
+### Aggiunto e corretto
+
+- F1: la stessa vettura e la stessa MGU-K in accelerazione e frenata; nuovo percorso `kers-drive`, con reindirizzamento del vecchio indirizzo. Il confronto analitico precedente conserva preset, formule e controlli.
+- F2: telemetria in tempo reale per i simulatori con auto: velocità, accelerazione con segno in m/s² e g, potenza MGU-K e freni, carica batteria.
+- F3: simulatore finale **Guida: acceleratore e freno**, pedali su schermo, tastiera a risposta graduale e scenario 800 kg, 300 → 100 km/h (circa 2,47 MJ).
+- F4: letture numeriche con spazio fisso, cifre tabulari e unità separate; sensori della scena ancorati a posizioni fisse.
+- F5: schermo intero dell'intero simulatore con pulsante e F; vista di presentazione con P, senza reimpostare lo stato.
+- F6: scale dei grafici protette dai casi degeneri, tacche esplicite, limiti analitici di Faraday e indicazione del cambio parametri.
+- F7: rendering automatico al refresh del display, limiti opzionali 60/30 FPS ricordati dal browser, contatore FPS e tempi di fotogramma; fisica sempre a 1/240 s.
+- F8: rimossa la sola sbarretta in moto traslatorio dal simulatore Faraday; la formula B·l·v resta nella teoria.
+- F9: batteria finita nell'alternatore/motore: scarica, ricarica, perdite, coppia nulla a batteria esaurita e riavvio dopo ricarica al 5 %.
+- F10: grafici del trasformatore su tensione logaritmica 1–400 kV, corrente, frazione persa, resistenza e potenza, con punto operativo e riferimenti didattici.
+
+Modelli semplificati dichiarati; il modello Pacejka e le API fisiche precedenti sono conservati. Le misure di prestazione e i limiti della verifica sono in `docs/QA_REPORT_ROUND_1.md`.
+
 ## [0.6.0] - 2026-10-29
 
 Nuova grafica 3D di tutti i simulatori, guidata dalla fisica dei modelli.
@@ -280,7 +297,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.4.1...v0.5.0

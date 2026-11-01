@@ -35,6 +35,7 @@ import {
   sagAt,
 } from './visual';
 import './style.css';
+import { createTransmissionPlots } from './plots';
 
 export { params } from './params';
 
@@ -225,6 +226,7 @@ export function mountTransformer(
 
   const results = createResultsPanel(layout.controls);
   const chart = createComparisonChart(layout.plots);
+  const inspectionPlots = createTransmissionPlots(layout.plots);
 
   const pushScene = (): void => {
     if (!scene) return;
@@ -264,6 +266,7 @@ export function mountTransformer(
 
   const recompute = (): void => {
     r = computeTransmission(state);
+    inspectionPlots.update(state, r);
     results.update(r);
     lastFactor = chart.update(r, state.P, state.Rline);
     formulas.update({
@@ -369,6 +372,7 @@ export function mountTransformer(
       formulas.dispose();
       results.dispose();
       chart.dispose();
+      inspectionPlots.dispose();
       scene?.dispose();
       scene = null;
       layout.dispose();

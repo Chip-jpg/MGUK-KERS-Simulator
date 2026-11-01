@@ -37,12 +37,15 @@ describe('parseRoute', () => {
 });
 
 describe('formatRoute', () => {
+  it('redirects the legacy braking route', () => {
+    expect(parseRoute('#/sim/kers-braking')).toEqual({ kind: 'sim', id: 'kers-drive' });
+  });
   it('round-trips with parseRoute', () => {
     const routes: Route[] = [
       { kind: 'teoria' },
       { kind: 'teoria', id: '10-kers-mguk' },
       { kind: 'sim' },
-      { kind: 'sim', id: 'kers-braking' },
+      { kind: 'sim', id: 'kers-drive' },
     ];
     for (const r of routes) expect(parseRoute(formatRoute(r))).toEqual(r);
   });

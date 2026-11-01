@@ -263,3 +263,18 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+.transmission-plots {
+  grid-column: 1 / -1;
+}
+.transmission-plots__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+}
+.transmission-plots__grid > [hidden] {
+  display: none;
+}
+.transmission-annotation {
+  min-height: 7rem;
+  font-variant-numeric: tabular-nums;
+}

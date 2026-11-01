@@ -227,3 +227,19 @@ back to `#/teoria`.
   `pow` base blew up through bloom); `src/physics/powerline.ts` (catenary, thermal sag, core
   flux) and the brake-thermal model exported from the physics barrel; the render barrel exports
   the scale and studio helpers. Visible strings use Unicode subscripts, never `_`.
+
+## D16 — v0.7.0 fix-round boundaries (2026-11-01)
+
+The supplied fix-round document targeted v0.2.0; the user explicitly superseded
+that with v0.7.0 and permits a local implementation plan. Preserve the existing
+pure physics APIs and the Pacejka braking core. Add a separate longitudinal
+model for acceleration/deployment. Do not recreate quiz features removed in
+v0.5.0. Add presentation mode as a small simulator display feature. Faraday
+continues to display per-turn flux (B·S), rather than silently changing it to
+flux linkage (N·B·S). F8 removes only the moving-bar simulator experiment;
+theory and the reusable `emfMotional` physics helper stay available.
+
+The current round uses `codex/v0.7.0-fix-round` on the local checkout, with
+a conventional release commit and a GitHub PR/CI check before publication.
+This supersedes the historical branch-only rule in D2 for this round, under
+the user's explicit permission to choose local work and GitHub publication.

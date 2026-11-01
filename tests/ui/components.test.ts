@@ -78,7 +78,7 @@ describe('FormulaPanel', () => {
     panel.update({ i: 0.0625, unknown: 3 });
     expect(frames).toHaveLength(1); // batched
     const nums = host.querySelectorAll('.formula-row__number');
-    expect(nums[0]?.textContent).toBe('—');
+    expect(nums[0]?.textContent).toBe('-,-- V');
     frames[0]!();
     expect(nums[0]?.textContent).toBe('1,23 V');
     expect(nums[1]?.textContent).toBe('62,5 mA');
@@ -204,7 +204,7 @@ describe('createSimLayout + toolbar', () => {
     const onReset = vi.fn();
     const tb = createSimToolbar(layout.toolbar, { loop, onReset });
     const buttons = [...layout.toolbar.querySelectorAll('button')];
-    expect(buttons.map((b) => b.textContent)).toEqual([
+    expect(buttons.slice(0, 4).map((b) => b.textContent)).toEqual([
       '↺Reimposta',
       '❚❚Pausa',
       '⏭Passo',
