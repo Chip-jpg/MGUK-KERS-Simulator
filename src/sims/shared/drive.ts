@@ -28,6 +28,7 @@ import { isEditing } from '../../ui/fullscreen';
 import { createDiscPair } from './car/discs';
 import type { CarSceneCore } from './car/scene';
 import { createResetViewButton } from '../../render/viewButton';
+import { createDrivePresets } from './drive-presets';
 
 const mounts = new WeakMap<HTMLElement, Disposable>();
 export const DRIVE_NOTE_IT =
@@ -183,8 +184,16 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     onInput: (value) => {
       p.deployPower = p.harvestPower = value * 1000;
       p.battery.chargePower = p.battery.dischargePower = value * 1000;
+      enginePresets?.updatePower(value);
     },
   });
+  const enginePresets = interactive
+    ? createDrivePresets((powerKw) => {
+        power.set(powerKw, true);
+        reset(false);
+      })
+    : null;
+  enginePresets?.updatePower(power.value);
   sliders.push(mass, power);
   const soc = createSlider({
     id: `${id}-soc`,
@@ -210,6 +219,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     el('div', { class: 'drive-settings' }, [mass.element, power.element, soc.element]),
     liveData,
   );
+  if (enginePresets) scenario.element.after(enginePresets.element);
   const formulas = createFormulaPanel(layout.formulas, [
     {
       key: 'force',
@@ -445,6 +455,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
       pedalButtons.forEach((button) => button.dispose());
       sliders.forEach((s) => s.dispose());
       preset.dispose();
+      enginePresets?.dispose();
       scenario.dispose();
       telemetry.dispose();
       formulas.dispose();

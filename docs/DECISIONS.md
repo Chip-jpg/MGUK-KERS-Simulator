@@ -253,3 +253,14 @@ and camera changes legitimately move attached labels. Fixed panel readings remai
 stationary. Replace manual pedal ranges with momentary buttons; retain gradual
 input and brake priority. Replace the selectable/persisted FPS policy with a fixed
 200 FPS ceiling. Existing vehicle, battery and electromagnetic physics are unchanged.
+
+## D18 — v0.7.2 manual-drive regulation presets (2026-11-01)
+
+Restore the existing 2025/2026 MGU-K comparison in manual drive. Reuse
+`kers-braking/model.ts` PRESETS for their verified power values and sources,
+without copying analytical braking times/masses into the longitudinal model.
+The buttons update deploy, harvest and battery terminal power limits together,
+then restart at zero speed and the user's initial SoC. Preserve all other
+vehicle settings and pause state. Reflect manual power changes in the selected
+preset indicator. Explain that this compares MGU-K power, rather than modelling
+complete power units; MGU-H is not simulated and the ICE remains illustrative.
