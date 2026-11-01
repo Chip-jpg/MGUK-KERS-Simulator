@@ -24,6 +24,19 @@ for (const width of [1280, 1920]) {
     await page.setViewportSize({ width, height: width === 1280 ? 720 : 1080 });
     await page.goto('./?quality=base#/sim/alternator-motor');
     await expect(page.locator('.am-indicator')).toHaveCount(7);
+    const styles = await page.locator('.sim-scene').evaluate((scene) => {
+      const base = getComputedStyle(scene.querySelector('.r-label--lg')!);
+      return [...scene.querySelectorAll('.am-indicator')].every((node) => {
+        const s = getComputedStyle(node);
+        return (
+          s.fontFamily === base.fontFamily &&
+          s.fontWeight === base.fontWeight &&
+          s.borderRadius === base.borderRadius &&
+          s.padding === base.padding
+        );
+      });
+    });
+    expect(styles).toBe(true);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     for (const theme of ['dark', 'light']) {
@@ -70,7 +83,11 @@ for (const width of [1280, 1920]) {
     }
     await page.getByRole('button', { name: 'Presentazione', exact: true }).click();
     await page.waitForTimeout(500);
-    expect((await indicators(page)).every((n) => n.visible && !n.clipped)).toBe(true);
+    const presentationIndicators = await indicators(page);
+    expect(
+      presentationIndicators.every((n) => n.visible && !n.clipped),
+      JSON.stringify(presentationIndicators),
+    ).toBe(true);
     expect(errors).toEqual([]);
   });
 }

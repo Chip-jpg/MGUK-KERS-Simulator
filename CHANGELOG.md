@@ -7,6 +7,13 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-11-01
+
+### Corretto
+
+- Gli indicatori dell'alternatore/motore usano lo stesso font, peso, padding, bordo arrotondato e ombra delle etichette degli altri simulatori, conservando posizione ferma e tutte le letture.
+- Rimossi il font monospace specifico e la promozione grafica forzata; allineamento ai pixel fisici per ridurre la sfocatura del testo. Sfondo pieno e contrasto conservati.
+
 ## [0.7.3] - 2026-11-01
 
 ### Corretto

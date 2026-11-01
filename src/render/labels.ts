@@ -55,6 +55,10 @@ export interface Label {
 }
 
 export interface LabelLayerOptions {
+  /** Search finer nearby slots in dense layouts before dropping a label. */
+  finePlacement?: boolean;
+  /** Align stationary callouts to physical pixels for crisp HTML text. */
+  pixelSnap?: boolean;
   /** Occlusion tests for this layer (default true); false = never cast a ray. */
   occlude?: boolean;
 }
@@ -113,6 +117,8 @@ export function createLabelLayer(
 ): LabelLayer {
   const items: Item[] = []; // sorted by descending priority (insertByPriority)
   const layerOcclude = layerOptions.occlude ?? true;
+  const snap = layerOptions.pixelSnap ? Math.max(1, window.devicePixelRatio || 1) : 2;
+  const nudgeStep = layerOptions.finePlacement ? 0.5 : 1;
   let occluding = 0; // labels that ask for the occlusion test
   const v = new THREE.Vector3();
   const dir = new THREE.Vector3();
@@ -230,19 +236,28 @@ export function createLabelLayer(
       if (!ok) {
         nudged++;
         // vertical nudges first (±1…4 label heights), then sideways (± half / one width)
-        for (let k = 1; k <= 4 && !ok; k++) {
-          ok = tryAt(x0, y0 - k * (it.h + 4), W, H) || tryAt(x0, y0 + k * (it.h + 4), W, H);
+        for (let k = 1; k <= 4 / nudgeStep && !ok; k++) {
+          ok =
+            tryAt(x0, y0 - k * nudgeStep * (it.h + 4), W, H) ||
+            tryAt(x0, y0 + k * nudgeStep * (it.h + 4), W, H);
         }
         for (let j = 1; j <= 2 && !ok; j++) {
           const dx = j * (it.w / 2 + 6);
-          for (let k = 0; k <= 2 && !ok; k++) {
-            const dy = k * (it.h + 4);
+          for (let k = 0; k <= 2 / nudgeStep && !ok; k++) {
+            const dy = k * nudgeStep * (it.h + 4);
             ok =
               tryAt(x0 + dx, y0 - dy, W, H) ||
               tryAt(x0 - dx, y0 - dy, W, H) ||
               tryAt(x0 + dx, y0 + dy, W, H) ||
               tryAt(x0 - dx, y0 + dy, W, H);
           }
+        }
+      }
+      if (!ok && layerOptions.finePlacement) {
+        // System fonts can leave gaps narrower than a half-height step.
+        // Keep the component's column and search within the same bounded distance.
+        for (let dy = 1; dy <= 4 * (it.h + 4) && !ok; dy++) {
+          ok = tryAt(x0, y0 - dy, W, H) || tryAt(x0, y0 + dy, W, H);
         }
       }
       if (!ok) {
@@ -263,8 +278,8 @@ export function createLabelLayer(
         it.occluded = ray.intersectObjects(stage.occluders, true, hits).length > 0;
       }
       if (it.occluded) occludedN++;
-      const x = Math.round(rect.x * 2) / 2;
-      const y = Math.round(rect.y * 2) / 2;
+      const x = Math.round(rect.x * snap) / snap;
+      const y = Math.round(rect.y * snap) / snap;
       if (x !== it.shownX || y !== it.shownY) {
         it.el.style.transform = `translate(${x}px, ${y}px)`;
         it.shownX = x;

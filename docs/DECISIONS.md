@@ -276,3 +276,11 @@ change. Keep the rotating arrows and model unchanged. Disable only this scene's
 intro camera flight so the indicators are stationary immediately; user camera
 controls remain available. Use opaque surfaces, primary text and 14 px numeric
 type (16 px in presentation mode), with quantity accents on the borders.
+
+## D20 — v0.7.4 consistent machine indicator typography (2026-11-01)
+
+Use the shared render-label font, weight, padding, radius and shadow rather than
+an alternator-only monospace style. Retain opaque high-contrast backgrounds and
+stationary component anchors. Opt this scene into physical-pixel position snapping
+and avoid forced compositor promotion for its static text. Other label layers
+retain their previous placement behaviour. Machine physics is unchanged.

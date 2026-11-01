@@ -176,15 +176,10 @@
   color: var(--color-text);
   background: var(--color-surface);
   backdrop-filter: none;
-  font:
-    600 0.875rem/1.3 ui-monospace,
-    Consolas,
-    monospace;
+  line-height: 1.3;
   white-space: pre-line;
-  padding: 0.3em 0.45em;
-  border-radius: 0.35rem;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+  will-change: auto;
 }
 .sim-presentation .am-scene .am-indicator {
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
