@@ -55,6 +55,8 @@ export interface Label {
 }
 
 export interface LabelLayerOptions {
+  /** Try half-height slots in dense component layouts before dropping a label. */
+  finePlacement?: boolean;
   /** Align stationary callouts to physical pixels for crisp HTML text. */
   pixelSnap?: boolean;
   /** Occlusion tests for this layer (default true); false = never cast a ray. */
@@ -116,6 +118,7 @@ export function createLabelLayer(
   const items: Item[] = []; // sorted by descending priority (insertByPriority)
   const layerOcclude = layerOptions.occlude ?? true;
   const snap = layerOptions.pixelSnap ? Math.max(1, window.devicePixelRatio || 1) : 2;
+  const nudgeStep = layerOptions.finePlacement ? 0.5 : 1;
   let occluding = 0; // labels that ask for the occlusion test
   const v = new THREE.Vector3();
   const dir = new THREE.Vector3();
@@ -233,13 +236,15 @@ export function createLabelLayer(
       if (!ok) {
         nudged++;
         // vertical nudges first (±1…4 label heights), then sideways (± half / one width)
-        for (let k = 1; k <= 4 && !ok; k++) {
-          ok = tryAt(x0, y0 - k * (it.h + 4), W, H) || tryAt(x0, y0 + k * (it.h + 4), W, H);
+        for (let k = 1; k <= 4 / nudgeStep && !ok; k++) {
+          ok =
+            tryAt(x0, y0 - k * nudgeStep * (it.h + 4), W, H) ||
+            tryAt(x0, y0 + k * nudgeStep * (it.h + 4), W, H);
         }
         for (let j = 1; j <= 2 && !ok; j++) {
           const dx = j * (it.w / 2 + 6);
-          for (let k = 0; k <= 2 && !ok; k++) {
-            const dy = k * (it.h + 4);
+          for (let k = 0; k <= 2 / nudgeStep && !ok; k++) {
+            const dy = k * nudgeStep * (it.h + 4);
             ok =
               tryAt(x0 + dx, y0 - dy, W, H) ||
               tryAt(x0 - dx, y0 - dy, W, H) ||

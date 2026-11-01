@@ -83,7 +83,11 @@ for (const width of [1280, 1920]) {
     }
     await page.getByRole('button', { name: 'Presentazione', exact: true }).click();
     await page.waitForTimeout(500);
-    expect((await indicators(page)).every((n) => n.visible && !n.clipped)).toBe(true);
+    const presentationIndicators = await indicators(page);
+    expect(
+      presentationIndicators.every((n) => n.visible && !n.clipped),
+      JSON.stringify(presentationIndicators),
+    ).toBe(true);
     expect(errors).toEqual([]);
   });
 }
