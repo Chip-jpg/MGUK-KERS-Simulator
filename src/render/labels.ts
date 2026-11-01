@@ -55,7 +55,7 @@ export interface Label {
 }
 
 export interface LabelLayerOptions {
-  /** Try half-height slots in dense component layouts before dropping a label. */
+  /** Search finer nearby slots in dense layouts before dropping a label. */
   finePlacement?: boolean;
   /** Align stationary callouts to physical pixels for crisp HTML text. */
   pixelSnap?: boolean;
@@ -251,6 +251,13 @@ export function createLabelLayer(
               tryAt(x0 + dx, y0 + dy, W, H) ||
               tryAt(x0 - dx, y0 + dy, W, H);
           }
+        }
+      }
+      if (!ok && layerOptions.finePlacement) {
+        // System fonts can leave gaps narrower than a half-height step.
+        // Keep the component's column and search within the same bounded distance.
+        for (let dy = 1; dy <= 4 * (it.h + 4) && !ok; dy++) {
+          ok = tryAt(x0, y0 - dy, W, H) || tryAt(x0, y0 + dy, W, H);
         }
       }
       if (!ok) {
