@@ -227,3 +227,29 @@ back to `#/teoria`.
   `pow` base blew up through bloom); `src/physics/powerline.ts` (catenary, thermal sag, core
   flux) and the brake-thermal model exported from the physics barrel; the render barrel exports
   the scale and studio helpers. Visible strings use Unicode subscripts, never `_`.
+
+## D16 — Fix round 1 (v0.7.0): brief vs repository (2026-11-01, orchestrator)
+
+The owner's fix list F1–F10 (see [`FIX_ROUND_1.md`](./FIX_ROUND_1.md)) was written against
+assumptions that the repository does not match. The repository wins:
+
+1. **Version.** The repo is at v0.6.0; the round is released as **v0.7.0** (not v0.2.0).
+2. **No quiz** since D13: quiz-related parts of F8 and T1 are void.
+3. **Design files.** Tokens stay in `src/styles/tokens.css` / `src/styles/components.css`;
+   `docs/DESIGN.md` is created in this round.
+4. **No presentation mode, no recommended path, no home grid.** `SIM_IDS` order is the path,
+   `#/sim` is the grid; `drive-sim` is appended last. Presentation mode is not created; the
+   key `P` is left free.
+5. **`car-dynamics` contains the car** and receives F2 like the other car simulators.
+6. **Rename `kers-braking` → `kers-drive`.** `#/sim/kers-braking` redirects to
+   `#/sim/kers-drive` in `src/core/router.ts`. `car-dynamics` imports the presets from
+   the renamed module (the existing cross-sim import is kept, path updated by S3).
+   `kersBrakingEvent` stays in the frozen §4.2 API.
+7. **Render loop contract (§5) changes**: no 60 fps cap by default; limit setting
+   *Automatico (schermo) / 60 / 30* in `localStorage['kers-lab.fpsLimit']`; physics unchanged
+   (dt = 1/240 s, accumulator, max simulated time per frame).
+8. **F8 interpretation**: "motore traslatorio" = the *Moto traslatorio* mode (B·l·v) of
+   `faraday`, the only match in the repo. `emfMotional` stays in `src/physics` and in theory.
+9. **Branches.** Task branches `fix/<id>-<slug>` are squash-merged into
+   `claude/quirky-cray-0kg1gn` (the only branch this session may push); merging to `main` and
+   pushing tag `v0.7.0` are done by the owner.
