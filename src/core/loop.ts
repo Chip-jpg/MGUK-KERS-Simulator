@@ -1,12 +1,12 @@
 import { PHYSICS_DT } from '../physics';
 import type { Disposable } from './types';
-import { getFpsLimit, recordFrame } from './performance';
+import { RENDER_FPS_LIMIT, recordFrame } from './performance';
 
 /**
  * Render-loop helper implementing the §4.1 contract:
  *  - physics advances in fixed steps of dt = 1/240 s via an accumulator
  *    (deterministic, independent of the display refresh rate);
- *  - rendering follows display rAF by default; optional 60/30 caps;
+ *  - rendering follows display rAF, capped at 200 frames/s;
  *  - the loop auto-pauses while `document.hidden` and resumes when visible
  *    (unless the user paused it);
  *  - `dispose()` cancels the RAF and removes every listener.
@@ -38,7 +38,7 @@ export interface LoopEnv {
 export interface LoopOptions {
   /** Physics step [s]. Default {@link PHYSICS_DT}. */
   dt?: number;
-  /** Render cap [frames/s]. Default persisted setting (automatic/display). */
+  /** Render cap [frames/s]. Default 200; internal callers may request a lower cap. */
   maxFps?: number;
   /** Max simulated time per frame [s], avoids the "spiral of death". Default 0.25. */
   maxFrameTime?: number;
@@ -91,8 +91,7 @@ export function createLoop(callbacks: LoopCallbacks, options: LoopOptions = {}):
     rafId = null;
     if (disposed) return;
     schedule();
-    const setting = getFpsLimit();
-    const cap = options.maxFps ?? (setting === 'auto' ? Infinity : Number(setting));
+    const cap = Math.min(options.maxFps ?? RENDER_FPS_LIMIT, RENDER_FPS_LIMIT);
     const minFrameMs = Number.isFinite(cap) && cap > 0 ? 1000 / cap : 0;
     const sinceRender = timeMs - lastRenderMs;
     if (sinceRender + FRAME_TOLERANCE_MS < minFrameMs) return; // render cap

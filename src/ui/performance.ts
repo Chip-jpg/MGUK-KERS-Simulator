@@ -1,10 +1,4 @@
-import {
-  frameStats,
-  getFpsLimit,
-  resetFrameStats,
-  setFpsLimit,
-  type FpsLimit,
-} from '../core/performance';
+import { frameStats, resetFrameStats } from '../core/performance';
 import { formatIT } from '../core/format';
 import { el } from './dom';
 import { isEditing } from './fullscreen';
@@ -13,17 +7,6 @@ import { registerDebugHook } from '../core/debug';
 export function createPerformanceControls(toolbar: HTMLElement) {
   resetFrameStats();
   const unregister = registerDebugHook('performance', frameStats);
-  const select = el('select', { attrs: { 'aria-label': 'Limite FPS' } }, [
-    el('option', { text: 'Automatico (schermo)', attrs: { value: 'auto' } }),
-    el('option', { text: '60', attrs: { value: '60' } }),
-    el('option', { text: '30', attrs: { value: '30' } }),
-  ]);
-  select.value = getFpsLimit();
-  const change = (): void => {
-    setFpsLimit(select.value as FpsLimit);
-    resetFrameStats();
-  };
-  select.addEventListener('change', change);
   const output = el('output', {
     class: 'fps-counter',
     attrs: { hidden: true, 'aria-label': 'Prestazioni' },
@@ -47,18 +30,13 @@ export function createPerformanceControls(toolbar: HTMLElement) {
     const s = frameStats();
     output.textContent = `${formatIT(s.fps, 1)} FPS · ${formatIT(s.ms, 1)} ms · 1 % min: ${formatIT(s.low1, 1)}`;
   }, 500);
-  const element = el('div', { class: 'performance-controls' }, [
-    el('label', {}, ['Limite FPS: ', select]),
-    toggle,
-    output,
-  ]);
+  const element = el('div', { class: 'performance-controls' }, [toggle, output]);
   toolbar.append(element);
   return {
     dispose() {
       unregister();
       clearInterval(interval);
       document.removeEventListener('keydown', key);
-      select.removeEventListener('change', change);
       toggle.removeEventListener('click', click);
       element.remove();
     },

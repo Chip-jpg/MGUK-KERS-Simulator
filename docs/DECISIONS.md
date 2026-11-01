@@ -243,3 +243,13 @@ The current round uses `codex/v0.7.0-fix-round` on the local checkout, with
 a conventional release commit and a GitHub PR/CI check before publication.
 This supersedes the historical branch-only rule in D2 for this round, under
 the user's explicit permission to choose local work and GitHub publication.
+
+## D17 — v0.7.1 sensor placement and controls (2026-11-01)
+
+The user clarified that fixed readouts means stable dimensions beside the measured
+component, rather than detached HUD rows. Restore projected anchors for numeric
+labels, reserving their geometry so digits do not change placement. Scene motion
+and camera changes legitimately move attached labels. Fixed panel readings remain
+stationary. Replace manual pedal ranges with momentary buttons; retain gradual
+input and brake priority. Replace the selectable/persisted FPS policy with a fixed
+200 FPS ceiling. Existing vehicle, battery and electromagnetic physics are unchanged.

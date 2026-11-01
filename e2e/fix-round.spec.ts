@@ -10,17 +10,16 @@ const sims = [
   'car-dynamics',
   'drive-sim',
 ];
-test('F7: 30 FPS limit is enforced, persisted and the counter starts hidden', async ({ page }) => {
+test('fixed 200 FPS policy has no selector and ignores legacy stored limits', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kers-fps-limit', '30'));
   await page.goto('./?quality=base#/sim/faraday');
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   await expect(page.locator('.fps-counter')).toBeHidden();
-  await page.getByRole('combobox', { name: 'Limite FPS', exact: true }).selectOption('30');
-  await page.waitForTimeout(1800);
-  const stats = await debug(page, 'performance');
-  expect(stats['samples']).toBeGreaterThan(10);
-  expect(stats['fps']).toBeLessThanOrEqual(31);
+  await expect(page.getByRole('combobox', { name: 'Limite FPS', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'FPS', exact: true }).click();
+  await expect(page.locator('.fps-counter')).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('combobox', { name: 'Limite FPS', exact: true })).toHaveValue('30');
+  await expect(page.getByRole('combobox', { name: 'Limite FPS', exact: true })).toHaveCount(0);
 });
 type Debug = Record<string, number | boolean | string | object>;
 async function debug(page: Page, id: string): Promise<Debug> {
@@ -50,7 +49,9 @@ for (const id of sims) {
         [...document.querySelectorAll<HTMLElement>('[data-readout]')].filter(
           (n) => n.getBoundingClientRect().width > 0,
         );
-      const initial = nodes().map(rect);
+      const sensors = nodes();
+      const initial = sensors.map(rect);
+      const reserved = sensors.map((n) => [n.style.width, n.style.height]);
       const failures: string[] = [];
       for (let i = 0; i < 25; i++) {
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -63,8 +64,13 @@ for (const id of sims) {
             slider.dispatchEvent(new Event('input', { bubbles: true }));
           }
         }
-        nodes().forEach((n, j) => {
-          if (JSON.stringify(rect(n)) !== JSON.stringify(initial[j])) failures.push(n.className);
+        sensors.forEach((n, j) => {
+          // Scene sensors follow their physical anchors; values must never resize them.
+          const current = n.classList.contains('r-label')
+            ? [n.style.width, n.style.height]
+            : rect(n);
+          const expected = n.classList.contains('r-label') ? reserved[j] : initial[j];
+          if (JSON.stringify(current) !== JSON.stringify(expected)) failures.push(n.className);
         });
       }
       return { count: nodes().length, failures: [...new Set(failures)] };
@@ -145,12 +151,23 @@ test('F3: final drive pedals, gradual keys, brake priority, scenario energy', as
   await page.waitForTimeout(600);
   await page.keyboard.up('w');
   await expect.poll(async () => (await debug(page, 'drive-sim'))['v']).toBeGreaterThan(0);
-  await page.locator('#drive-sim-throttle-number').fill('100');
-  await page.locator('#drive-sim-throttle-number').press('Enter');
+  const throttle = page.getByRole('button', { name: 'Acceleratore', exact: true });
+  const brake = page.getByRole('button', { name: 'Freno', exact: true });
+  await expect(page.locator('#drive-sim-throttle-range')).toHaveCount(0);
+  await throttle.hover();
+  await page.mouse.down();
   await page.waitForTimeout(700);
-  await page.locator('#drive-sim-brake-number').fill('100');
-  await page.locator('#drive-sim-brake-number').press('Enter');
+  await expect(throttle).toHaveAttribute('aria-pressed', 'true');
+  await brake.focus();
+  await page.keyboard.down('Space');
   await expect.poll(async () => (await debug(page, 'drive-sim'))['a']).toBeLessThan(0);
+  await page.keyboard.up('Space');
+  await page.mouse.move(10, 10);
+  await page.mouse.up();
+  await expect(throttle).toHaveAttribute('aria-pressed', 'false');
+  await expect
+    .poll(async () => ((await debug(page, 'drive-sim'))['input'] as { throttle: number }).throttle)
+    .toBe(0);
   await page.getByRole('button', { name: /Scenario: accelera/ }).click();
   await expect
     .poll(async () => (await debug(page, 'drive-sim'))['phase'], { timeout: 45000 })
@@ -199,4 +216,70 @@ test('legacy braking route redirects to the longitudinal model', async ({ page }
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'MGU-K: accelerazione e frenata',
   );
+});
+
+test('scene sensors stay by their components, keep geometry across digit changes and follow the camera', async ({
+  page,
+}) => {
+  await page.goto('./?quality=base#/sim/drive-sim');
+  const sensors = page.locator('.r-label--sensor');
+  await expect(sensors).toHaveCount(4);
+  await page.getByRole('button', { name: 'Pausa', exact: true }).click();
+  const boxes = () =>
+    sensors.evaluateAll((nodes) =>
+      nodes.map((n) => {
+        const b = n.getBoundingClientRect();
+        return [b.x, b.y, b.width, b.height];
+      }),
+    );
+  const before = await boxes();
+  for (const value of ['9,99', '−1000,00', '0,00']) {
+    await sensors.evaluateAll(
+      (nodes, value) =>
+        nodes.forEach((n) => {
+          n.textContent = `Sensore ${value} kW`;
+        }),
+      value,
+    );
+    expect(await boxes()).toEqual(before);
+  }
+  const canvas = await page.locator('.sim-scene canvas').boundingBox();
+  if (!canvas) throw new Error('Missing scene');
+  await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(canvas.x + canvas.width / 2 + 90, canvas.y + canvas.height / 2, {
+    steps: 12,
+  });
+  await page.mouse.up();
+  await expect.poll(boxes).not.toEqual(before);
+});
+
+test('pedal buttons release on keyboard blur, window blur and touch cancellation', async ({
+  page,
+}) => {
+  await page.goto('./?quality=base#/sim/drive-sim');
+  const throttle = page.getByRole('button', { name: 'Acceleratore', exact: true });
+  const brake = page.getByRole('button', { name: 'Freno', exact: true });
+  await throttle.focus();
+  await page.keyboard.down('Enter');
+  await expect(throttle).toHaveAttribute('aria-pressed', 'true');
+  await brake.focus();
+  await expect(throttle).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.up('Enter');
+  const box = await throttle.boundingBox();
+  if (!box) throw new Error('Missing pedal');
+  const touch = await page.context().newCDPSession(page);
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: box.x + 20, y: box.y + 20 }],
+  });
+  await expect(throttle).toHaveAttribute('aria-pressed', 'true');
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await expect(throttle).toHaveAttribute('aria-pressed', 'false');
+  await throttle.hover();
+  await page.mouse.down();
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(throttle).toHaveAttribute('aria-pressed', 'false');
+  await page.mouse.up();
+  await touch.detach();
 });

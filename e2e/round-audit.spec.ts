@@ -102,7 +102,7 @@ test('new drive and transformer: keyboard fullscreen, presentation, both themes 
   }
 });
 
-test('measured FPS/frame-time per simulator and cap; informative hardware-dependent sample', async ({
+test('measured FPS/frame-time per simulator at the fixed 200 FPS cap; informative hardware-dependent sample', async ({
   page,
 }) => {
   test.skip(
@@ -115,8 +115,8 @@ test('measured FPS/frame-time per simulator and cap; informative hardware-depend
     await page.goto(`./?quality=base#/sim/${id}`);
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
     await page.waitForTimeout(1000);
-    for (const cap of ['auto', '60', '30']) {
-      await page.getByRole('combobox', { name: 'Limite FPS', exact: true }).selectOption(cap);
+    {
+      const cap = 200;
       await page.waitForTimeout(3000);
       const stats = await page.evaluate(() => {
         const hooks = (window as unknown as { __kersDebug: Record<string, () => object> })

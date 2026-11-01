@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('v0.7.0 visual evidence: primary controls and expanded transformer plots', async ({
+test('v0.7.1 visual evidence: primary controls and expanded transformer plots', async ({
   page,
 }) => {
   test.setTimeout(60000);
@@ -8,7 +8,7 @@ test('v0.7.0 visual evidence: primary controls and expanded transformer plots', 
   const out = process.env['UPDATE_ROUND_SCREENSHOTS'] === '1' ? 'docs/media' : 'test-results';
   for (const theme of ['dark', 'light'] as const) {
     await page.emulateMedia({ colorScheme: theme });
-    for (const id of ['drive-sim', 'joule-transformer']) {
+    for (const id of ['kers-drive', 'drive-sim', 'joule-transformer']) {
       await page.goto(`./?quality=base#/sim/${id}`);
       await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
       if ((await page.locator('html').getAttribute('data-theme')) !== theme)
@@ -16,14 +16,16 @@ test('v0.7.0 visual evidence: primary controls and expanded transformer plots', 
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await page.waitForTimeout(500);
       await page.getByRole('button', { name: 'Pausa', exact: true }).click();
-      await page.screenshot({ path: `${out}/v0.7.0-${id}-${theme}.png` });
+      await page.screenshot({ path: `${out}/v0.7.1-${id}-${theme}.png` });
       if (id === 'drive-sim') {
-        await expect(page.locator('#drive-sim-throttle-range')).toBeInViewport();
-        await expect(page.locator('#drive-sim-brake-range')).toBeInViewport();
-      } else {
+        await expect(
+          page.getByRole('button', { name: 'Acceleratore', exact: true }),
+        ).toBeInViewport();
+        await expect(page.getByRole('button', { name: 'Freno', exact: true })).toBeInViewport();
+      } else if (id === 'joule-transformer') {
         await page
           .locator('.transmission-plots')
-          .screenshot({ path: `${out}/v0.7.0-transformer-plots-${theme}.png` });
+          .screenshot({ path: `${out}/v0.7.1-transformer-plots-${theme}.png` });
       }
       expect(
         await page.evaluate(

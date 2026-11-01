@@ -109,6 +109,18 @@ describe('createLoop', () => {
     loop.dispose();
   });
 
+  it('hardcodes a 200 FPS ceiling above the display refresh, with unchanged physics time', () => {
+    const f = fakeEnv();
+    const { c, callbacks } = counters();
+    const loop = createLoop(callbacks, { env: f.env });
+    for (let i = 0; i < 1000; i++) f.tick(1);
+    expect(c.renders).toBeGreaterThanOrEqual(199);
+    expect(c.renders).toBeLessThanOrEqual(201);
+    expect(c.steps).toBeGreaterThanOrEqual(238);
+    expect(c.steps).toBeLessThanOrEqual(240);
+    loop.dispose();
+  });
+
   it('auto-pauses while the document is hidden and does not catch up afterwards', () => {
     const f = fakeEnv();
     const { c, callbacks } = counters();
