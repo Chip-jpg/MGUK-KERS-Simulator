@@ -29,6 +29,27 @@ describe('insertByPriority', () => {
 });
 
 describe('createLabelLayer', () => {
+  it('keeps numeric sensors at their component anchor without digit-dependent sizing or repositioning', () => {
+    const { stage, fire } = fakeStage();
+    const overlay = document.createElement('div');
+    const layer = createLabelLayer(stage, overlay, { occlude: false });
+    const anchor = new THREE.Vector3(0, 0, 0);
+    const sensor = layer.add({ text: 'MGU-K', anchor });
+    sensor.setText('MGU-K 9,9 kW');
+    fire.frame(0.016);
+    const position = sensor.element.style.transform;
+    const width = sensor.element.style.width;
+    sensor.setText('MGU-K −100,0 kW');
+    fire.frame(0.016);
+    expect(sensor.element.style.transform).toBe(position);
+    expect(sensor.element.style.width).toBe(width);
+    expect(sensor.element.style.transform).toContain('translate(');
+    anchor.x = 1;
+    fire.frame(0.016);
+    expect(sensor.element.style.transform).not.toBe(position);
+    expect(layer.stats().obstacles).toBe(0);
+    layer.dispose();
+  });
   it('places by priority (high stays put, low is nudged) and hides off-screen anchors', () => {
     const { stage, fire } = fakeStage();
     const overlay = document.createElement('div');

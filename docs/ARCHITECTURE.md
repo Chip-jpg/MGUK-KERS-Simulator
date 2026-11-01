@@ -228,9 +228,8 @@ Guarantees:
 
 1. **Fixed physics step** `dt = PHYSICS_DT = 1/240 s`, accumulated from real elapsed
    time; physics is deterministic and independent of the display rate.
-2. **Rendering at display refresh by default** — uncapped rAF, optional persisted
-   60/30 fps limits. Target: ≥60 fps floor with an uncapped ceiling; the browser,
-   monitor and GPU determine the real maximum.
+2. **Rendering at display refresh up to a fixed 200 FPS ceiling** — no user
+   selector or persisted cap. The browser, monitor and GPU determine the actual rate.
 3. **Spiral-of-death guard:** at most `maxFrameTime` (0.25 s) of simulated time per
    frame.
 4. **Auto-pause** while `document.hidden`; on return no catch-up burst (the clock is
@@ -611,19 +610,17 @@ The app remains vanilla TypeScript/Three.js/uPlot. Existing `SimModule`,
 - `physics/plot-range.ts`: finite range and explicit tick generation.
 - `ui/readout.ts`: fixed numeric/unit columns and stable compound text sensors.
   All formula panels use the same readout implementation. Existing summary
-  panels reserve fixed boxes; numeric scene labels use fixed HUD slots instead
-  of projected collision-dependent positions. Geometric labels stay projected.
+  panels reserve fixed boxes; numeric scene labels reserve fixed dimensions while
+  remaining projected beside their components, using the existing collision placement.
 - `ui/fullscreen.ts`: Fullscreen API on the complete simulator root; F / P;
   full cleanup in the existing layout's dispose path.
-- `core/performance.ts`, `ui/performance.ts`: optional statistics and persistent
-  Automatic/60/30 selection, storage failures tolerated. `core/loop.ts` uses
-  uncapped rAF by default, retains fixed 1/240 s physics and bounds catch-up to
-  60 steps. Hidden tabs remain paused. ≥60 fps is a performance floor target,
-  with an uncapped ceiling limited by display refresh, GPU and browser.
+- `core/performance.ts`, `ui/performance.ts`: optional frame statistics, with a fixed
+  200 FPS ceiling and no selector/storage setting. `core/loop.ts` retains fixed
+  1/240 s physics and bounds catch-up to 60 steps. Hidden tabs remain paused.
 - `ui/telemetry.ts`: shared 12 s scrolling window, per-unit charts with signed
   acceleration (SI and g), mechanical MGU-K power, disc heat power and SoC.
 - `sims/shared/drive.ts`: shared vehicle demonstration for `kers-drive` and the
-  final `drive-sim`; gradual keyboard pedals, mouse/touch ranges and guided
+  final `drive-sim`; gradual pedals with momentary mouse/touch/keyboard buttons (`ui/pedal.ts`) and guided
   0→300→100 km/h scenario. Gamepad is optional and is not implemented.
 - `kers-drive` is the canonical route; `kers-braking` redirects. A model selector
   keeps the original analytical braking UI/presets as a comparison, mounting

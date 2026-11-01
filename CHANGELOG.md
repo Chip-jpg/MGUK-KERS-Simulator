@@ -7,6 +7,15 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-01
+
+### Corretto
+
+- Sensori live di nuovo accanto ai componenti misurati: dimensioni riservate e cifre tabulari, senza spostarli agli angoli della scena. Seguono il componente e la vista, senza salti causati dalle cifre.
+- Spaziature del simulatore MGU-K riordinate: gruppi separati, valori e unità allineati, margine del selettore del modello e rimozione dei pedali disabilitati dal profilo guidato.
+- Rimosso il selettore FPS e il relativo salvataggio: limite fisso a 200 FPS. Il contatore facoltativo resta disponibile; fisica invariata a 1/240 s.
+- Acceleratore e freno della guida ora sono pulsanti da tenere premuti con mouse, touch, Spazio/Invio o i tasti W/S e frecce. Risposta graduale, priorità del freno e rilascio su perdita di focus o annullamento del tocco.
+
 ## [0.7.0] - 2026-11-01
 
 ### Aggiunto e corretto

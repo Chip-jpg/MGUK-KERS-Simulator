@@ -19,7 +19,7 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Simulatori** — 8 simulatori 3D con guida finale e un approfondimento con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
-**Versione attuale: v0.7.0** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.7.1** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
@@ -69,7 +69,7 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 **Dimostrazione finale:** `drive-sim` — **Guida: acceleratore e freno**, con ↑/W e ↓/S a risposta graduale o pedali sullo schermo. Lo scenario 800 kg, 300 → 100 km/h mostra circa 2,47 MJ. Modello longitudinale 1D, non un simulatore di giro.
 
-Ogni simulatore include sensori fissi, **F** per lo schermo intero, **P** per la vista di presentazione, impostazione **Limite FPS: Automatico / 60 / 30** e contatore attivabile con **`**. Automatico segue il refresh dello schermo: monitor, GPU e browser determinano il limite effettivo. La fisica conserva il passo fisso di 1/240 s.
+Ogni simulatore include sensori con dimensioni fisse accanto ai componenti, **F** per lo schermo intero, **P** per la vista di presentazione e contatore FPS attivabile con **`**. Il limite di rendering è fisso a **200 FPS**, senza selettore: monitor, GPU e browser determinano la frequenza effettiva. La fisica conserva il passo fisso di 1/240 s. Nella guida, tieni premuti i pulsanti Acceleratore e Freno (mouse, touch, Spazio/Invio) oppure usa W/S e frecce.
 
 ## Avvio rapido
 
@@ -159,6 +159,7 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
       `field-biot-savart` e `pmsm-dq`; resta `car-dynamics`, che estende la frenata KERS
       ([D13](docs/DECISIONS.md)).
 
+- [x] **v0.7.1 — Interfaccia**: sensori ancorati ai componenti, spaziature MGU-K, limite fisso 200 FPS e pedali a pulsante.
 - [x] **v0.7.0 — Guida e correzioni**: accelerazione/frenata reversibili, nuova guida con pedali, batteria con arresto a scarica, telemetria live, sensori fissi, schermo intero, scale dei grafici robuste e FPS automatici, analisi estesa del trasformatore.
 
 Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).

@@ -31,6 +31,7 @@ const sim: SimModule = {
       ],
       onChange: render,
     });
+    tabs.element.classList.add('kers-model-switch');
     host.replaceChildren(tabs.element, content);
     render(initial);
     const handle = {

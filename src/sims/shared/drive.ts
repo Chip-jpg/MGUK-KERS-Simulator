@@ -21,6 +21,7 @@ import {
   el,
   type Slider,
 } from '../../ui';
+import { createPedalButton } from '../../ui/pedal';
 import { createReadoutGrid } from '../../ui/readout';
 import { createCarTelemetryPlots } from '../../ui/telemetry';
 import { isEditing } from '../../ui/fullscreen';
@@ -38,6 +39,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
   const id = interactive ? 'drive-sim' : 'kers-drive';
   const p: DriveSpec = { ...DEFAULT_DRIVE, battery: { ...DEFAULT_DRIVE.battery } };
   const layout = createSimLayout(host, { modelNoteIT: DRIVE_NOTE_IT });
+  layout.root.classList.add('drive-layout');
   layout.addSceneLegend(
     el('div', {
       class: 'drive-legend',
@@ -78,8 +80,11 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     class: 'battery-gauge',
     attrs: { 'aria-label': 'Carica batteria', max: 1, value: 0.5 },
   });
-  layout.controls.append(status, note, gauge);
-  const readouts = createReadoutGrid(layout.controls, [
+  const summary = el('div', { class: 'drive-summary' }, [status, note, gauge]);
+  const liveData = el('section', { class: 'drive-readouts' }, [
+    el('h3', { text: 'Dati in tempo reale' }),
+  ]);
+  const readouts = createReadoutGrid(liveData, [
     { key: 'v', labelIT: 'Velocità', unit: 'km/h', digits: 1, scale: 3.6 },
     { key: 'a', labelIT: 'Accelerazione', unit: 'm/s²', digits: 2 },
     { key: 'g', labelIT: 'Accelerazione in g', unit: 'g', digits: 2 },
@@ -111,39 +116,23 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     { key: 'deployed', labelIT: 'Energia prelevata', unit: 'MJ', digits: 3, scale: 1e-6 },
   ]);
   const pedals = el('div', { class: 'drive-pedals' });
-  layout.controls.insertBefore(pedals, readouts.element);
   const hud = el('div', { class: 'drive-hud' });
   layout.sceneOverlay.append(hud);
   const hudValues = createReadoutGrid(hud, [
     { key: 'v', labelIT: 'v', unit: 'km/h', digits: 1, scale: 3.6 },
     { key: 'a', labelIT: 'a', unit: 'm/s²', digits: 2 },
   ]);
-  const manual = { throttle: 0, brake: 0 };
+  const heldPedals = { throttle: false, brake: false };
   const keys = new Set<string>();
   let throttleKey = 0,
     brakeKey = 0;
-  let showKeyboardPedals = false;
-  for (const key of ['throttle', 'brake'] as const) {
-    const slider = createSlider({
-      id: `${id}-${key}`,
-      spec: {
-        min: 0,
-        max: 100,
-        step: 1,
-        default: 0,
-        unit: '%',
-        labelIT: key === 'throttle' ? 'Acceleratore' : 'Freno',
-      },
-      onInput: (value) => {
-        showKeyboardPedals = false;
-        phase = 'manual';
-        manual[key] = value / 100;
-      },
-    });
-    sliders.push(slider);
-    pedals.append(slider.element);
-    if (!interactive) slider.setDisabled(true);
-  }
+  const pedalButtons = (['throttle', 'brake'] as const).map((key) =>
+    createPedalButton(key, (held) => {
+      heldPedals[key] = held;
+      if (held) phase = 'manual';
+    }),
+  );
+  for (const button of pedalButtons) pedals.append(button.element);
   const preset = createSegmented<'full' | 'braking'>({
     labelIT: 'Profilo',
     value: 'braking',
@@ -156,7 +145,6 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
       reset(false);
     },
   });
-  if (!interactive) pedals.before(preset.element);
   const scenario = createButton({
     labelIT: 'Scenario: accelera a 300, frena a 100 km/h',
     icon: '▶',
@@ -167,7 +155,6 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
       toolbar.refresh();
     },
   });
-  pedals.after(scenario.element);
   const mass = createSlider({
     id: `${id}-mass`,
     spec: {
@@ -199,7 +186,6 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     },
   });
   sliders.push(mass, power);
-  layout.controls.append(mass.element, power.element);
   const soc = createSlider({
     id: `${id}-soc`,
     spec: {
@@ -217,7 +203,13 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
   });
   let initialSoc = 0.5;
   sliders.push(soc);
-  layout.controls.append(soc.element);
+  layout.controls.append(
+    summary,
+    interactive ? pedals : preset.element,
+    scenario.element,
+    el('div', { class: 'drive-settings' }, [mass.element, power.element, soc.element]),
+    liveData,
+  );
   const formulas = createFormulaPanel(layout.formulas, [
     {
       key: 'force',
@@ -280,11 +272,9 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     }
   });
   function reset(runScenario: boolean): void {
-    showKeyboardPedals = false;
-    sliders[0]?.set(0);
-    sliders[1]?.set(0);
     keys.clear();
-    manual.throttle = manual.brake = throttleKey = brakeKey = 0;
+    pedalButtons.forEach((button) => button.release());
+    throttleKey = brakeKey = 0;
     phase = interactive && !runScenario ? 'manual' : profile === 'full' ? 'accelerate' : 'brake';
     state = createDriveState(p, phase === 'brake' ? kmhToMs(300) : 0, initialSoc);
     initialEnergy = 0.5 * p.mass * state.v ** 2 + state.battery.energy;
@@ -304,13 +294,13 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     }
     const ramp = (value: number, pressed: boolean): number =>
       Math.min(1, Math.max(0, value + (pressed ? 1.5 : -2) * dt));
-    throttleKey = ramp(throttleKey, keys.has('arrowup') || keys.has('w'));
-    brakeKey = ramp(brakeKey, keys.has('arrowdown') || keys.has('s'));
+    throttleKey = ramp(throttleKey, heldPedals.throttle || keys.has('arrowup') || keys.has('w'));
+    brakeKey = ramp(brakeKey, heldPedals.brake || keys.has('arrowdown') || keys.has('s'));
     input =
       phase === 'manual'
         ? {
-            throttle: Math.max(manual.throttle, throttleKey),
-            brake: Math.max(manual.brake, brakeKey),
+            throttle: throttleKey,
+            brake: brakeKey,
           }
         : phase === 'accelerate'
           ? { throttle: 1, brake: 0 }
@@ -344,11 +334,8 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
   }
   function draw(): void {
     hudValues.update({ v: state.v, a: q.a });
-    if ((phase !== 'manual' || showKeyboardPedals) && !pedals.contains(document.activeElement)) {
-      sliders[0]?.set(Math.round(input.throttle * 100));
-      sliders[1]?.set(Math.round(input.brake * 100));
-      if (throttleKey === 0 && brakeKey === 0 && keys.size === 0) showKeyboardPedals = false;
-    }
+    pedalButtons[0]?.setLevel(input.throttle);
+    pedalButtons[1]?.setLevel(input.brake);
     gauge.value = state.battery.energy / p.battery.capacity;
     const text =
       phase === 'done'
@@ -409,7 +396,6 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     const key = e.key.toLowerCase();
     if (!['w', 's', 'arrowup', 'arrowdown'].includes(key)) return;
     e.preventDefault();
-    showKeyboardPedals = true;
     keys.add(key);
     phase = 'manual';
   };
@@ -419,10 +405,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
   const release = (): void => {
     keys.clear();
     throttleKey = brakeKey = 0;
-    manual.throttle = manual.brake = 0;
-    sliders[0]?.set(0);
-    sliders[1]?.set(0);
-    showKeyboardPedals = false;
+    pedalButtons.forEach((button) => button.release());
   };
   document.addEventListener('keydown', keydown);
   document.addEventListener('keyup', keyup);
@@ -459,6 +442,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
       window.removeEventListener('blur', release);
       document.removeEventListener('visibilitychange', release);
       off.forEach((fn) => fn());
+      pedalButtons.forEach((button) => button.dispose());
       sliders.forEach((s) => s.dispose());
       preset.dispose();
       scenario.dispose();

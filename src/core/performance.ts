@@ -1,23 +1,5 @@
-export type FpsLimit = 'auto' | '60' | '30';
-const KEY = 'kers-fps-limit';
-let limit: FpsLimit = 'auto';
-try {
-  const saved = localStorage.getItem(KEY);
-  if (saved === '30' || saved === '60') limit = saved;
-} catch {
-  /* Restricted storage: automatic remains usable. */
-}
-export function getFpsLimit(): FpsLimit {
-  return limit;
-}
-export function setFpsLimit(value: FpsLimit): void {
-  limit = value;
-  try {
-    localStorage.setItem(KEY, value);
-  } catch {
-    /* Storage is optional. */
-  }
-}
+/** Fixed render ceiling; physics remains independent at 240 Hz. */
+export const RENDER_FPS_LIMIT = 200;
 const samples = new Float64Array(600);
 let count = 0,
   head = 0;

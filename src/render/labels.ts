@@ -14,7 +14,7 @@
  * - Obstacles: the other boxes drawn over the canvas (legends, HUD, status
  *   badges: every visible non-label child of the overlay and of the scene box,
  *   except the canvas and elements marked `data-label-pass`) are measured every
- *   10th frame and on resize; labels never sit on them (QA-031, QA-039).
+ *   frame before placement; changing status text must not leave stale obstacles.
  * - Off-screen / behind-camera anchors are hidden.
  * - No per-frame allocations: items are kept sorted by priority when added
  *   (stable: equal priorities keep their insertion order), placed rectangles come
@@ -41,6 +41,9 @@ export interface LabelOptions {
   occlude?: boolean;
   /** Visual size: 'md' (default) | 'sm' | 'lg'. */
   size?: 'sm' | 'md' | 'lg';
+  /** Reserved geometry for live numeric text, beside its projected component. */
+  sensorWidth?: string;
+  sensorHeight?: string;
 }
 
 export interface Label {
@@ -109,7 +112,6 @@ export function createLabelLayer(
   layerOptions: LabelLayerOptions = {},
 ): LabelLayer {
   const items: Item[] = []; // sorted by descending priority (insertByPriority)
-  let sensorSlots = 0;
   const layerOcclude = layerOptions.occlude ?? true;
   let occluding = 0; // labels that ask for the occlusion test
   const v = new THREE.Vector3();
@@ -124,7 +126,6 @@ export function createLabelLayer(
   let nPlaced = 0;
   const obstacles: Rect[] = []; // pool; the first `nObstacles` are valid
   let nObstacles = 0;
-  let obstaclesDirty = true;
   const rect: Rect = { x: 0, y: 0, w: 0, h: 0 };
 
   const hit = (a: Rect, b: Rect): boolean =>
@@ -157,7 +158,7 @@ export function createLabelLayer(
       if (
         c === overlay ||
         c.tagName === 'CANVAS' ||
-        (c.classList.contains('r-label') && !c.classList.contains('r-label--sensor')) ||
+        c.classList.contains('r-label') ||
         c.classList.contains('sim-placeholder') ||
         c.hasAttribute('data-label-pass') ||
         c.hidden
@@ -174,7 +175,6 @@ export function createLabelLayer(
     const o = overlay.getBoundingClientRect();
     scanObstacles(overlay, o.left, o.top);
     scanObstacles(overlay.parentElement, o.left, o.top);
-    obstaclesDirty = false;
   };
   /** Clamp `rect` at (x, y) inside the canvas; true when it is free. */
   const tryAt = (x: number, y: number, W: number, H: number): boolean => {
@@ -204,7 +204,7 @@ export function createLabelLayer(
     }
     const testOcclusion =
       layerOcclude && occluding > 0 && frame % 4 === 0 && stage.occluders.length > 0;
-    if (obstaclesDirty || frame % 10 === 1) refreshObstacles();
+    refreshObstacles();
     nPlaced = 0;
     let nudged = 0;
     let dropped = 0;
@@ -213,11 +213,6 @@ export function createLabelLayer(
       const it = items[n] as Item;
       if (!it.visible) {
         setDisplay(it, 'none');
-        continue;
-      }
-      if (it.el.classList.contains('r-label--sensor')) {
-        setDisplay(it, '');
-        it.el.style.opacity = '1';
         continue;
       }
       v.copy(it.anchor).project(stage.camera);
@@ -289,7 +284,6 @@ export function createLabelLayer(
   const offUpdate = stage.addUpdatable({ update });
   const offResize = stage.onResize(() => {
     for (const it of items) it.dirty = true;
-    obstaclesDirty = true;
   });
 
   return {
@@ -324,14 +318,10 @@ export function createLabelLayer(
           if (t === it.text) return;
           it.text = t;
           el.textContent = t;
-          // Numeric sensors have fixed HUD slots; geometric labels stay projected.
+          // Reserve space without detaching the sensor from its physical anchor.
           if (/\d/.test(t) && !el.classList.contains('r-label--sensor')) {
-            const slot = sensorSlots++;
             el.classList.add('r-label--sensor');
-            reserveTextReadout(el, 'min(46%, 20rem)', '2.2rem');
-            el.style.setProperty('--sensor-row', String(Math.floor(slot / 2)));
-            el.style.setProperty('--sensor-side', String(slot % 2));
-            el.dataset['sensorSide'] = String(slot % 2);
+            reserveTextReadout(el, o.sensorWidth ?? '22ch', o.sensorHeight ?? '2.4rem');
           }
           el.title = t;
           it.dirty = true;
