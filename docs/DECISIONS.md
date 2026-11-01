@@ -264,3 +264,15 @@ then restart at zero speed and the user's initial SoC. Preserve all other
 vehicle settings and pause state. Reflect manual power changes in the selected
 preset indicator. Explain that this compares MGU-K power, rather than modelling
 complete power units; MGU-H is not simulated and the ICE remains illustrative.
+
+## D19 — v0.7.3 stationary machine callouts (2026-11-01)
+
+The alternator/motor force sensor followed the rotating arrow tip, causing both
+that sensor and lower-priority labels to move. Long captions exceeded their
+reserved boxes, and duplicate Joule power used extra scene space. Group the
+thirteen distinct readings in seven compact component callouts, attach them to
+stationary housing/component anchors, and retain fixed geometry while values
+change. Keep the rotating arrows and model unchanged. Disable only this scene's
+intro camera flight so the indicators are stationary immediately; user camera
+controls remain available. Use opaque surfaces, primary text and 14 px numeric
+type (16 px in presentation mode), with quantity accents on the borders.

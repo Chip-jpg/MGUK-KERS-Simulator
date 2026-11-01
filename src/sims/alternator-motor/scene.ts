@@ -158,6 +158,7 @@ export function createMachineScene(
     ariaLabel:
       'Scena 3D: macchina a magneti permanenti in sezione — statore in ferro laminato con espansioni polari N e S, linee del campo B calcolate nel traferro, bobina rotante di N spire su un albero con anelli e spazzole, volano, puleggia di trascinamento o ventola, convertitore e pacco batteria con indicatore di carica, nastri del flusso di energia.',
     camera: { ...HOME, fov: 34 },
+    intro: false,
     controls: { minDistance: 5, maxDistance: 26 },
     floorY: FLOOR_Y,
     shadowRadius: 7.5,
@@ -698,87 +699,106 @@ export function createMachineScene(
   for (const l of leads) stage.castShadows(l);
   stage.occluders.push(pack, convBody, flywheel);
 
-  // --- labels ------------------------------------------------------------------------------------------
+  // Callouts attach to the stationary housing/components, never to rotating arrow tips.
+  // Group related readings so every value fits beside its component at 1280x720.
+  container.classList.add('am-scene');
   const labels = createLabelLayer(stage, overlay);
   const A = {
     n: v(-0.9, 2.45, 1.0),
     s: v(0.9, -1.9, 1.7),
-    b: v(-0.95, 0.3, 1.25),
-    emf: v(),
-    i: v(-3.0, BASE_TOP + 1.1, 1.75),
-    force: v(),
-    tauEm: v(FLY_X + 0.45, -1.15, 0.6),
-    tauShaft: v(FLY_X + 0.45, 1.25, 0.6),
+    b: v(-0.95, 1.8, 1.25),
+    electrical: v(-2.7, -0.4, 1.75),
+    rotor: v(1.6, 0.3, 2.1),
+    shaft: v(FLY_X + 0.45, 1.25, 0.6),
     battery: v(BATTERY_POS.x, BASE_TOP + 1.75, BATTERY_POS.z + 0.4),
     heat: v(0.45, -1.15, 1.6),
     flywheel: v(FLY_X, -1.7, 1.4),
-    pMech: v(2.1, 2.85, 0.8),
-    pElec: v(-2.3, 2.85, 1.0),
-    pJoule: v(0.25, 3.2, 1.2),
   };
   const L: Record<keyof typeof A, Label> = {
     n: labels.add({ text: 'N', anchor: A.n, size: 'lg', priority: 10, occlude: false }),
-    s: labels.add({ text: 'S', anchor: A.s, size: 'lg', priority: 10, occlude: false }),
-    b: labels.add({ text: 'B', anchor: A.b, quantity: 'b', priority: 6, occlude: false }),
-    emf: labels.add({ text: 'ε', anchor: A.emf, quantity: 'emf', priority: 8, occlude: false }),
-    i: labels.add({ text: 'i', anchor: A.i, quantity: 'i', priority: 8, occlude: false }),
-    force: labels.add({ text: 'F', anchor: A.force, quantity: 'f', priority: 7, occlude: false }),
-    tauEm: labels.add({
-      text: 'τ',
-      anchor: A.tauEm,
+    s: labels.add({
+      text: 'S',
+      anchor: A.s,
+      size: 'lg',
+      priority: 10,
+      occlude: false,
+      offset: [0, -24],
+    }),
+    b: labels.add({
+      text: 'B',
+      anchor: A.b,
+      quantity: 'b',
+      priority: 9,
+      occlude: false,
+      sensorWidth: '15ch',
+      sensorHeight: '2em',
+      offset: [-45, -30],
+    }),
+    electrical: labels.add({
+      text: 'Collettore',
+      anchor: A.electrical,
+      quantity: 'emf',
+      priority: 8,
+      occlude: false,
+      sensorWidth: '18ch',
+      sensorHeight: '3.3em',
+      offset: [-55, -15],
+    }),
+    rotor: labels.add({
+      text: 'Rotore',
+      anchor: A.rotor,
       quantity: 'f',
+      priority: 8,
+      occlude: false,
+      sensorWidth: '21ch',
+      sensorHeight: '3.3em',
+      offset: [65, 0],
+    }),
+    shaft: labels.add({
+      text: 'Albero',
+      anchor: A.shaft,
+      quantity: 'energy',
       priority: 7,
       occlude: false,
-      size: 'sm',
-    }),
-    tauShaft: labels.add({
-      text: 'τ',
-      anchor: A.tauShaft,
-      quantity: 'accent',
-      priority: 6,
-      occlude: false,
-      size: 'sm',
+      sensorWidth: '22ch',
+      sensorHeight: '3.3em',
+      offset: [30, -25],
     }),
     battery: labels.add({
-      text: 'batteria',
+      text: 'Batteria',
       anchor: A.battery,
       quantity: 'energy',
+      priority: 8,
+      occlude: false,
+      sensorWidth: '22ch',
+      sensorHeight: '3.3em',
+      offset: [-20, 50],
+    }),
+    heat: labels.add({
+      text: 'Avvolgimento',
+      anchor: A.heat,
+      quantity: 'i',
       priority: 7,
       occlude: false,
+      sensorWidth: '20ch',
+      sensorHeight: '3.3em',
+      offset: [-85, 52],
     }),
-    heat: labels.add({ text: 'T', anchor: A.heat, priority: 3, occlude: false, size: 'sm' }),
     flywheel: labels.add({
-      text: 'J',
+      text: 'Volano',
       anchor: A.flywheel,
-      priority: 3,
+      priority: 7,
       occlude: false,
-      size: 'sm',
-    }),
-    pMech: labels.add({
-      text: 'P',
-      anchor: A.pMech,
-      quantity: 'energy',
-      priority: 5,
-      occlude: false,
-      size: 'sm',
-    }),
-    pElec: labels.add({
-      text: 'P',
-      anchor: A.pElec,
-      quantity: 'energy',
-      priority: 5,
-      occlude: false,
-      size: 'sm',
-    }),
-    pJoule: labels.add({
-      text: 'P',
-      anchor: A.pJoule,
-      quantity: 'energy',
-      priority: 4,
-      occlude: false,
-      size: 'sm',
+      sensorWidth: '22ch',
+      sensorHeight: '3.3em',
+      offset: [20, 30],
     }),
   };
+  for (const [key, label] of Object.entries(L)) {
+    if (key === 'n' || key === 's') continue;
+    label.element.classList.add('am-indicator');
+    label.element.dataset['indicator'] = key;
+  }
 
   const applyTheme = (): void => {
     const c = stage.theme === 'dark' ? 0x3dd6c6 : 0x0f7c72;
@@ -821,13 +841,6 @@ export function createMachineScene(
     const dirA = -Math.sign(q.forceSide);
     setArrow(fA, sx, 0, sz, dirA, len);
     setArrow(fB, -sx, 0, -sz, -dirA, len);
-    // label at the tip of the arrow on the side nearer the camera
-    const front = sz >= 0 ? 1 : -1;
-    A.force.set(front * sx, -0.25, front * sz + front * dirA * (len + 0.25));
-    machine.localToWorld(A.force);
-    A.emf.set(0, SLIP_Y[1] - 0.15, SLIP_R + 0.9);
-    machine.localToWorld(A.emf);
-
     // torque arcs: τ_em (green) and the external/load torque on the shaft (accent)
     setArc(arcEm, q.tauEm, s.tauRef, 0.35);
     setArc(arcSh, q.tauShaft, s.tauRef, 0.35);
@@ -843,21 +856,14 @@ export function createMachineScene(
     kit.get('glowEnergy', 'gauge').emissiveIntensity = 1.2;
     applyHeatGlow(kit.get('enamel', 'coil'), s.T);
 
-    L.tauShaft.setVisible(Math.abs(q.tauShaft) > 1e-6 || !gen);
     const t = s.labels;
     L.b.setText(t.b);
-    L.emf.setText(t.emf);
-    L.i.setText(t.i);
-    L.force.setText(t.force);
-    L.force.setVisible(len > 0);
-    L.tauEm.setText(t.tauEm);
-    L.tauShaft.setText(t.tauShaft);
-    L.battery.setText(t.battery);
-    L.heat.setText(t.heat);
+    L.electrical.setText(`${t.emf}\n${t.i}`);
+    L.rotor.setText(`${t.force}\n${t.tauEm}`);
+    L.shaft.setText(`${t.tauShaft}\n${t.pMech}`);
+    L.battery.setText(`${t.battery}\n${t.pElec}`);
+    L.heat.setText(`${t.heat}\n${t.pJoule}`);
     L.flywheel.setText(t.flywheel);
-    L.pMech.setText(t.pMech);
-    L.pElec.setText(t.pElec);
-    L.pJoule.setText(t.pJoule);
   };
 
   sceneStats.liveScenes++;
@@ -878,6 +884,7 @@ export function createMachineScene(
       offTheme();
       offTier();
       labels.dispose();
+      container.classList.remove('am-scene');
       field.dispose();
       coilFlow.dispose();
       leadFlow.dispose();

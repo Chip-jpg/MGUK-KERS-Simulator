@@ -19,7 +19,7 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Simulatori** — 8 simulatori 3D con guida finale e un approfondimento con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
-**Versione attuale: v0.7.2** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.7.3** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
@@ -159,6 +159,7 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
       `field-biot-savart` e `pmsm-dq`; resta `car-dynamics`, che estende la frenata KERS
       ([D13](docs/DECISIONS.md)).
 
+- [x] **v0.7.3 — Indicatori macchina**: letture leggibili e ferme accanto ai componenti dell’alternatore/motore, senza seguire il rotore.
 - [x] **v0.7.2 — Preset guida**: confronto MGU-K 2025 (120 kW) / 2026 (350 kW), selezione evidenziata e riavvio comparabile.
 - [x] **v0.7.1 — Interfaccia**: sensori ancorati ai componenti, spaziature MGU-K, limite fisso 200 FPS e pedali a pulsante.
 - [x] **v0.7.0 — Guida e correzioni**: accelerazione/frenata reversibili, nuova guida con pedali, batteria con arresto a scarica, telemetria live, sensori fissi, schermo intero, scale dei grafici robuste e FPS automatici, analisi estesa del trasformatore.
