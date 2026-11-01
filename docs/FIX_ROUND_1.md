@@ -115,3 +115,113 @@ Recorded as D16 in `DECISIONS.md`; summary:
 8. Merge target: the session may push only to `claude/quirky-cray-0kg1gn`; it plays the role
    of `main` for this round (squash-merge per task there). Pushing `main` and the tag is left
    to the owner (exact commands in the final report).
+
+## 6. Frozen contracts for this round (orchestrator)
+
+Agents implement these names and shapes exactly. A change needs a change request to the
+orchestrator (recorded in D16+). SI units inside, Italian only in UI strings.
+
+### 6.1 Physics (P1) — pure TS in `src/physics/`, exported from the barrel
+
+```ts
+// battery.ts
+export interface BatteryParams {
+  capacityJ: number;          // usable energy [J] (> 0)
+  etaCharge: number;          // (0,1]: stored = absorbed·etaCharge
+  etaDischarge: number;       // (0,1]: delivered = drawn·etaDischarge
+  rInternal: number;          // [Ω] ≥ 0, Joule loss R·I² with I = |P|/vNominal
+  vNominal: number;           // [V] > 0
+  pChargeMax: number;         // [W] ≥ 0, limit on absorbed terminal power
+  pDischargeMax: number;      // [W] ≥ 0, limit on delivered terminal power
+  restartSoc: number;         // hysteresis threshold in [0,1] (default 0.05)
+}
+export interface BatteryState {
+  soc: number;                // [0,1]
+  depleted: boolean;          // true once soc hit 0; false again only when soc ≥ restartSoc
+  eIn: number; eOut: number;  // cumulative terminal energy absorbed / delivered [J]
+  eLoss: number;              // cumulative losses (η + Joule) [J]
+}
+export function createBattery(p: BatteryParams, soc0: number): BatteryState;
+export function batteryLimits(p: BatteryParams, s: BatteryState, dt: number):
+  { pDeployMax: number; pHarvestMax: number };          // [W] ≥ 0, SoC- and depletion-aware
+export function batteryStep(p: BatteryParams, s: BatteryState, pRequest: number, dt: number):
+  { state: BatteryState; pTerminal: number; pLoss: number };
+// pRequest > 0 = discharge (deploy), < 0 = charge (harvest); pTerminal = actually granted
+// (same sign convention, |pTerminal| ≤ |pRequest|). Never soc < 0 or > 1.
+
+// longitudinal.ts
+export interface VehicleParams { m: number; cdA: number; rho: number; crr: number;
+  fDriveMax: number; pEngineMax: number; fBrakeMax: number }   // ICE force/power, disc brake force
+export interface MgukParams { pDeployMax: number; pHarvestMax: number; eta: number }
+export interface DriveParams { vehicle: VehicleParams; mguk: MgukParams; battery: BatteryParams }
+export interface DriveInput { throttle: number; brake: number }   // each in [0,1]
+export interface DriveState { t: number; x: number; v: number; battery: BatteryState;
+  eEngine: number; eDeploy: number; eHarvest: number; eBrakes: number;
+  eDrag: number; eRoll: number; eMgukLoss: number }              // cumulative [J]
+export type MgukMode = 'deploy' | 'harvest' | 'idle';
+export interface DriveStepResult { state: DriveState; a: number; v: number;
+  pKers: number;      // MGU-K mechanical power at the wheels [W], + deploy, − harvest
+  pBrakes: number;    // disc-brake dissipation [W] ≥ 0
+  pEngine: number; pDrag: number; pRoll: number; soc: number; mode: MgukMode }
+export function createDriveState(p: DriveParams, v0: number, soc0: number): DriveState;
+export function kersDriveStep(s: DriveState, input: DriveInput, p: DriveParams, dt: number): DriveStepResult;
+// v never < 0 (braking at v = 0 holds the car); RK4 on dt; deterministic.
+// Braking split: MGU-K harvests first up to min(pHarvestMax, battery limit), discs take the rest.
+export function speedProfileInput(profile: readonly SpeedProfilePoint[], t: number, v: number): DriveInput;
+export interface SpeedProfilePoint { t: number; v: number }     // target speed [m/s] vs time [s]
+
+// plotRange.ts (F6)
+export function symmetricRange(amplitude: number, margin?: number, minHalfSpan?: number): [number, number];
+export function safeRange(min: number, max: number, minSpan?: number): [number, number];   // never NaN/∞/zero-width
+export function faradayRanges(B: number, S: number, N: number, omega: number, margin?: number):
+  { phi: [number, number]; emf: [number, number] };    // ±B·S·(N if perTurns) and ±N·B·S·ω with margin
+// transformer.ts / powerline.ts additions (F10)
+export function logspace(a: number, b: number, n: number): number[];
+export function lineLossSweep(P: number, Rline: number, voltages: readonly number[]):
+  Array<{ V: number; I: number; loss: number; fraction: number }>;
+```
+
+### 6.2 Shared UI (U1) — `src/ui/`, exported from `src/ui/index.ts`
+
+```ts
+createValueReadout(o: { labelIT: string; unit: string; digits: number; maxAbs: number;
+  signed?: boolean; quantity?: Quantity | 'neutral'; id?: string }): ValueReadout
+// ValueReadout: { element; set(v: number | null): void; dispose() }  — null/NaN → '-,--'
+createReadoutGrid(container: HTMLElement, items: ReadonlyArray<ReadoutSpec & { key: string }>,
+  o?: { titleIT?: string; live?: boolean }): { update(values: Record<string, number | null>): void; element; dispose() }
+createFullscreenController(target: HTMLElement, o?: { onChange?(on: boolean): void }):
+  { toggle(); enter(); exit(); isActive(): boolean; supported: boolean; dispose() }
+createFullscreenButton(controller): { element; dispose() }   // "Schermo intero (F)"
+createFpsCounter(container): { frame(nowMs: number): void; element; dispose() }
+createCarTelemetryPlots(container: HTMLElement, o?: { windowS?: number; height?: number }):
+  { push(t: number, s: { v: number; a: number; pKers: number; pBrakes: number; soc: number }): void;
+    clear(): void; markEvent(t: number, labelIT?: string): void; dispose() }
+// Plot additions: options.yRange may be a function returning the analytic range;
+// plot.setYRange(range: [number, number]) with rate-limited smoothing; plot.markEvent(x, labelIT?)
+// draws a vertical tick. The y range is never NaN/∞/zero-width; ticks always labelled.
+```
+
+`createSimLayout` mounts the fullscreen button in the toolbar and binds `F` on the
+simulator root automatically (sims get F5 for free); the `` ` `` key toggles the FPS
+counter. `src/core/loop.ts`: default uncapped; `maxFps` comes from
+`src/core/settings.ts` (`getFpsLimit(): 'auto' | 60 | 30`, `setFpsLimit`, `onFpsLimitChange`,
+localStorage key `kers-lab.fpsLimit`, try/catch); max 8 physics steps... guard stays
+`maxFrameTime = 0.25 s`.
+
+### 6.3 CSS classes (D1 styles them; U1 emits them)
+
+`.readout`, `.readout__label`, `.readout__value`, `.readout__unit`, `.readout--na`,
+`.readout-grid`, `.fs-button`, `.sim-layout--fullscreen` (on the layout root while
+fullscreen), `.fps-counter`, `.telemetry`, `.telemetry__plot`, `.soc-bar`,
+`.soc-bar__fill`, `.soc-bar--low`, `.soc-bar--empty`, `.battery-state`
+(`[data-state="ok|low|empty"]`), `.pedals`, `.pedal`, `.pedal--throttle`, `.pedal--brake`,
+`.mguk-state` (`[data-mode="deploy|harvest|idle"]`).
+
+### 6.4 Telemetry colours (F2)
+
+v → `neutral` solid · a → `f` (force green; a = F/m) solid, second axis in g ·
+P_MGU-K → `energy` solid · P_freni → **new quantity `heat`** dashed `[6, 4]` ·
+SoC → `energy` dotted `[2, 3]` on its own plot. `heat` = dark `#ff9248`, light `#a8420a`
+(contrast ≥ 6,8:1 / 5,2:1 on surfaces). U1 adds `heat` to `src/ui/colors.ts` **and**
+`--q-heat` to `src/styles/tokens.css` (the sync test requires both); D1 documents it and
+does not touch those two lines.
