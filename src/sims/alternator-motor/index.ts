@@ -19,6 +19,8 @@ import {
   type FormulaPanel,
   type Slider,
 } from '../../ui';
+import { createBattery, DEFAULT_BATTERY } from '../../physics/battery';
+import { createReadoutGrid } from '../../ui/readout';
 import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import {
@@ -29,8 +31,7 @@ import {
   instant,
   params,
   rpm,
-  socStep,
-  step as modelStep,
+  batteryMachineStep,
   WINDING_THERMAL,
   type MachineMode,
   type MachineParams,
@@ -165,6 +166,9 @@ export interface AlternatorDebug {
   omega: number;
   relError: number;
   input: number;
+  soc: number;
+  depleted: boolean;
+  tau: number;
 }
 
 let liveMounts = 0;
@@ -180,7 +184,19 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   let s: MachineState = initialState(mode, p);
   let s0: MachineState = s;
   const avg = { pConv: 0, pElec: 0, pJoule: 0, pMech: 0 };
+  const batterySpec = {
+    ...DEFAULT_BATTERY,
+    capacity: 5000,
+    chargePower: 1000,
+    dischargePower: 1000,
+  };
+  let battery = createBattery(batterySpec, 0.5);
   let soc = 0.5;
+  let batteryLoss = 0;
+  let avgDumpLoss = 0;
+  let energyIn = 0,
+    energyOut = 0;
+
   let pPeak = 0;
   let pRef = 1;
   let tauPeak = 0;
@@ -213,6 +229,50 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const restartWrap = el('div', { class: 'am-restart' }, [restart.element]);
   layout.controls.append(note, createTheoryLinks(), modeCtl.element, restartWrap);
   const readouts = createReadouts(layout.controls);
+  const batteryState = el('p', {
+    class: 'battery-state',
+    text: '● Batteria disponibile',
+    attrs: { role: 'status' },
+  });
+  const batteryBar = el('progress', {
+    class: 'battery-gauge',
+    attrs: { max: 1, value: soc, 'aria-label': 'Carica batteria' },
+  });
+  layout.controls.append(batteryState, batteryBar);
+  const batteryReadouts = createReadoutGrid(layout.controls, [
+    { key: 'soc', labelIT: 'Carica batteria', unit: '%', digits: 1 },
+    { key: 'energy', labelIT: 'Energia disponibile', unit: 'kJ', scale: 0.001, digits: 2 },
+    { key: 'in', labelIT: 'Energia immessa', unit: 'kJ', scale: 0.001, digits: 2 },
+    { key: 'out', labelIT: 'Energia prelevata', unit: 'kJ', scale: 0.001, digits: 2 },
+    { key: 'loss', labelIT: 'Perdite batteria e carico', unit: 'W', digits: 2 },
+  ]);
+  const recharge = createButton({
+    labelIT: 'Ricarica',
+    icon: '↯',
+    onClick: () => {
+      battery = createBattery(batterySpec, 0.5);
+      soc = 0.5;
+      render();
+    },
+  });
+  layout.controls.append(recharge.element);
+  const initialSoc = createSlider({
+    id: 'am-initial-soc',
+    spec: {
+      min: 0,
+      max: 100,
+      step: 1,
+      default: 50,
+      unit: '%',
+      labelIT: 'Carica iniziale batteria',
+    },
+    onInput: (value) => {
+      battery = createBattery(batterySpec, value / 100);
+      soc = value / 100;
+      render();
+    },
+  });
+  layout.controls.append(initialSoc.element);
 
   const sliders = new Map<keyof MachineParams, Slider>();
   layout.controls.append(el('h3', { class: 'am-subtitle', text: 'Parametri della macchina' }));
@@ -300,6 +360,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     s = initialState(mode, p);
     s0 = s;
     avg.pConv = avg.pElec = avg.pJoule = avg.pMech = 0;
+    avgDumpLoss = 0;
     pPeak = tauPeak = 0;
     stepCount = 0;
     plotEmf.clear();
@@ -324,29 +385,52 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   }
 
   function physicsStep(dt: number): void {
-    const prev = s;
-    s = modelStep(mode, p, s, dt);
-    const q = instant(mode, p, s.y[0] as number, s.y[1] as number);
-    soc = socStep(soc, mode, prev, s);
-    heat.step(q.pJoule, dt);
+    const previousJoule = s.y[4] ?? 0;
+    const result = batteryMachineStep(mode, p, s, battery, dt, batterySpec);
+    s = result.state;
+    battery = result.battery;
+    soc = result.soc;
+    batteryLoss = result.batteryLoss + result.dumpLoss;
+    energyIn += Math.max(0, -result.terminalPower) * dt;
+    energyOut += Math.max(0, result.terminalPower) * dt;
+    const q = instant(mode, p, s.y[0] as number, s.y[1] as number, !battery.depleted);
+
+    heat.step(Math.max(0, (s.y[4] ?? 0) - previousJoule) / dt, dt);
     pPeak = holdPeak(pPeak, Math.max(avg.pConv, avg.pElec), dt, 4);
     pRef = autoRange(pRef, pPeak, 0.1);
     tauPeak = holdPeak(tauPeak, Math.max(Math.abs(q.tauEm), Math.abs(q.tauShaft)), dt, 2);
     const a = dt / POWER_AVG_TAU;
     avg.pConv += a * (q.pConv - avg.pConv);
-    avg.pElec += a * (q.pElec - avg.pElec);
+    avg.pElec += a * (Math.abs(result.terminalPower) - avg.pElec);
+    avgDumpLoss += a * (result.dumpLoss - avgDumpLoss);
     avg.pJoule += a * (q.pJoule - avg.pJoule);
     avg.pMech += a * (q.pMech - avg.pMech);
     if (stepCount++ % 2 === 0) {
       plotEmf.push(s.t, q.emf, q.i);
-      plotP.push(s.t, q.pConv, q.pElec, q.pJoule);
+      plotP.push(s.t, q.pConv, Math.abs(result.terminalPower), q.pJoule);
     }
   }
 
   function render(): void {
     const theta = s.y[0] as number;
     const omega = s.y[1] as number;
-    const q = instant(mode, p, theta, omega);
+    const q = instant(mode, p, theta, omega, !battery.depleted);
+    batteryBar.value = soc;
+    batteryReadouts.update({
+      soc: soc * 100,
+      energy: battery.energy,
+      in: energyIn,
+      out: energyOut,
+      loss: batteryLoss,
+    });
+    const stateText = battery.depleted
+      ? '⚠ Batteria scarica — ricaricare almeno al 5 %'
+      : mode === 'motor'
+        ? '▶ Erogazione — accelerazione (Lorentz)'
+        : '↯ Recupero — frenata (Lenz)';
+    if (batteryState.textContent !== stateText) batteryState.textContent = stateText;
+    batteryState.dataset['empty'] = String(battery.depleted);
+
     const bal = energyBalance(mode, p, s0, s);
     const gen = mode === 'generator';
     const etaNum = gen ? avg.pElec : avg.pConv;
@@ -364,7 +448,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       balance: bal.relError,
     });
     const powers: FlowPowers = gen
-      ? { p1: avg.pConv, p2: avg.pElec, pLoss: avg.pJoule }
+      ? { p1: avg.pConv, p2: avg.pElec, pLoss: avg.pJoule + avgDumpLoss }
       : { p1: avg.pElec, p2: avg.pConv, pLoss: avg.pJoule };
     flow.update(powers);
     formulas.update({
@@ -422,6 +506,10 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const toolbar = createSimToolbar(layout.toolbar, {
     loop,
     onReset: () => {
+      battery = createBattery(batterySpec, 0.5);
+      soc = 0.5;
+      energyIn = energyOut = 0;
+      initialSoc.set(50);
       for (const sl of sliders.values()) sl.reset();
       setMode('generator');
     },
@@ -443,6 +531,9 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       omega: s.y[1] as number,
       relError: bal.relError,
       input: bal.input,
+      soc,
+      depleted: battery.depleted,
+      tau: instant(mode, p, s.y[0]!, s.y[1]!, !battery.depleted).tauEm,
     };
   };
   const unregisterDebug = registerDebugHook(SIM_ID, debugFn);
@@ -460,6 +551,9 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       plotP.dispose();
       flow.dispose();
       readouts.dispose();
+      recharge.dispose();
+      initialSoc.dispose();
+      batteryReadouts.dispose();
       for (const sl of sliders.values()) sl.dispose();
       modeCtl.dispose();
       restart.dispose();

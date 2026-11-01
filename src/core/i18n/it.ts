@@ -102,6 +102,8 @@ export const it = {
       lenz: 'Legge di Lenz',
       'alternator-motor': 'Alternatore ⇄ motore (MGU-K)',
       'kers-braking': 'Frenata e recupero di energia',
+      'kers-drive': 'MGU-K: accelerazione e frenata',
+      'drive-sim': 'Guida: acceleratore e freno',
       'joule-transformer': 'Trasformatore e perdite Joule',
       'rl-energy': 'Autoinduzione, circuito RL, energia',
       'car-dynamics': 'Dinamica della vettura: frenata combinata MGU-K + freni',

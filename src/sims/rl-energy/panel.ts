@@ -1,3 +1,4 @@
+import { reserveTextReadout } from '../../ui/readout';
 import { el, formatIT } from '../../ui';
 import type { EnergyBalance } from './model';
 
@@ -31,9 +32,7 @@ export function fmtSci(x: number, digits = 1): string {
 
 /** Energy with an adaptive number of digits (J). */
 export function fmtJ(x: number): string {
-  const a = Math.abs(x);
-  const d = a === 0 ? 2 : a < 0.01 ? 5 : a < 1 ? 3 : a < 100 ? 2 : 1;
-  return formatIT(x, d, 'J');
+  return formatIT(x, 3, 'J');
 }
 
 /** Tolerance shown for the generator = Joule + field check (relative). */
@@ -55,6 +54,7 @@ export function createEnergyBars(container: HTMLElement): EnergyBars {
   const jVal = el('span', { class: 'rl-legend__value', attrs: { 'data-testid': 'e-joule' } });
   const fVal = el('span', { class: 'rl-legend__value', attrs: { 'data-testid': 'e-field' } });
   const sumVal = el('span', { class: 'rl-bar__value', attrs: { 'data-testid': 'e-sum' } });
+  for (const n of [genVal, jVal, fVal, sumVal]) reserveTextReadout(n, '12rem');
   const balance = el('p', {
     class: 'rl-balance',
     attrs: { role: 'status', 'data-testid': 'balance' },

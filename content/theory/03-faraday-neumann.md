@@ -33,6 +33,8 @@ Unità: $1\ \text{Wb/s} = 1\ \text{V}$.
 
 **Da dove viene $Blv$.** Una sbarretta scorre su due binari chiusi da un filo. In un tempo $\Delta t$ percorre $v\,\Delta t$ e l'area del circuito aumenta di $\Delta S = l\,v\,\Delta t$. Il flusso aumenta di $\Delta\Phi_B = B\,l\,v\,\Delta t$, e dividendo per $\Delta t$ si ritrova $\text{f.e.m.} = Blv$: la f.e.m. di movimento è un caso particolare di Faraday-Neumann.
 
+Il laboratorio [Faraday-Neumann](#/sim/faraday) propone la sola **spira rotante**; la sbarretta resta qui come esempio teorico. Il grafico del flusso è riferito a una spira, con ampiezza $BS$; la f.e.m. dell'intera bobina ha ampiezza $NBS\omega$.
+
 **Il segno meno** non cambia il valore ma il verso: la f.e.m. si oppone alla variazione di flusso. È la [legge di Lenz](04-lenz.md), che va sempre detta insieme a questa.
 
 **Rapporto incrementale e derivata.** $\Delta\Phi_B/\Delta t$ è la variazione media nell'intervallo; facendo tendere $\Delta t$ a zero si ottiene la derivata $d\Phi_B/dt$, cioè la f.e.m. istante per istante. È la forma che serve per la [spira rotante](07-alternatore-corrente-alternata.md), dove il flusso varia come un coseno.

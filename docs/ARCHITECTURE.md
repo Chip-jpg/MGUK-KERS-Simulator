@@ -228,8 +228,9 @@ Guarantees:
 
 1. **Fixed physics step** `dt = PHYSICS_DT = 1/240 s`, accumulated from real elapsed
    time; physics is deterministic and independent of the display rate.
-2. **Render capped at 60 fps** (`maxFps`, default 60) — on 120/144 Hz displays frames
-   are skipped so the average is ≈ 60 fps (thermal budget, §1).
+2. **Rendering at display refresh by default** — uncapped rAF, optional persisted
+   60/30 fps limits. Target: ≥60 fps floor with an uncapped ceiling; the browser,
+   monitor and GPU determine the real maximum.
 3. **Spiral-of-death guard:** at most `maxFrameTime` (0.25 s) of simulated time per
    frame.
 4. **Auto-pause** while `document.hidden`; on return no catch-up burst (the clock is
@@ -599,3 +600,40 @@ geometry change, never per frame; if only the field magnitude changes keep the l
 - Deterministic GPU counters: sims whose objects start hidden call a `prewarm()` after building
   the scene (make everything visible, `renderer.compile`, `initTexture` every texture, restore)
   and expose a `frames` counter; e2e leak tests sample only after a few frames (`settled()`).
+# v0.7.0 additions
+
+The app remains vanilla TypeScript/Three.js/uPlot. Existing `SimModule`,
+`AppContext` and `Disposable` contracts are unchanged.
+
+- `physics/battery.ts`: pure finite energy store and charge/discharge bounds.
+- `physics/drive.ts`: separate pure longitudinal RK4 model and energy ledger;
+  does not replace or alter the Pacejka core.
+- `physics/plot-range.ts`: finite range and explicit tick generation.
+- `ui/readout.ts`: fixed numeric/unit columns and stable compound text sensors.
+  All formula panels use the same readout implementation. Existing summary
+  panels reserve fixed boxes; numeric scene labels use fixed HUD slots instead
+  of projected collision-dependent positions. Geometric labels stay projected.
+- `ui/fullscreen.ts`: Fullscreen API on the complete simulator root; F / P;
+  full cleanup in the existing layout's dispose path.
+- `core/performance.ts`, `ui/performance.ts`: optional statistics and persistent
+  Automatic/60/30 selection, storage failures tolerated. `core/loop.ts` uses
+  uncapped rAF by default, retains fixed 1/240 s physics and bounds catch-up to
+  60 steps. Hidden tabs remain paused. ≥60 fps is a performance floor target,
+  with an uncapped ceiling limited by display refresh, GPU and browser.
+- `ui/telemetry.ts`: shared 12 s scrolling window, per-unit charts with signed
+  acceleration (SI and g), mechanical MGU-K power, disc heat power and SoC.
+- `sims/shared/drive.ts`: shared vehicle demonstration for `kers-drive` and the
+  final `drive-sim`; gradual keyboard pedals, mouse/touch ranges and guided
+  0→300→100 km/h scenario. Gamepad is optional and is not implemented.
+- `kers-drive` is the canonical route; `kers-braking` redirects. A model selector
+  keeps the original analytical braking UI/presets as a comparison, mounting
+  only one implementation at a time. Existing analytical helpers stay public.
+- `drive-sim` is last in the registry/home path and linked from the concluding
+  theory; P enlarges the open simulator, F controls independent fullscreen.
+- `joule-transformer/plots.ts` adds log-voltage, current and loss-fraction
+  plots and selectable R/P views; the original ratio equation and bars remain.
+
+CI runs the browser suite in four native Playwright shards (two workers each),
+with per-shard failure artifacts. This keeps the expanded resource/visual
+regression suite within the existing 20-minute per-job budget without reducing
+coverage or assertion thresholds.

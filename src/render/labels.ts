@@ -26,6 +26,7 @@ import * as THREE from 'three';
 import type { Quantity } from '../ui/colors';
 import './labels.css';
 import type { Stage } from './stage';
+import { reserveTextReadout } from '../ui/readout';
 
 export interface LabelOptions {
   text: string;
@@ -108,6 +109,7 @@ export function createLabelLayer(
   layerOptions: LabelLayerOptions = {},
 ): LabelLayer {
   const items: Item[] = []; // sorted by descending priority (insertByPriority)
+  let sensorSlots = 0;
   const layerOcclude = layerOptions.occlude ?? true;
   let occluding = 0; // labels that ask for the occlusion test
   const v = new THREE.Vector3();
@@ -155,7 +157,7 @@ export function createLabelLayer(
       if (
         c === overlay ||
         c.tagName === 'CANVAS' ||
-        c.classList.contains('r-label') ||
+        (c.classList.contains('r-label') && !c.classList.contains('r-label--sensor')) ||
         c.classList.contains('sim-placeholder') ||
         c.hasAttribute('data-label-pass') ||
         c.hidden
@@ -211,6 +213,11 @@ export function createLabelLayer(
       const it = items[n] as Item;
       if (!it.visible) {
         setDisplay(it, 'none');
+        continue;
+      }
+      if (it.el.classList.contains('r-label--sensor')) {
+        setDisplay(it, '');
+        it.el.style.opacity = '1';
         continue;
       }
       v.copy(it.anchor).project(stage.camera);
@@ -317,9 +324,25 @@ export function createLabelLayer(
           if (t === it.text) return;
           it.text = t;
           el.textContent = t;
+          // Numeric sensors have fixed HUD slots; geometric labels stay projected.
+          if (/\d/.test(t) && !el.classList.contains('r-label--sensor')) {
+            const slot = sensorSlots++;
+            el.classList.add('r-label--sensor');
+            reserveTextReadout(el, 'min(46%, 20rem)', '2.2rem');
+            el.style.setProperty('--sensor-row', String(Math.floor(slot / 2)));
+            el.style.setProperty('--sensor-side', String(slot % 2));
+            el.dataset['sensorSide'] = String(slot % 2);
+          }
+          el.title = t;
           it.dirty = true;
         },
         setVisible(b) {
+          if (el.classList.contains('r-label--sensor')) {
+            // Reserve the sensor even when the underlying arrow/object is idle.
+            it.visible = true;
+            el.classList.toggle('sensor-unavailable', !b);
+            return;
+          }
           if (b && !it.visible) it.dirty = true;
           it.visible = b;
         },

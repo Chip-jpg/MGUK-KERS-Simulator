@@ -63,6 +63,7 @@ import {
 } from '../../physics';
 import type { OdeRhs } from '../../physics';
 import type { ParamsSchema } from '../../core/types';
+import { batteryStep, type BatterySpec, type BatteryState } from '../../physics/battery';
 
 export type MachineMode = 'generator' | 'motor';
 
@@ -274,6 +275,7 @@ export function instant(
   p: MachineParams,
   theta: number,
   omega: number,
+  powered = true,
 ): Instant {
   const S = coilArea(p);
   const unit = rotatingLoop(p.B, S, p.N, 1, theta); // emf at unit speed = N B S sin θ
@@ -294,8 +296,8 @@ export function instant(
     pElec = jouleLoss(p.Rload, i);
   } else {
     // synchronised supply, in phase with the back-emf (faded out above ω_max)
-    vTerm = p.Vs * speedLimiter(omega) * Math.sin(theta);
-    i = inducedCurrent(vTerm - emf, p.Rw);
+    vTerm = powered ? p.Vs * speedLimiter(omega) * Math.sin(theta) : 0;
+    i = powered ? inducedCurrent(vTerm - emf, p.Rw) : 0;
     sideCurrent = i;
     const tauLoad = p.tauLoad * Math.tanh(omega / LOAD_OMEGA_SMOOTH);
     tauShaft = -tauLoad;
@@ -322,11 +324,11 @@ export function instant(
 }
 
 /** Right-hand side dy/dt for {@link rk4Step} (state layout {@link IDX}). */
-export function derivatives(mode: MachineMode, p: MachineParams): OdeRhs {
+export function derivatives(mode: MachineMode, p: MachineParams, powered = true): OdeRhs {
   return (_t, y) => {
     const theta = y[IDX.theta] as number;
     const omega = y[IDX.omega] as number;
-    const q = instant(mode, p, theta, omega);
+    const q = instant(mode, p, theta, omega, powered);
     return [
       omega,
       (q.tauShaft + q.tauEm) / p.J,
@@ -451,6 +453,51 @@ export const WINDING_THERMAL = { C: 400, hA: 2 } as const;
 
 /** Illustrative usable energy of the battery pack for the charge gauge [J]. */
 export const BATTERY_CAPACITY_J = 5000;
+
+/**
+ * Battery-constrained machine. Locate exhaustion inside the fixed step, then
+ * open the motor circuit and coast under shaft load. Surplus generator load
+ * power is dumped as heat (the existing Rload remains the equivalent load).
+ */
+export function batteryMachineStep(
+  mode: MachineMode,
+  p: MachineParams,
+  s: MachineState,
+  battery: BatteryState,
+  dt: number,
+  spec: BatterySpec,
+) {
+  const off = mode === 'motor' && (battery.depleted || battery.energy === 0);
+  const f = derivatives(mode, p, !off);
+  let next = stepWith(f, mode, p, s, dt);
+  const index = mode === 'motor' ? IDX.eIn : IDX.eOut;
+  let energy = (next.y[index] ?? 0) - (s.y[index] ?? 0);
+  let b = batteryStep(battery, (mode === 'motor' ? energy : -energy) / dt, dt, spec);
+  if (mode === 'motor' && !off && energy > b.power * dt + 1e-10) {
+    // Terminal power and available stored energy both constrain the duty cycle.
+    let lo = 0,
+      hi = dt;
+    for (let j = 0; j < 52; j++) {
+      const mid = (lo + hi) / 2;
+      const trial = stepWith(f, mode, p, s, mid);
+      if ((trial.y[index] ?? 0) - (s.y[index] ?? 0) > b.power * dt) hi = mid;
+      else lo = mid;
+    }
+    const on = stepWith(f, mode, p, s, hi);
+    next = stepWith(derivatives(mode, p, false), mode, p, on, dt - hi);
+    energy = (next.y[index] ?? 0) - (s.y[index] ?? 0);
+    b = batteryStep(battery, energy / dt, dt, spec);
+  }
+  const rejected = mode === 'generator' ? Math.max(0, energy + b.power * dt) : 0;
+  return {
+    state: next,
+    battery: b.state,
+    soc: b.soc,
+    batteryLoss: b.loss,
+    dumpLoss: rejected / dt,
+    terminalPower: b.power,
+  };
+}
 
 /**
  * State of charge after one step: + energy delivered to the battery (generator,

@@ -16,10 +16,10 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Teoria** — 15 schede sintetiche in italiano (14 del percorso principale + 1 di
   approfondimento sulla dinamica della frenata), con formule KaTeX, esempi numerici e
   collegamento con l'MGU-K.
-- **Simulatori** — 7 simulatori 3D (6 di base + 1 di approfondimento) con grafici in
+- **Simulatori** — 8 simulatori 3D con guida finale e un approfondimento con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
-**Versione attuale: v0.6.0** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.7.0** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
@@ -54,10 +54,10 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 | ID                  | Titolo                              | Cosa mostra                                                                                                |
 | ------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `faraday`           | Flusso e legge di Faraday-Neumann   | Spira di N spire che ruota in un campo uniforme; Φ(t) e f.e.m.(t), moto traslatorio (B·l·v).               |
+| `faraday`           | Flusso e legge di Faraday-Neumann   | Spira di N spire che ruota in un campo uniforme; Φ(t) e f.e.m.(t), con scale sempre visibili.              |
 | `lenz`              | Legge di Lenz                       | Magnete che si avvicina/allontana da una bobina: campo indotto, verso della corrente, forza che si oppone. |
 | `alternator-motor`  | Alternatore ⇄ motore (MGU-K)        | La stessa macchina come generatore (frenata) e come motore (forza di Lorentz), con i flussi di energia.    |
-| `kers-braking`      | Frenata e recupero di energia       | ΔE_k = ½m(v₁² − v₂²), energia recuperata limitata da Pₘₐₓ e η, resto dissipato nei freni.                  |
+| `kers-drive`        | Accelerazione e frenata MGU-K       | Auto e MGU-K reversibili, batteria finita, telemetria; confronto analitico della frenata conservato.       |
 | `joule-transformer` | Trasformatore e perdite Joule       | Trasformatore ideale e perdite di linea: "10× tensione → 100× meno perdite".                               |
 | `rl-energy`         | Autoinduzione, circuito RL, energia | i(t) = I₀(1 − e^(−t/τ)), τ = L/R, energia ½LI² e bilancio energetico.                                      |
 
@@ -66,6 +66,10 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 | ID             | Titolo                                                  | Cosa mostra                                                                                                 |
 | -------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `car-dynamics` | Dinamica della vettura: frenata combinata MGU-K + freni | Pneumatici Pacejka, resistenza e deportanza, MGU-K sull'asse posteriore limitata da Pₘₐₓ/η e dall'aderenza. |
+
+**Dimostrazione finale:** `drive-sim` — **Guida: acceleratore e freno**, con ↑/W e ↓/S a risposta graduale o pedali sullo schermo. Lo scenario 800 kg, 300 → 100 km/h mostra circa 2,47 MJ. Modello longitudinale 1D, non un simulatore di giro.
+
+Ogni simulatore include sensori fissi, **F** per lo schermo intero, **P** per la vista di presentazione, impostazione **Limite FPS: Automatico / 60 / 30** e contatore attivabile con **`**. Automatico segue il refresh dello schermo: monitor, GPU e browser determinano il limite effettivo. La fisica conserva il passo fisso di 1/240 s.
 
 ## Avvio rapido
 
@@ -155,6 +159,8 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
       `field-biot-savart` e `pmsm-dq`; resta `car-dynamics`, che estende la frenata KERS
       ([D13](docs/DECISIONS.md)).
 
+- [x] **v0.7.0 — Guida e correzioni**: accelerazione/frenata reversibili, nuova guida con pedali, batteria con arresto a scarica, telemetria live, sensori fissi, schermo intero, scale dei grafici robuste e FPS automatici, analisi estesa del trasformatore.
+
 Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Come pubblicare una release
@@ -213,7 +219,7 @@ test obbligatori, fisica "pura", testi in italiano e codice in inglese.
 
 **KERS Lab** — _from Faraday's induction to the MGU-K_ — is an educational, offline-first
 web app (Italian UI) that walks from the Faraday-Neumann-Lenz law to the Formula 1
-MGU-K (kinetic energy recovery). It bundles 15 concise theory pages and seven
+MGU-K (kinetic energy recovery). It bundles 15 concise theory pages and eight
 interactive 3D simulators with live plots and formulas (including an advanced module on
 braking vehicle dynamics: tyres, aerodynamics and the MGU-K on the rear axle). Since
 v0.5.0 the app is deliberately slim: no quiz mode, no slide references in the UI and no

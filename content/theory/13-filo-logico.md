@@ -44,3 +44,5 @@ I tre numeri che attraversano la catena:
 ## Collegamento con KERS / MGU-K
 
 Il passaggio 3 è il centro della catena: frenata = alternatore + Lenz, accelerazione = motore + Lorentz, recupero limitato dalla potenza, il resto calore nei freni. Dettagli e fonti sui numeri del regolamento sono in [KERS e MGU-K](10-kers-mguk.md); i termini sono nel [Glossario](14-glossario.md).
+
+Concludi il percorso con [Guida: acceleratore e freno](#/sim/drive-sim): la batteria alimenta il motore in accelerazione e riceve energia dal generatore in frenata. Il tasto **P** ingrandisce la vista per la presentazione, **F** attiva lo schermo intero. Lo scenario guidato collega la dimostrazione al calcolo di 2,47 MJ.

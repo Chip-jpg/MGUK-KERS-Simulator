@@ -65,9 +65,13 @@ jobs:
           if-no-files-found: error
 
   e2e:
-    name: Playwright smoke (Chromium)
+    name: Playwright smoke (Chromium, shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
 
@@ -85,7 +89,7 @@ jobs:
       # The Playwright webServer builds the app and serves it with `vite preview`.
       # `--pass-with-no-tests` keeps the job green until the first e2e specs land.
       - name: Run e2e smoke tests
-        run: npm run e2e -- --pass-with-no-tests --reporter=github,html
+        run: npm run e2e -- --shard=${{ matrix.shard }}/4 --workers=2 --pass-with-no-tests --reporter=github,html
         env:
           PLAYWRIGHT_HTML_OPEN: never
 
@@ -93,7 +97,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/

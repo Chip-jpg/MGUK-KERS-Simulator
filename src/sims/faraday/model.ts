@@ -1,28 +1,10 @@
 /**
- * Pure, DOM-free model of the `faraday` simulator (testable in Node).
- *
- * Every physical formula comes from `src/physics` (§4.2); this file only adds the
- * kinematics of the two scenarios and the bookkeeping of the sampled history.
- *
- * Assumptions (also shown in the UI as "Modello semplificato"):
- *  - uniform field B, perpendicular to the rotation axis (rotating loop) or to the
- *    plane of the rails (moving bar);
- *  - rigid single-phase loop of N identical turns, flat area S, no resistance and
- *    no self-inductance (the induced current and its Lenz torque are not modelled:
- *    ω and v are imposed, i.e. an "ideal motor" keeps them constant);
- *  - the moving bar slides at constant speed and bounces elastically at the rail
- *    ends (instantaneous reversal of v).
- *
- * Orientation convention (docs/PHYSICS.md §2): Φ is measured along the loop normal
- * n̂; a positive emf circulates counter-clockwise seen from the tip of n̂.
- *
- * Time: the simulation advances in fixed steps of `dt` (= PHYSICS_DT = 1/240 s);
- * the time is `t = n·dt` with an integer step counter, so the state is
- * deterministic. The loop angle α (angle between n̂ and B) integrates dα/dt = ω:
- * with constant ω, α = ωt exactly (α(0) = 0, maximum flux at t = 0); when ω is
- * changed the angle stays continuous (α is re-anchored at the current step).
+ * Pure rotating-coil simulator: uniform B, per-turn flux B*S*cos(alpha),
+ * total emf N*B*S*omega*sin(alpha), fixed 1/240 s sampling and event-located
+ * measured peaks. Angular speed is imposed; no coil self-inductance or Lenz
+ * torque. Parameter changes preserve angle but restart the plotted trace.
  */
-import { emfFaraday, emfMotional, fluxUniform, PHYSICS_DT, rotatingLoop } from '../../physics';
+import { PHYSICS_DT, rotatingLoop } from '../../physics';
 import type { ParamsSchema } from '../../core/types';
 
 /** All tunable parameters of the simulator (SI units). */
@@ -35,15 +17,11 @@ export interface FaradayParams {
   N: number;
   /** Angular speed [rad/s]. */
   omega: number;
-  /** Bar length (distance between the rails) [m]. */
-  l: number;
-  /** Bar speed [m/s]. */
-  v: number;
 }
 
 /** Parameter schema (§4.3): ranges for classroom-sized values. */
 export const params = {
-  B: { min: 0.01, max: 1.5, step: 0.01, default: 0.5, unit: 'T', labelIT: 'Campo magnetico B' },
+  B: { min: 0, max: 1.5, step: 0.01, default: 0.5, unit: 'T', labelIT: 'Campo magnetico B' },
   S: {
     min: 0.001,
     max: 0.1,
@@ -54,28 +32,12 @@ export const params = {
   },
   N: { min: 1, max: 500, step: 1, default: 50, unit: 'spire', labelIT: 'Numero di spire N' },
   omega: {
-    min: 0.5,
+    min: 0,
     max: 100,
     step: 0.1,
     default: 6.3,
     unit: 'rad/s',
     labelIT: 'Velocità angolare ω',
-  },
-  l: {
-    min: 0.05,
-    max: 1,
-    step: 0.01,
-    default: 0.5,
-    unit: 'm',
-    labelIT: 'Lunghezza della sbarretta l',
-  },
-  v: {
-    min: 0.1,
-    max: 5,
-    step: 0.1,
-    default: 1,
-    unit: 'm/s',
-    labelIT: 'Velocità della sbarretta v',
   },
 } satisfies ParamsSchema<FaradayParams>;
 
@@ -86,17 +48,11 @@ export function defaultParams(): FaradayParams {
     S: params.S.default,
     N: params.N.default,
     omega: params.omega.default,
-    l: params.l.default,
-    v: params.v.default,
   };
 }
 
-/** The two scenarios: rotating N-turn loop (alternator) or bar sliding on rails. */
-export type FaradayMode = 'rotating' | 'motional';
-
-/** Rail geometry of the motional scenario: bar position x ∈ [X_MIN, X_MAX] [m]. */
-export const X_MIN = 0.1;
-export const X_MAX = 1.1;
+/** The rotating N-turn loop is the sole experiment (v0.7.0). */
+export type FaradayMode = 'rotating';
 
 /** Samples kept in the history (≥ the longest plot window / dt, see {@link plotWindow}). */
 export const HISTORY_CAPACITY = 10_000;
@@ -146,21 +102,13 @@ export interface FaradayReadout {
   f: number;
   /** Rotating: period T = 2π/ω [s]. */
   period: number;
-  /** Motional: bar position x [m]. */
-  x: number;
-  /** Motional: signed bar velocity dx/dt [m/s]. */
-  vx: number;
-  /** Motional: |f.e.m.| = B·l·v [V] (slide 8). */
-  emfMotional: number;
-  /** Motional: average emf −ΔΦ/Δt over the last step [V] (Faraday-Neumann, slide 8). */
-  emfFromFlux: number;
 }
 
 /** Iterations of the bisection that locates Φ = 0 inside one step (dt / 2^40 ≈ 4·10⁻¹⁵ s). */
 const BISECTION_ITERATIONS = 40;
 
 /**
- * Deterministic simulation of the two Faraday scenarios.
+ * Deterministic rotating-coil simulation.
  *
  * "Picco f.e.m." ({@link peakEmf}) is measured from the simulated samples, not
  * from the formula: it is the maximum |emf| over the last full period among
@@ -180,10 +128,6 @@ export class FaradaySim {
   // rotating: α(n) = alpha0 + ω·(n − n0)·dt
   private n0 = 0;
   private alpha0 = 0;
-  // motional
-  private xPos = X_MIN;
-  private dir: 1 | -1 = 1;
-  private lastEmfFromFlux = 0;
   // peak measurement window (reset whenever a parameter changes)
   private peakStartN = 0;
   /** Zero-crossing samples of |emf| as [t, |emf|] pairs (only the recent ones are kept). */
@@ -210,14 +154,11 @@ export class FaradaySim {
     return this.n * this.dt;
   }
 
-  /** Back to t = 0, α = 0, bar at the start, empty history. */
+  /** Back to t = 0, α = 0, empty history. */
   reset(): void {
     this.n = 0;
     this.n0 = 0;
     this.alpha0 = 0;
-    this.xPos = X_MIN;
-    this.dir = 1;
-    this.lastEmfFromFlux = 0;
     this.history.clear();
     this.restartPeakWindow();
     this.recordSample();
@@ -229,7 +170,7 @@ export class FaradaySim {
     this.reset();
   }
 
-  /** Change parameters; keeps α and x continuous and restarts the peak measurement. */
+  /** Change parameters; preserve α and restart trace/peak measurements. */
   setParams(next: Partial<FaradayParams>): void {
     const merged = { ...this.p, ...next };
     if (merged.omega !== this.p.omega) {
@@ -237,45 +178,38 @@ export class FaradaySim {
       this.n0 = this.n;
     }
     this.p = merged;
-    this.lastEmfFromFlux = this.motionalEmfInstant();
     this.restartPeakWindow();
+    this.history.clear();
+    this.recordSample();
   }
 
   /** Advance exactly one fixed step dt. */
   step(): void {
-    if (this.modeValue === 'rotating') this.stepRotating();
-    else this.stepMotional();
+    this.stepRotating();
   }
 
   /** Observable state now. */
   readout(): FaradayReadout {
     const p = this.p;
-    const rot = rotatingLoop(p.B, p.S, p.N, p.omega, this.effectiveTime(this.n * this.dt));
+    const rot = this.rotAt(this.time);
     const twoPi = 2 * Math.PI;
     const alphaRaw = this.alphaAt(this.n);
     const alpha = ((alphaRaw % twoPi) + twoPi) % twoPi;
-    const motional = this.modeValue === 'motional';
     return {
       mode: this.modeValue,
       t: this.time,
-      phi: motional ? this.motionalFlux(this.xPos) : rot.phi,
-      emf: motional ? this.motionalEmfInstant() : rot.emf,
+      phi: rot.phi,
+      emf: rot.emf,
       alpha,
       V0: rot.V0,
       f: p.omega / twoPi,
       period: twoPi / p.omega,
-      x: this.xPos,
-      vx: this.dir * p.v,
-      emfMotional: emfMotional(p.B, p.l, p.v),
-      emfFromFlux: this.lastEmfFromFlux,
     };
   }
 
-  /** Length of the measurement period [s]: T = 2π/ω, or one bar round trip 2·(X_MAX−X_MIN)/v. */
+  /** Length of the measurement period [s]: T = 2π/ω (infinite for a stationary coil). */
   measurePeriod(): number {
-    return this.modeValue === 'rotating'
-      ? (2 * Math.PI) / this.p.omega
-      : (2 * (X_MAX - X_MIN)) / this.p.v;
+    return this.p.omega === 0 ? Infinity : (2 * Math.PI) / this.p.omega;
   }
 
   /**
@@ -321,7 +255,7 @@ export class FaradaySim {
     return peak;
   }
 
-  /** Width of the scrolling plot window [s]: two periods / two round trips. */
+  /** Width of the scrolling plot window [s]: two periods. */
   plotWindow(): number {
     return Math.min(2 * this.measurePeriod(), (HISTORY_CAPACITY - 1) * this.dt);
   }
@@ -371,13 +305,12 @@ export class FaradaySim {
    * Time to pass to `rotatingLoop` so that ω·t equals the integrated angle
    * (identical to `t` while ω has never been changed).
    */
-  private effectiveTime(t: number): number {
-    return this.alpha0 / this.p.omega + (t - this.n0 * this.dt);
-  }
 
   private rotAt(t: number): { phi: number; emf: number; V0: number } {
     const p = this.p;
-    return rotatingLoop(p.B, p.S, p.N, p.omega, this.effectiveTime(t));
+    const angle = this.alpha0 + p.omega * (t - this.n0 * this.dt);
+    const unit = rotatingLoop(p.B, p.S, p.N, 1, angle);
+    return { phi: unit.phi, emf: unit.emf * p.omega, V0: unit.V0 * p.omega };
   }
 
   private stepRotating(): void {
@@ -412,45 +345,13 @@ export class FaradaySim {
     this.recordSample();
   }
 
-  private motionalFlux(x: number): number {
-    return fluxUniform(this.p.B, this.p.l * x, 0);
-  }
-
-  /** Instantaneous emf of the rail circuit: −dΦ/dt = −B·l·(dx/dt). */
-  private motionalEmfInstant(): number {
-    const e = -emfMotional(this.p.B, this.p.l, this.dir * this.p.v);
-    return e === 0 ? 0 : e;
-  }
-
-  private stepMotional(): void {
-    const phi0 = this.motionalFlux(this.xPos);
-    let x = this.xPos + this.dir * this.p.v * this.dt;
-    // Elastic bounce at the rail ends (possibly several times for tiny rails).
-    for (let guard = 0; guard < 8 && (x > X_MAX || x < X_MIN); guard++) {
-      if (x > X_MAX) {
-        x = 2 * X_MAX - x;
-        this.dir = -1;
-      } else if (x < X_MIN) {
-        x = 2 * X_MIN - x;
-        this.dir = 1;
-      }
-    }
-    this.xPos = x;
-    this.n++;
-    this.lastEmfFromFlux = emfFaraday(this.motionalFlux(x) - phi0, this.dt);
-    this.recordSample();
-  }
-
   private pruneEvents(): void {
     const keepFrom = this.time - 2 * this.measurePeriod();
     if (this.events.length > 64) this.events = this.events.filter(([t]) => t >= keepFrom);
   }
 
   private recordSample(): void {
-    const r =
-      this.modeValue === 'rotating'
-        ? this.rotAt(this.time)
-        : { phi: this.motionalFlux(this.xPos), emf: this.motionalEmfInstant() };
+    const r = this.rotAt(this.time);
     this.history.push(this.time, r.phi, r.emf);
   }
 }

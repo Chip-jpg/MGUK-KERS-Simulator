@@ -1,3 +1,4 @@
+import { reserveTextReadout } from '../../ui/readout';
 /**
  * DOM panels of the `car-dynamics` simulator: presets with sources, fixed data,
  * energy balance (numbers + stacked bar) and the side-by-side comparison with the
@@ -223,6 +224,9 @@ export function createBalance(container: HTMLElement): BalanceHandle {
       }),
     ],
   );
+  element
+    .querySelectorAll<HTMLElement>('.kers-out, .cd-out')
+    .forEach((n) => reserveTextReadout(n, '12rem'));
   container.append(element);
 
   const set = (key: OutKey, text: string): void => {

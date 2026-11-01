@@ -16,8 +16,9 @@ const SIMS = [
   'alternator-motor',
   'rl-energy',
   'joule-transformer',
-  'kers-braking',
+  'kers-drive',
   'car-dynamics',
+  'drive-sim',
 ] as const;
 
 const VIEWPORTS = [

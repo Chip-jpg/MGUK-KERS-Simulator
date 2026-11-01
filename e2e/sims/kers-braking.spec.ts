@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 /** Simulator `kers-braking` (A7): gates, keyboard, leak check, fps. */
 
-const URL = './#/sim/kers-braking';
+const URL = './?comparison=braking#/sim/kers-drive';
 
 interface KersDebug {
   liveMounts: number;
@@ -176,7 +176,7 @@ test('GATE: disc temperature rises by ≈ E/C (lumped model), start temperature 
 test('quality "alta" via ?quality=: post-processing, shadows, IBL; no errors', async ({ page }) => {
   test.setTimeout(90_000);
   const errors = collectErrors(page);
-  await page.goto('./?quality=alta#/sim/kers-braking');
+  await page.goto('./?quality=alta&comparison=braking#/sim/kers-drive');
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
   await expect.poll(async () => (await snap(page)).tier, { timeout: 30_000 }).toBe('alta');
   const info = (await snap(page)).scene;
@@ -214,7 +214,7 @@ test('mount/unmount ×20 without leaks', async ({ page }) => {
   expect(first.live).toBe(1);
 
   for (let k = 0; k < 20; k++) {
-    await page.goto('./#/teoria');
+    await page.goto('./?comparison=braking#/teoria');
     await expect(page.locator('.sim-scene')).toHaveCount(0);
     const away = await page.evaluate(() => ({
       canvases: document.querySelectorAll('canvas').length,

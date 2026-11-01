@@ -3,6 +3,8 @@ import { formatRoute } from '../core/router';
 import type { Disposable, SimModule } from '../core/types';
 import { createButton } from './controls';
 import { el, uniqueId } from './dom';
+import { createFullscreenController } from './fullscreen';
+import { createPerformanceControls } from './performance';
 
 /**
  * Standard simulator page body. A `SimModule.mount(host, ctx)` calls
@@ -163,6 +165,8 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
     note,
   ]);
   host.append(root);
+  const fullscreen = createFullscreenController(root, toolbar);
+  const performance = createPerformanceControls(toolbar);
 
   return {
     root,
@@ -186,6 +190,8 @@ export function createSimLayout(host: HTMLElement, options: SimLayoutOptions = {
       return compact;
     },
     dispose() {
+      fullscreen.dispose();
+      performance.dispose();
       ro?.disconnect();
       legends.length = 0;
       formulasButton.dispose();

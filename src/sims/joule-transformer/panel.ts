@@ -1,3 +1,4 @@
+import { reserveTextReadout } from '../../ui/readout';
 import { el, formatIT } from '../../ui';
 import { lossCurve, lossReductionFactor, siPrefix, type TransmissionResult } from './model';
 
@@ -46,6 +47,7 @@ export function createResultsPanel(container: HTMLElement): ResultsPanel {
   const rows: Record<string, HTMLElement> = {};
   const row = (key: string, labelIT: string, q?: string): HTMLElement => {
     const value = el('dd', { class: 'jt-results__value', dataset: { testid: key } });
+    reserveTextReadout(value, '13rem');
     rows[key] = value;
     return el('div', { class: `jt-results__row${q ? ` q-${q}` : ''}` }, [
       el('dt', { text: labelIT }),

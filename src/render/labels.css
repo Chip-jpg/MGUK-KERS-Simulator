@@ -62,3 +62,27 @@
     transition: none;
   }
 }
+.r-label--sensor {
+  transform: none !important;
+  top: calc(var(--sensor-top, 3rem) + var(--sensor-row) * 2.4rem);
+  left: 0.4rem;
+  box-sizing: border-box;
+  font-size: 0.72rem;
+  white-space: normal;
+  overflow: hidden;
+  line-height: 1rem;
+  pointer-events: auto;
+}
+.r-label--sensor[data-sensor-side='1'] {
+  left: auto;
+  right: 0.4rem;
+}
+.sensor-unavailable {
+  color: transparent;
+}
+.sensor-unavailable::after {
+  content: '-,--';
+  position: absolute;
+  inset: 0.2rem 0.5rem;
+  color: var(--color-text);
+}

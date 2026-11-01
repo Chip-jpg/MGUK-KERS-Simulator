@@ -6,8 +6,6 @@ import {
   defaultParams,
   FaradaySim,
   params,
-  X_MAX,
-  X_MIN,
   type FaradayParams,
 } from '../../../src/sims/faraday/model';
 import { formulaItems, panelScales } from '../../../src/sims/faraday/panel';
@@ -45,10 +43,10 @@ describe('faraday params schema', () => {
       expect(spec.unit).not.toBe('');
       expect(spec.labelIT).not.toBe('');
     }
-    expect(params.B).toMatchObject({ min: 0.01, max: 1.5, unit: 'T' });
+    expect(params.B).toMatchObject({ min: 0, max: 1.5, unit: 'T' });
     expect(params.S).toMatchObject({ min: 0.001, max: 0.1, unit: 'm²' });
     expect(params.N).toMatchObject({ min: 1, max: 500 });
-    expect(params.omega).toMatchObject({ min: 0.5, max: 100, unit: 'rad/s' });
+    expect(params.omega).toMatchObject({ min: 0, max: 100, unit: 'rad/s' });
   });
 });
 
@@ -162,36 +160,6 @@ describe('rotating loop', () => {
   });
 });
 
-describe('motional emf (moto traslatorio)', () => {
-  it('|emf| = B·l·v, equals −ΔΦ/Δt away from the rail ends, Φ = B·l·x', () => {
-    const p = { ...defaultParams(), B: 0.8, l: 0.4, v: 2 };
-    const sim = new FaradaySim(p, 'motional');
-    run(sim, 0.2);
-    const r = sim.readout();
-    expect(r.x).toBeCloseTo(X_MIN + 2 * 0.2, 9);
-    expect(r.phi).toBeCloseTo(0.8 * 0.4 * r.x, 12);
-    expect(r.emfMotional).toBeCloseTo(0.8 * 0.4 * 2, 12);
-    expect(Math.abs(r.emf)).toBeCloseTo(0.64, 12);
-    expect(r.emfFromFlux).toBeCloseTo(-0.64, 9); // flux grows ⇒ negative emf (Lenz)
-    expect(r.emf).toBeCloseTo(r.emfFromFlux, 9);
-  });
-
-  it('bounces at the rail ends and reverses the emf sign; peak = B·l·v', () => {
-    const p = { ...defaultParams(), B: 1, l: 0.5, v: 3 };
-    const sim = new FaradaySim(p, 'motional');
-    const signs = new Set<number>();
-    for (let k = 0; k < 600; k++) {
-      sim.step();
-      const r = sim.readout();
-      expect(r.x).toBeGreaterThanOrEqual(X_MIN - 1e-12);
-      expect(r.x).toBeLessThanOrEqual(X_MAX + 1e-12);
-      signs.add(Math.sign(r.emf));
-    }
-    expect(signs).toEqual(new Set([1, -1]));
-    expect(sim.peakEmf()).toBeCloseTo(1.5, 12);
-  });
-});
-
 describe('display helpers', () => {
   it('chooseScale picks an SI prefix with ≈ 3 significant digits', () => {
     expect(chooseScale(3.15, 'V')).toEqual({ scale: 1, unit: 'V', digits: 2 });
@@ -213,8 +181,6 @@ describe('display helpers', () => {
     expect(rot.find((i) => i.key === 'phi')).toMatchObject({ quantity: 'b' });
     expect(rot.find((i) => i.key === 'V0')).toMatchObject({ quantity: 'emf', unit: 'V' });
     expect(rot.map((i) => i.key)).toContain('peak');
-    const mot = formulaItems('motional', panelScales('motional', defaultParams()));
-    expect(mot.find((i) => i.key === 'emfMot')).toBeDefined();
-    for (const i of [...rot, ...mot]) expect(i).not.toHaveProperty('slide');
+    for (const i of rot) expect(i).not.toHaveProperty('slide');
   });
 });

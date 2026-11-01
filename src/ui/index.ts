@@ -17,3 +17,5 @@ export * from './toolbar';
 export { formatIT } from '../core/format';
 export { createLoop, type Loop } from '../core/loop';
 export { onThemeChange, currentTheme } from '../core/theme';
+export * from './readout';
+export * from './telemetry';

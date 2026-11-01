@@ -3,6 +3,7 @@
  * the three-phase note, the live readouts and the energy-flow diagram
  * (inline SVG, arrow thickness ∝ power). Testable in jsdom.
  */
+import { createValueReadout, type ValueReadout } from '../../ui/readout';
 import { el, formatIT, uniqueId } from '../../ui';
 import type { Disposable } from '../../core/types';
 import type { MachineMode } from './model';
@@ -28,7 +29,7 @@ export function createTheoryLinks(): HTMLElement {
 }
 
 export const MODEL_NOTE_IT =
-  'B uniforme, una spira rettangolare, nessuna saturazione o perdita nel ferro, alimentazione ideale; autoinduzione della spira trascurata, batteria in frenata modellata come carico resistivo equivalente, motore con alimentazione sincronizzata vₛ = Vₛ·sin θ (corrente sempre in fase con la f.e.m., coppia media positiva), velocità limitata a 150 rad/s. Nella scena: linee di B calcolate per due espansioni polari affacciate (uniformi al centro, frange ai bordi); frecce della forza di Lorentz e archi delle coppie dai valori del modello (frecce in scala logaritmica); particelle di corrente con velocità ∝ i; nastri viola con raggio ∝ potenza media; temperatura dell’avvolgimento da un modello termico concentrato con massa termica illustrativa (C = 400 J/K, h·A = 2 W/K: non arriva mai all’incandescenza); carica della batteria su una capacità illustrativa di 5 kJ; raggio del volano ∝ J^¼.';
+  'B uniforme, una spira rettangolare, nessuna saturazione o perdita nel ferro, alimentazione ideale; autoinduzione della spira trascurata, batteria in frenata modellata come carico resistivo equivalente, motore con alimentazione sincronizzata vₛ = Vₛ·sin θ (corrente sempre in fase con la f.e.m., coppia media positiva), velocità limitata a 150 rad/s. Nella scena: linee di B calcolate per due espansioni polari affacciate (uniformi al centro, frange ai bordi); frecce della forza di Lorentz e archi delle coppie dai valori del modello (frecce in scala logaritmica); particelle di corrente con velocità ∝ i; nastri viola con raggio ∝ potenza media; temperatura dell’avvolgimento da un modello termico concentrato con massa termica illustrativa (C = 400 J/K, h·A = 2 W/K: non arriva mai all’incandescenza); batteria finita di capacità illustrativa 5 kJ, rendimento di carica/scarica 95 %, circuito motore aperto a carica zero, riavvio al 5 %; surplus del generatore dissipato nel carico equivalente; raggio del volano ∝ J^¼.';
 
 /** Captions of the three nodes and of the loss node, per mode. */
 export const FLOW_LABELS_IT: Record<
@@ -338,10 +339,13 @@ export function createReadouts(container: HTMLElement): Readouts {
     { class: 'am-readouts', attrs: { 'aria-label': 'Grandezze misurate' } },
     [el('h3', { class: 'am-readouts__title', text: 'Grandezze misurate' }), list],
   );
-  const nodes = new Map<keyof ReadoutValues, HTMLElement>();
+  const nodes = new Map<keyof ReadoutValues, ValueReadout>();
   for (const d of READOUTS) {
-    const dd = el('dd', { class: 'am-readouts__value', text: '—', attrs: { 'data-key': d.key } });
-    nodes.set(d.key, dd);
+    const readout = createValueReadout({ ...d });
+    const dd = el('dd', { class: 'am-readouts__value', attrs: { 'data-key': d.key } }, [
+      readout.element,
+    ]);
+    nodes.set(d.key, readout);
     list.append(
       el('div', { class: `am-readouts__row${d.quantity ? ` q-${d.quantity}` : ''}` }, [
         el('dt', { text: d.labelIT }),
@@ -355,15 +359,12 @@ export function createReadouts(container: HTMLElement): Readouts {
     update(v) {
       for (const d of READOUTS) {
         const raw = v[d.key];
-        const txt =
-          d.key === 'balance'
-            ? formatBalance(raw)
-            : formatIT(raw * (d.scale ?? 1), d.digits, d.unit);
-        const n = nodes.get(d.key) as HTMLElement;
-        if (n.textContent !== txt) n.textContent = txt;
+        const n = nodes.get(d.key)!;
+        if (d.key === 'balance') n.setText(formatBalance(raw));
+        else n.update(raw);
       }
     },
-    text: (k) => nodes.get(k)?.textContent ?? '',
+    text: (k) => nodes.get(k)?.element.textContent ?? '',
     dispose() {
       element.remove();
     },

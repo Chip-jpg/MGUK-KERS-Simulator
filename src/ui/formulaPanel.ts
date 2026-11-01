@@ -1,4 +1,4 @@
-import { formatIT } from '../core/format';
+import { createValueReadout, type ValueReadout } from './readout';
 import { t } from '../core/i18n/it';
 import type { Disposable } from '../core/types';
 import type { Quantity } from './colors';
@@ -62,7 +62,7 @@ export function createFormulaPanel(
     [title ? el('h2', { class: 'panel-title', text: title }) : null, list],
   );
 
-  const outputs = new Map<string, { node: HTMLElement; item: FormulaItem; text: string }>();
+  const outputs = new Map<string, { readout: ValueReadout; item: FormulaItem }>();
   for (const item of items) {
     const formula = el('div', { class: 'formula-row__tex' });
     renderTexInto(formula, item.tex, false);
@@ -86,9 +86,9 @@ export function createFormulaPanel(
       dd.append(sym, ' = ');
     }
     if (item.unit !== undefined || item.digits !== undefined || item.symbolTex) {
-      const out = el('span', { class: 'formula-row__number', text: '—' });
-      dd.append(out);
-      outputs.set(item.key, { node: out, item, text: '—' });
+      const readout = createValueReadout({ ...item, className: 'formula-row__number' });
+      dd.append(readout.element);
+      outputs.set(item.key, { readout, item });
     }
     row.append(dd);
     list.append(row);
@@ -104,11 +104,7 @@ export function createFormulaPanel(
     for (const [key, v] of Object.entries(pending)) {
       const o = outputs.get(key);
       if (!o) continue;
-      const text = formatIT(v * (o.item.scale ?? 1), o.item.digits ?? 2, o.item.unit || undefined);
-      if (text !== o.text) {
-        o.text = text;
-        o.node.textContent = text;
-      }
+      o.readout.update(v);
     }
     pending = {};
   };

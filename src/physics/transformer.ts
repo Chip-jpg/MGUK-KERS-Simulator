@@ -95,3 +95,12 @@ export function lineLoss(
   const loss = Rline * I * I;
   return { I, loss, fraction: P === 0 ? 0 : loss / P };
 }
+
+/** Samples for the classroom voltage sweep, 1–400 kV, logarithmically spaced. */
+export function transmissionSweep(P: number, Rline: number, operatingVoltage: number) {
+  positive('transmissionSweep', 'operatingVoltage', operatingVoltage);
+  const volts = Array.from({ length: 121 }, (_, i) => 1000 * 400 ** (i / 120));
+  if (operatingVoltage >= 1000 && operatingVoltage <= 400000) volts.push(operatingVoltage);
+  for (const v of [10000, 20000, 132000, 220000, 380000]) volts.push(v);
+  return [...new Set(volts)].sort((a, b) => a - b).map((V) => ({ V, ...lineLoss(P, V, Rline) }));
+}

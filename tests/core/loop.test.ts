@@ -63,6 +63,16 @@ function counters() {
 }
 
 describe('createLoop', () => {
+  it('keeps a 30 fps cap with rounded 60 Hz rAF timestamps (no early-frame double render)', () => {
+    const f = fakeEnv();
+    const { c, callbacks } = counters();
+    const loop = createLoop(callbacks, { env: f.env, maxFps: 30 });
+    for (let i = 0; i < 180; i++) f.tick(i % 3 === 0 ? 16.6 : 16.7);
+    expect(c.renders).toBeGreaterThanOrEqual(89);
+    expect(c.renders).toBeLessThanOrEqual(91);
+    expect(c.steps).toBeGreaterThanOrEqual(715);
+    loop.dispose();
+  });
   it('advances physics in fixed 1/240 s steps (4 per 60 Hz frame)', () => {
     const f = fakeEnv();
     const { c, callbacks } = counters();
@@ -78,12 +88,23 @@ describe('createLoop', () => {
   it('caps rendering at 60 fps on a 144 Hz display', () => {
     const f = fakeEnv();
     const { c, callbacks } = counters();
-    const loop = createLoop(callbacks, { env: f.env });
+    const loop = createLoop(callbacks, { env: f.env, maxFps: 60 });
     for (let i = 0; i < 144; i++) f.tick(1000 / 144); // one second
     expect(c.renders).toBeGreaterThanOrEqual(46);
     expect(c.renders).toBeLessThanOrEqual(61); // ≈60, ±1 frame of timing tolerance
     // physics time still tracks wall time
     expect(c.steps).toBeGreaterThanOrEqual(230);
+    expect(c.steps).toBeLessThanOrEqual(240);
+    loop.dispose();
+  });
+
+  it('uses every rAF at 144 Hz by default while retaining deterministic fixed steps', () => {
+    const f = fakeEnv();
+    const { c, callbacks } = counters();
+    const loop = createLoop(callbacks, { env: f.env });
+    for (let i = 0; i < 144; i++) f.tick(1000 / 144);
+    expect(c.renders).toBe(144);
+    expect(c.steps).toBeGreaterThanOrEqual(239);
     expect(c.steps).toBeLessThanOrEqual(240);
     loop.dispose();
   });
