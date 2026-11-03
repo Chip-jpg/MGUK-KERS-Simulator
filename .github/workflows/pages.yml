@@ -1,6 +1,6 @@
-# Deploys the static build to GitHub Pages when a release tag (v*) is pushed,
-# or manually from the Actions tab. Vite uses `base: './'`, so the build works
-# under the repository sub-path without extra configuration.
+# Deploys one Pages artifact: pinned stable version at the root, triggering ref
+# under /3d/, on release tags (v*) or manually from the Actions tab.
+# Vite uses `base: './'` so both versions use relative asset URLs.
 # One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 name: Deploy to GitHub Pages
 
@@ -8,6 +8,14 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      stable_ref:
+        description: Stable tag or ref to publish at the site root
+        required: false
+        type: string
+
+env:
+  STABLE_REF: v0.7.4
 
 permissions:
   contents: read
@@ -22,21 +30,51 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout triggering ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Checkout stable ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.stable_ref || env.STABLE_REF }}
+          path: stable
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            stable/package-lock.json
 
-      - name: Install dependencies
+      - name: Install stable dependencies
+        working-directory: stable
         run: npm ci
 
-      - name: Unit tests
+      - name: Stable unit tests
+        working-directory: stable
         run: npm test
 
-      - name: Build
+      - name: Build stable
+        working-directory: stable
         run: npm run build
+
+      - name: Install 3D dependencies
+        run: npm ci
+
+      - name: 3D unit tests
+        run: npm test
+
+      - name: Build 3D
+        run: npm run build
+
+      - name: Assemble site
+        run: |
+          mkdir -p site/3d
+          cp -a stable/dist/. site/
+          cp -a dist/. site/3d/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -44,7 +82,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/
+          path: site/
 
   deploy:
     name: Deploy
