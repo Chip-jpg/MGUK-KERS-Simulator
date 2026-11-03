@@ -1,9 +1,10 @@
 /**
- * Three.js scene of the `faraday` simulator, built on the render foundation
- * (`src/render`, D14): a permanent-magnet lab rig with laminated-iron pole shoes,
- * the field in the gap drawn as COMPUTED field lines (`gapField`, fringing at the
- * edges, flow speed ∝ |B|), the rotating N-turn coil as a wound bundle of
- * enamelled copper with slip rings, brushes and leads to a small lamp, with no moving-bar experiment.
+ * Three.js scene of the `faraday` simulator (teardown look, `look: 'teardown'`): a school-lab
+ * rotating-coil generator on a laminated U-core electromagnet (`./rig`, reference and real
+ * dimensions there). The N-turn coil turns about a vertical shaft between the pole shoes; two
+ * brass slip rings and carbon brushes on top carry the f.e.m. through red/black leads to a
+ * small lamp on the bridge. The field coils on the limbs are opened (front half cut away)
+ * to show copper turns around the laminated iron.
  *
  * What is physics and what is illustration:
  *  - field-line shape: two-sheet pole model `gapField` (uniform in the core, as
@@ -13,13 +14,11 @@
  *    use an ILLUSTRATIVE resistive load — i ∝ f.e.m. (particle speed ∝ |f.e.m.|/V₀,
  *    direction = sign of the f.e.m.) and P ∝ f.e.m.² (lamp brightness = (f.e.m./V₀)²).
  *    No new quantity is claimed.
- * Geometry is original and abstract; visual sizes are ∝ physical ones (coil side ∝
- * √S, drawn turns ∝ N up to a cap) but the rig is not to scale.
+ * Coil side ∝ √S, drawn turns ∝ N up to a cap; gap, shoes and coil sizes are illustrative.
  */
 import * as THREE from 'three';
 import type { AppContext } from '../../core/types';
 import {
-  chamferBox,
   createCurrentFlow,
   createFieldLines,
   createLabelLayer,
@@ -30,12 +29,25 @@ import {
   type CurrentFlow,
   type FieldLines,
   type Label,
+  type MaterialKind,
   type Stage,
   type StageInfo,
   type TraceJob,
 } from '../../render';
 import { quantityColorHex } from '../../ui';
 import { params, type FaradayMode, type FaradayParams } from './model';
+import {
+  buildRig,
+  FACE_HY,
+  FACE_HZ,
+  FLOOR_Y,
+  GAP_HALF,
+  RING_Y,
+  SHAFT_BOT,
+  SHAFT_TOP,
+  squareRing,
+  type RigSink,
+} from './rig';
 
 /** Live resource counters across all mounts (read by the e2e leak check). */
 export const sceneStats = {
@@ -81,28 +93,52 @@ export interface FaradayScene {
   dispose(): void;
 }
 
-// --- rig dimensions (scene units) -------------------------------------------------
-const FLOOR_Y = -2.6;
-const BASE_TOP = -2.4;
-const GAP_HALF = 1.6; // pole faces at x = ±1,6
-const FACE_HY = 1.85;
-const FACE_HZ = 2.3;
-const LOOP_SIDE_MAX = 2.6;
-const RING_Y = [-1.72, -2.02] as const;
-const RING_R = 0.16;
-const WIRE_R = 0.024;
-const PROJ_X = GAP_HALF - 0.08;
-const LAMP_Z = 2.85;
+// --- coil dimensions (scene units, 1 unit = 2,5 cm; illustrative) ------------------------
+/** Coil side at S = S_max (6 cm): leaves 0,15 units to the pole faces when α = 0. */
+const LOOP_SIDE_MAX = 2.4;
+const WIRE_R = 0.021;
+const PROJ_X = GAP_HALF - 0.06;
+/** Default framing: 3/4 from the front right, slightly above the slip rings. */
+const FOV = 34;
+const VIEW_TARGET: [number, number, number] = [0.15, -0.2, 0.35];
+const VIEW_DIST = 12.2;
+const VIEW_EL = (27 * Math.PI) / 180;
+const VIEW_AZ = (35 * Math.PI) / 180;
 const ROTATING_VIEW = {
-  position: [-3.3, 3.7, 9.0] as [number, number, number],
-  target: [0.25, -0.55, 0.3] as [number, number, number],
+  position: [
+    VIEW_TARGET[0] + VIEW_DIST * Math.cos(VIEW_EL) * Math.sin(VIEW_AZ),
+    VIEW_TARGET[1] + VIEW_DIST * Math.sin(VIEW_EL),
+    VIEW_TARGET[2] + VIEW_DIST * Math.cos(VIEW_EL) * Math.cos(VIEW_AZ),
+  ] as [number, number, number],
+  target: VIEW_TARGET,
 };
 /** Drawn turns: ∝ N up to this cap per tier. */
 const TURN_CAP = { alta: 24, bilanciata: 16, base: 8 } as const;
+/** Teardown tints of the kit materials (re-applied every frame: tier switches replace them). */
+const TINTS: Array<[MaterialKind, string, number, number]> = [
+  ['plastic', 'bakelite', 0x3a2c24, 0.55],
+  ['plastic', 'socketRed', 0xa8261e, 0.4],
+  ['plastic', 'socketBlack', 0x17181b, 0.45],
+  ['plastic', 'former', 0x343a42, 0.5],
+  ['steel', 'alu', 0xb9c0c8, 0.5],
+  ['iron', 'core', 0x8c96a2, 0.5],
+  ['iron', 'shoe', 0x9aa4b0, 0.46],
+  ['brass', 'ring', 0xd2a84e, 0.38],
+  ['enamel', '', 0xe48a50, 0.34],
+];
 
-/** Visual side of the loop for an area S [m²] (∝ √S). */
+/** Smallest drawn coil side (S = S_min): keeps the working part readable. */
+const LOOP_SIDE_MIN = 0.8;
+
+/**
+ * Visual side of the loop for an area S [m²]: grows with √S from LOOP_SIDE_MIN (S_min) to
+ * LOOP_SIDE_MAX (S_max). Illustrative (affine in √S, not to scale) so the default coil fills
+ * the gap; the label always shows the real S-dependent Φ.
+ */
 export function loopSide(S: number): number {
-  return Math.max(0.3, (LOOP_SIDE_MAX * Math.sqrt(S)) / Math.sqrt(params.S.max));
+  const { min, max } = params.S;
+  const f = Math.sqrt(Math.min(1, Math.max(0, (S - min) / (max - min))));
+  return LOOP_SIDE_MIN + (LOOP_SIDE_MAX - LOOP_SIDE_MIN) * f;
 }
 
 /** Turns drawn for N real turns: min(N, cap). The label always shows the real N. */
@@ -140,11 +176,12 @@ export function createFaradayScene(
 ): FaradayScene {
   const stage = createStage(container, ctx, {
     ariaLabel:
-      'Scena 3D: magnete permanente con espansioni polari in ferro laminato, linee del campo B calcolate nel traferro, bobina di N spire che ruota con anelli e spazzole collegati a una lampadina e l’area proiettata attraversata dal flusso.',
-    camera: { ...ROTATING_VIEW, fov: 36 },
-    controls: { minDistance: 4, maxDistance: 22 },
+      'Scena 3D: generatore da laboratorio con nucleo a U in ferro laminato, bobine di campo aperte in sezione, espansioni polari N e S, linee del campo B calcolate nel traferro, bobina di N spire che ruota su un albero verticale con anelli e spazzole collegati a una lampadina, e l’area proiettata attraversata dal flusso.',
+    camera: { ...ROTATING_VIEW, fov: FOV },
+    controls: { minDistance: 4, maxDistance: 26 },
     floorY: FLOOR_Y,
-    shadowRadius: 5.5,
+    shadowRadius: 6.5,
+    look: 'teardown',
   });
   sceneStats.liveRenderers++;
   const { scene } = stage;
@@ -153,6 +190,7 @@ export function createFaradayScene(
   // --- resource tracking (non-kit) ----------------------------------------------------
   const geometries = new Set<THREE.BufferGeometry>();
   const materials: THREE.Material[] = [];
+  const textures: THREE.Texture[] = [];
   const geo = <G extends THREE.BufferGeometry>(g: G): G => {
     geometries.add(g);
     sceneStats.liveGeometries++;
@@ -169,68 +207,32 @@ export function createFaradayScene(
     sceneStats.liveMaterials++;
     return m;
   };
-  const mesh = (
-    g: THREE.BufferGeometry,
-    kind: Parameters<typeof kit.assign>[1],
-    key?: string,
-  ): THREE.Mesh => {
+  const mesh = (g: THREE.BufferGeometry, kind: MaterialKind, key?: string): THREE.Mesh => {
     const m = new THREE.Mesh(g);
     kit.assign(m, kind, key);
     return m;
   };
+  const sink: RigSink = {
+    geo,
+    mat,
+    mesh,
+    tex: (t) => {
+      textures.push(t);
+      return t;
+    },
+  };
   const tierName = (): keyof typeof TURN_CAP => stage.tier;
 
-  // --- base + magnet rig -----------------------------------------------------------------
-  const rig = new THREE.Group();
-  rig.name = 'rig';
-  scene.add(rig);
-  const base = mesh(geo(chamferBox(6.6, 0.2, 6.3, 0.06)), 'darkSteel');
-  base.position.set(0, BASE_TOP - 0.1, 0.4);
-  rig.add(base);
-  const mat2 = mesh(geo(chamferBox(6.2, 0.02, 5.9, 0.01, 1)), 'plastic');
-  mat2.position.set(0, BASE_TOP + 0.005, 0.4);
-  rig.add(mat2);
-
-  // Each side: laminated-iron pole shoe (the face) + permanent-magnet block standing
-  // on the base; a laminated yoke at the back closes the magnetic circuit.
-  const MAG_H = FACE_HY + 0.25 - BASE_TOP;
-  const MAG_Y = BASE_TOP + MAG_H / 2;
-  const MAG_X = GAP_HALF + 0.35 + 0.4;
-  const shoeGeo = geo(chamferBox(0.35, FACE_HY * 2, FACE_HZ * 2, 0.06));
-  const magnetGeo = geo(chamferBox(0.8, MAG_H, 4.1, 0.09));
-  const yokeGeo = geo(chamferBox(2 * MAG_X + 0.8, 0.9, 0.6, 0.07));
-  const plateGeo = geo(new THREE.PlaneGeometry(0.62, 0.62));
-  const occluders: THREE.Object3D[] = [];
-  for (const side of [-1, 1] as const) {
-    const g = new THREE.Group();
-    const shoe = mesh(shoeGeo, 'iron');
-    shoe.position.x = side * (GAP_HALF + 0.175);
-    const magnet = mesh(magnetGeo, 'magnet');
-    magnet.position.set(side * MAG_X, MAG_Y, 0);
-    // engraved N / S nameplates on the front and top faces of the magnet block
-    for (const face of ['front', 'top'] as const) {
-      const plate = mesh(plateGeo, side < 0 ? 'magnetN' : 'magnetS');
-      if (face === 'front') plate.position.set(side * MAG_X, 0.2, 2.05 + 0.006);
-      else {
-        plate.position.set(side * MAG_X, BASE_TOP + MAG_H + 0.006, 1.0);
-        plate.rotation.x = -Math.PI / 2;
-      }
-      g.add(plate);
-    }
-    g.add(shoe, magnet);
-    rig.add(g);
-    occluders.push(shoe, magnet);
-  }
-  const yoke = mesh(yokeGeo, 'iron');
-  yoke.position.set(0, BASE_TOP + 0.45, -2.05 - 0.3);
-  rig.add(yoke);
-  occluders.push(yoke);
-  stage.occluders.push(...occluders);
+  // --- static apparatus ------------------------------------------------------------------
+  const rig = buildRig(stage, sink);
+  scene.add(rig.root);
+  stage.occluders.push(...rig.occluders);
 
   // --- field lines (computed: gapField) ----------------------------------------------------
-  const field: FieldLines = createFieldLines(stage, { linewidth: 2.2, spacing: 1.0, speed: 1.1 });
+  const field: FieldLines = createFieldLines(stage, { linewidth: 1.7, spacing: 1.0, speed: 1.1 });
   const traceJob = (): TraceJob => {
-    const n = Math.max(12, Math.round(42 * stage.settings.lineDensity));
+    // fewer, thinner lines than the light studio: the coil must read through them
+    const n = Math.max(12, Math.round(30 * stage.settings.lineDensity));
     return {
       field: {
         kind: 'gap',
@@ -246,11 +248,11 @@ export function createFaradayScene(
         n,
       ),
       options: {
-        bounds: { min: [-3.6, -3.4, -3.6], max: [3.6, 3.4, 3.6] },
+        bounds: { min: [-3.2, -2.6, -3.0], max: [3.2, 2.6, 3.0] },
         stopBoxes: [
           {
             min: [GAP_HALF - 0.02, -FACE_HY - 0.05, -FACE_HZ - 0.05],
-            max: [3.6, FACE_HY + 0.05, FACE_HZ + 0.05],
+            max: [3.2, FACE_HY + 0.05, FACE_HZ + 0.05],
           },
         ],
         maxAngle: 0.05,
@@ -263,25 +265,26 @@ export function createFaradayScene(
   const coil = new THREE.Group();
   coil.name = 'coil';
   scene.add(coil);
-  const shaftGeo = geo(new THREE.CylinderGeometry(0.045, 0.045, 1, 20));
-  const shaft = mesh(shaftGeo, 'steel');
+  const shaft = mesh(geo(new THREE.CylinderGeometry(0.045, 0.045, 1, 20)), 'steel');
+  shaft.scale.y = SHAFT_TOP - SHAFT_BOT;
+  shaft.position.y = (SHAFT_TOP + SHAFT_BOT) / 2;
   coil.add(shaft);
-  const hubGeo = geo(new THREE.CylinderGeometry(0.09, 0.09, 0.16, 20));
-  const hubTop = mesh(hubGeo, 'steel');
-  const hubBottom = mesh(hubGeo, 'steel');
+  // clamp hubs where the coil's top and bottom sides cross the shaft
+  const hubGeo = geo(new THREE.CylinderGeometry(0.1, 0.1, 0.14, 6));
+  const hubTop = mesh(hubGeo, 'brass');
+  const hubBottom = mesh(hubGeo, 'brass');
   coil.add(hubTop, hubBottom);
-  const sleeve = mesh(geo(new THREE.CylinderGeometry(0.11, 0.11, 0.62, 24)), 'plastic');
-  sleeve.position.y = (RING_Y[0] + RING_Y[1]) / 2;
-  coil.add(sleeve);
-  const ringGeo = geo(new THREE.CylinderGeometry(RING_R, RING_R, 0.12, 40));
-  for (const y of RING_Y) {
-    const r = mesh(ringGeo, 'brass');
-    r.position.y = y;
-    coil.add(r);
+  // grub screws on the slip-ring stack turn with it (makes the rotation readable)
+  const grubGeo = geo(new THREE.CylinderGeometry(0.03, 0.03, 0.05, 8).rotateZ(Math.PI / 2));
+  for (const y of [RING_Y[0] - 0.17, RING_Y[1] + 0.17]) {
+    const g = mesh(grubGeo, 'darkSteel');
+    g.position.set(0.14, y, 0);
+    coil.add(g);
   }
   let coilWire: THREE.Mesh | null = null;
+  const formers: THREE.Mesh[] = [];
   let coilKey = '';
-  // normal n̂ (accent colour)
+  // normal n̂ (the one accent colour: the part that is working)
   const normalMat = mat(
     new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1, emissiveIntensity: 0.6 }),
   );
@@ -298,7 +301,7 @@ export function createFaradayScene(
     path: [new THREE.Vector3(), new THREE.Vector3(0, 1, 0)],
     closed: true,
     count: 46,
-    radius: 0.034,
+    radius: 0.032,
     speedPerAmp: 1.4,
     vMax: 1.6,
     smooth: false,
@@ -312,12 +315,16 @@ export function createFaradayScene(
     if (key === coilKey) return;
     coilKey = key;
     const cols = Math.min(turns, 6);
+    const rows = Math.ceil(turns / cols);
     const pitch = 2.15 * WIRE_R;
     const perTurn = Math.round(8 * stage.settings.tessellation) + 3;
     const pts: THREE.Vector3[] = [];
     const a0 = side / 2;
-    // lead from ring 1 up along the shaft to the start of the winding (bottom centre)
-    pts.push(new THREE.Vector3(0.0, RING_Y[0], 0.12), new THREE.Vector3(0.0, -a0 - 0.12, 0.06));
+    // (u, v) of roundedRectPoints → (z, y) turned by 180° about x: the winding starts at the
+    // top centre (leads up the shaft to the rings) and keeps the same sense about n̂ = +x.
+    const at = (x: number, u: number, w: number): THREE.Vector3 => new THREE.Vector3(x, -w, -u);
+    // lead from ring 1 down along the shaft to the start of the winding
+    pts.push(new THREE.Vector3(0, RING_Y[0], 0.13), new THREE.Vector3(0, a0 + 0.14, 0.07));
     for (let k = 0; k < turns; k++) {
       const ix = k % cols;
       const ir = Math.floor(k / cols);
@@ -332,13 +339,13 @@ export function createFaradayScene(
         perTurn,
         Math.max(3, perTurn >> 1),
       );
-      ring.forEach(([u, v], i) => {
+      ring.forEach(([u, w], i) => {
         const t = i / ring.length;
         const x = t < 0.85 ? x0 : x0 + (x1 - x0) * ((t - 0.85) / 0.15);
-        pts.push(new THREE.Vector3(x, v, u));
+        pts.push(at(x, u, w));
       });
     }
-    pts.push(new THREE.Vector3(0, -a0 - 0.12, -0.06), new THREE.Vector3(0.0, RING_Y[1], -0.12));
+    pts.push(new THREE.Vector3(0, a0 + 0.14, -0.07), new THREE.Vector3(0, RING_Y[1], -0.13));
     const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
     const g = geo(
       new THREE.TubeGeometry(curve, pts.length * 2, WIRE_R, stage.tier === 'base' ? 5 : 7, false),
@@ -351,16 +358,39 @@ export function createFaradayScene(
       coil.add(coilWire);
       stage.castShadows(coilWire);
     }
+    // former: two thin plastic cheeks holding the inner half of the bundle (outer turns visible)
+    const aIn = a0 - (rows - 1) * pitch;
+    const cheek = geo(
+      new THREE.ExtrudeGeometry(
+        squareRing(
+          aIn + 0.5 * (rows - 1) * pitch + 0.02,
+          Math.min(0.14, aIn * 0.4),
+          aIn - WIRE_R - 0.07,
+          0.05,
+        ),
+        { depth: 0.028, bevelEnabled: false, curveSegments: 6 },
+      ).rotateY(Math.PI / 2),
+    );
+    const cheekX = (cols / 2) * pitch + 0.006;
+    for (const [i, sx] of [-1, 1].entries()) {
+      let f = formers[i];
+      if (f) {
+        dropGeo(f.geometry);
+        f.geometry = cheek;
+      } else {
+        f = mesh(cheek, 'plastic', 'former');
+        formers.push(f);
+        coil.add(f);
+        stage.castShadows(f);
+      }
+      f.position.x = sx < 0 ? -cheekX - 0.028 : cheekX;
+    }
     // current particles ride on the outside of the bundle
     const ao = a0 + WIRE_R * 1.6;
-    const fp = roundedRectPoints(ao, ao, Math.min(0.16, ao * 0.4), 8, 4).map(
-      ([u, v]) => new THREE.Vector3(0, v, u),
+    const fp = roundedRectPoints(ao, ao, Math.min(0.16, ao * 0.4), 8, 4).map(([u, w]) =>
+      at(0, u, w),
     );
     coilFlow.setPath(fp, true);
-    // shaft / hubs
-    const top = a0 + 0.4;
-    shaft.scale.y = top - BASE_TOP;
-    shaft.position.y = (top + BASE_TOP) / 2;
     hubTop.position.y = a0;
     hubBottom.position.y = -a0;
     const nLen = 0.45 + side * 0.32;
@@ -369,99 +399,34 @@ export function createFaradayScene(
     nHead.position.set(nLen + 0.1, 0, 0);
   };
 
-  // --- brushes, leads, lamp --------------------------------------------------------------------
-  const brushes = new THREE.Group();
-  scene.add(brushes);
-  const post = mesh(geo(chamferBox(0.16, 0.86, 0.16, 0.03)), 'plastic');
-  post.position.set(0, BASE_TOP + 0.43, 0.62);
-  brushes.add(post);
-  const brushGeo = geo(chamferBox(0.1, 0.09, 0.2, 0.015, 1));
-  const armGeo = geo(chamferBox(0.05, 0.03, 0.34, 0.01, 1));
-  const brushMeshes: THREE.Mesh[] = [];
-  for (const y of RING_Y) {
-    const b = mesh(brushGeo, 'glowEmf', 'brush');
-    b.position.set(0, y, RING_R + 0.1);
-    const arm = mesh(armGeo, 'brass');
-    arm.position.set(0, y + 0.05, RING_R + 0.3);
-    brushes.add(b, arm);
-    brushMeshes.push(b);
-  }
-  const lamp = new THREE.Group();
-  lamp.position.set(1.05, BASE_TOP, LAMP_Z);
-  scene.add(lamp);
-  const lampBase = mesh(geo(new THREE.CylinderGeometry(0.16, 0.19, 0.14, 32)), 'ceramic', 'lamp');
-  lampBase.position.y = 0.07;
-  const socket = mesh(geo(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 32)), 'brass', 'lamp');
-  socket.position.y = 0.24;
-  const bulb = mesh(geo(new THREE.SphereGeometry(0.3, 40, 28)), 'glass', 'lamp');
-  bulb.position.y = 0.6;
-  bulb.renderOrder = 4;
-  const filament = mesh(
-    geo(new THREE.TorusGeometry(0.07, 0.012, 8, 32, Math.PI * 1.4)),
-    'filament',
-    'lamp',
-  );
-  filament.position.y = 0.6;
-  filament.rotation.z = Math.PI * 0.8;
-  const supportGeo = geo(new THREE.CylinderGeometry(0.006, 0.006, 0.3, 6));
-  for (const s of [-1, 1]) {
-    const w = mesh(supportGeo, 'steel');
-    w.position.set(s * 0.06, 0.45, 0);
-    lamp.add(w);
-  }
-  lamp.add(lampBase, socket, bulb, filament);
-  const lampLight = new THREE.PointLight(0xffb86b, 0, 4, 2);
-  lampLight.position.y = 0.6;
-  lamp.add(lampLight);
-
-  const v = (x = 0, y = 0, z = 0): THREE.Vector3 => new THREE.Vector3(x, y, z);
-  // External circuit for f.e.m. > 0 (counter-clockwise about n̂ in the coil):
-  // brush 2 → lead → lamp → lead → brush 1.
-  const leadPath = [
-    v(0.04, RING_Y[1], 0.66),
-    v(0.25, BASE_TOP + 0.08, 1.1),
-    v(0.7, BASE_TOP + 0.06, LAMP_Z - 0.6),
-    v(0.95, BASE_TOP + 0.12, LAMP_Z),
-    v(1.0, BASE_TOP + 0.45, LAMP_Z),
-    v(1.05, BASE_TOP + 0.6, LAMP_Z),
-    v(1.1, BASE_TOP + 0.45, LAMP_Z),
-    v(1.15, BASE_TOP + 0.12, LAMP_Z),
-    v(1.0, BASE_TOP + 0.06, LAMP_Z - 0.75),
-    v(0.45, BASE_TOP + 0.08, 1.05),
-    v(0.04, RING_Y[0], 0.66),
-  ];
-  const leadCurveA = new THREE.CatmullRomCurve3(leadPath.slice(0, 4), false, 'centripetal');
-  const leadCurveB = new THREE.CatmullRomCurve3(leadPath.slice(7), false, 'centripetal');
-  const leadA = mesh(geo(new THREE.TubeGeometry(leadCurveA, 48, 0.028, 8, false)), 'rubber');
-  const leadB = mesh(geo(new THREE.TubeGeometry(leadCurveB, 48, 0.028, 8, false)), 'rubber');
-  brushes.add(leadA, leadB);
+  // --- external circuit current -------------------------------------------------------------------
   const leadFlow = createCurrentFlow(stage, {
-    path: leadPath,
+    path: rig.leadPath,
     count: 40,
-    radius: 0.036,
+    radius: 0.034,
     speedPerAmp: 1.4,
     vMax: 1.6,
   });
+  const lampLight = rig.lamp.light;
 
   // --- projected area S·cos α (screen in front of the S pole, ⟂ B) ----------------------------
+  const v = (x = 0, y = 0, z = 0): THREE.Vector3 => new THREE.Vector3(x, y, z);
   const fillGeo = geo(new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2)); // normal +x
-  const makeFill = (): THREE.ShaderMaterial =>
-    mat(
-      new THREE.ShaderMaterial({
-        vertexShader: FILL_VS,
-        fragmentShader: FILL_FS,
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        uniforms: {
-          uColor: { value: new THREE.Color() },
-          uOpacity: { value: 0.3 },
-          uTime: { value: 0 },
-          uScale: { value: new THREE.Vector2(1, 1) },
-        },
-      }),
-    );
-  const projMat = makeFill();
+  const projMat = mat(
+    new THREE.ShaderMaterial({
+      vertexShader: FILL_VS,
+      fragmentShader: FILL_FS,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      uniforms: {
+        uColor: { value: new THREE.Color() },
+        uOpacity: { value: 0.3 },
+        uTime: { value: 0 },
+        uScale: { value: new THREE.Vector2(1, 1) },
+      },
+    }),
+  );
   const proj = new THREE.Mesh(fillGeo, projMat);
   proj.position.x = PROJ_X;
   proj.renderOrder = 5;
@@ -486,12 +451,12 @@ export function createFaradayScene(
   outline.position.x = PROJ_X - 0.005;
   scene.add(proj, outline);
 
-  // α arc (horizontal, above the coil): from B (+x) to n̂
+  // α arc (horizontal, under the coil): from B (+x) to n̂
   const ARC_N = 33;
   const arcGeo = geo(new THREE.BufferGeometry());
   const arcPos = new Float32Array(ARC_N * 3);
   arcGeo.setAttribute('position', new THREE.BufferAttribute(arcPos, 3));
-  const arcMat = mat(new THREE.LineBasicMaterial({ transparent: true, opacity: 0.9 }));
+  const arcMat = mat(new THREE.LineBasicMaterial({ transparent: true, opacity: 0.95 }));
   const arc = new THREE.Line(arcGeo, arcMat);
   scene.add(arc);
   const bRefMat = mat(
@@ -502,33 +467,48 @@ export function createFaradayScene(
       opacity: 0.8,
     }),
   );
-  const bRefGeo = geo(new THREE.BufferGeometry().setFromPoints([v(0, 0, 0), v(1, 0, 0)]));
-  const bRef = new THREE.Line(bRefGeo, bRefMat);
+  const bRef = new THREE.Line(geo(new THREE.BufferGeometry().setFromPoints([v(), v(1)])), bRefMat);
   bRef.computeLineDistances();
   scene.add(bRef);
-
-  stage.castShadows(rig);
   stage.castShadows(coil);
-  stage.castShadows(brushes);
-  stage.castShadows(lamp, false);
-  bulb.castShadow = false;
 
-  // --- labels ------------------------------------------------------------------------------------
+  // --- labels: on the background around the rig, never on the coil -------------------------------
   const labels = createLabelLayer(stage, overlay);
   const anchors = {
-    n: v(-2.35, FACE_HY + 0.55, 1.0),
-    s: v(2.35, FACE_HY + 0.55, 1.0),
-    b: v(-0.9, FACE_HY + 0.45, FACE_HZ - 0.2),
+    n: rig.anchors.n,
+    s: rig.anchors.s,
+    b: v(-GAP_HALF + 0.1, -FACE_HY + 0.25, FACE_HZ),
     normal: v(),
     alpha: v(),
     phi: v(),
-    emf: v(0, RING_Y[0] + 0.05, RING_R + 0.55),
-    load: v(1.05, BASE_TOP + 1.12, LAMP_Z),
+    emf: rig.anchors.brushes,
+    load: rig.anchors.lamp,
   };
   const L: Record<keyof typeof anchors, Label> = {
-    n: labels.add({ text: 'N', anchor: anchors.n, size: 'lg', priority: 9, occlude: false }),
-    s: labels.add({ text: 'S', anchor: anchors.s, size: 'lg', priority: 9, occlude: false }),
-    b: labels.add({ text: 'B', anchor: anchors.b, quantity: 'b', priority: 6, occlude: false }),
+    n: labels.add({
+      text: 'N',
+      anchor: anchors.n,
+      size: 'lg',
+      priority: 9,
+      occlude: false,
+      offset: [-40, -34],
+    }),
+    s: labels.add({
+      text: 'S',
+      anchor: anchors.s,
+      size: 'lg',
+      priority: 9,
+      occlude: false,
+      offset: [40, -34],
+    }),
+    b: labels.add({
+      text: 'B',
+      anchor: anchors.b,
+      quantity: 'b',
+      priority: 6,
+      occlude: false,
+      offset: [-190, 40],
+    }),
     normal: labels.add({ text: 'n̂', anchor: anchors.normal, quantity: 'accent', priority: 7 }),
     alpha: labels.add({
       text: 'α',
@@ -537,14 +517,26 @@ export function createFaradayScene(
       priority: 5,
       size: 'sm',
       occlude: false,
+      offset: [160, 74],
     }),
-    phi: labels.add({ text: 'Φ', anchor: anchors.phi, quantity: 'b', priority: 8, occlude: false }),
+    phi: labels.add({
+      text: 'Φ',
+      anchor: anchors.phi,
+      quantity: 'b',
+      priority: 8,
+      occlude: false,
+      offset: [200, 30],
+      sensorWidth: '14ch',
+      sensorHeight: '2.9rem',
+    }),
     emf: labels.add({
       text: 'f.e.m.',
       anchor: anchors.emf,
       quantity: 'emf',
       priority: 8,
       occlude: false,
+      offset: [170, -60],
+      sensorWidth: '16ch',
     }),
     load: labels.add({
       text: 'carico',
@@ -553,6 +545,9 @@ export function createFaradayScene(
       priority: 4,
       size: 'sm',
       occlude: false,
+      offset: [-170, -40],
+      sensorWidth: '20ch',
+      sensorHeight: '2.6rem',
     }),
   };
 
@@ -560,11 +555,12 @@ export function createFaradayScene(
   const applyTheme = (): void => {
     const t = stage.theme;
     const b = quantityColorHex('b', t);
-    const accent = t === 'dark' ? 0x3dd6c6 : 0x0f7c72;
+    // teardown studio is dark in both themes: the bright accent reads on it
+    const accent = 0x3dd6c6;
     normalMat.color.setHex(accent);
     normalMat.emissive.setHex(accent);
     (projMat.uniforms['uColor'] as { value: THREE.Color }).value.setHex(b);
-    outlineMat.color.setHex(t === 'dark' ? 0x9da7b3 : 0x57606a);
+    outlineMat.color.setHex(0x9da7b3);
     arcMat.color.setHex(accent);
     bRefMat.color.setHex(b);
   };
@@ -578,14 +574,19 @@ export function createFaradayScene(
   lampLight.visible = stage.tier !== 'base';
 
   /**
-   * QA-035: the lamp may glow (and bloom) only through its filament emissive ∝ P/Pₘₐₓ. Keep
-   * the lit porcelain, brass and glass highlights below the bloom threshold: a grey
-   * porcelain, a dimmer environment reflection on brass and glass. Re-applied every frame
-   * (kit materials are replaced on a tier/theme switch; cheap scalar writes).
+   * Kit tints for the teardown look, and QA-035: the lamp may glow (and bloom) only through
+   * its filament emissive ∝ P/Pₘₐₓ — dim environment reflections on brass and glass.
+   * Re-applied every frame (kit materials are replaced on a tier/theme switch; scalar writes).
    */
-  const tameLamp = (): void => {
-    const base = kit.get('ceramic', 'lamp') as THREE.MeshStandardMaterial;
-    base.color.setHex(0x8f8a82);
+  const tint = (): void => {
+    for (const [kind, key, color, rough] of TINTS) {
+      const m = kit.get(kind, key) as THREE.MeshStandardMaterial;
+      m.color.setHex(color);
+      if ('roughness' in m) m.roughness = rough;
+      if ('envMapIntensity' in m) m.envMapIntensity = kind === 'enamel' ? 1.1 : 0.6;
+      // laminated iron: less mirror-like so the limbs do not fall to black in the dark studio
+      if (kind === 'iron' && 'metalness' in m) m.metalness = 0.55;
+    }
     for (const kind of ['glass', 'brass'] as const) {
       const m = kit.get(kind, 'lamp') as THREE.MeshStandardMaterial;
       if ('envMapIntensity' in m) m.envMapIntensity = kind === 'glass' ? 0.45 : 0.55;
@@ -606,17 +607,16 @@ export function createFaradayScene(
     const absR = Math.min(1, Math.abs(ratio));
     field.setFlow((1.6 * p.B) / params.B.max);
     coil.visible = rotating;
-    brushes.visible = rotating;
-    lamp.visible = rotating;
     proj.visible = rotating;
     outline.visible = rotating;
     arc.visible = rotating;
     bRef.visible = rotating;
     coilFlow.setVisible(rotating);
     leadFlow.setVisible(rotating);
+    tint();
     // brush glow ∝ |f.e.m.|
-    kit.get('glowEmf', 'brush').emissiveIntensity = 0.05 + 2.4 * absR;
-    for (const u of [projMat]) (u.uniforms['uTime'] as { value: number }).value = time;
+    kit.get('glowEmf', 'brush').emissiveIntensity = 0.05 + 0.9 * absR;
+    (projMat.uniforms['uTime'] as { value: number }).value = time;
 
     if (rotating) {
       buildCoil(p.S, p.N);
@@ -626,9 +626,7 @@ export function createFaradayScene(
       leadFlow.setCurrent(ratio);
       // lamp: P ∝ f.e.m.² (illustrative resistive load)
       const pRel = ratio * ratio;
-      const fil = kit.get('filament', 'lamp');
-      fil.emissiveIntensity = 7 * pRel; // ∝ P/Pₘₐₓ only: the one source of lamp glow
-      tameLamp();
+      kit.get('filament', 'lamp').emissiveIntensity = 7 * pRel; // the one source of lamp glow
       lampLight.intensity = 3.2 * pRel;
       // projection S·|cos α|
       const c = Math.cos(s.alpha);
@@ -640,8 +638,8 @@ export function createFaradayScene(
       (projMat.uniforms['uOpacity'] as { value: number }).value =
         0.12 + 0.3 * Math.abs(c) * Math.min(1, p.B / 0.5);
       outline.scale.set(1, side, side);
-      // α arc above the coil
-      const ay = side / 2 + 0.5;
+      // α arc under the coil
+      const ay = -side / 2 - 0.22;
       const ar = 0.55 + side * 0.18;
       for (let i = 0; i < ARC_N; i++) {
         const th = (s.alpha * i) / (ARC_N - 1);
@@ -652,18 +650,13 @@ export function createFaradayScene(
       (arcGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
       arcGeo.computeBoundingSphere();
       bRef.position.set(0, ay, 0);
-      bRef.scale.set(ar + 0.25, 1, 1);
+      bRef.scale.set(Math.min(ar + 0.25, PROJ_X - 0.05), 1, 1);
       const mid = s.alpha / 2;
-      anchors.alpha.set((ar + 0.28) * Math.cos(mid), ay + 0.08, -(ar + 0.28) * Math.sin(mid));
+      anchors.alpha.set((ar + 0.2) * Math.cos(mid), ay, -(ar + 0.2) * Math.sin(mid));
       const nLen = 0.45 + side * 0.32;
       anchors.normal.set(nLen + 0.38, 0, 0);
       coil.localToWorld(anchors.normal);
-      anchors.phi.set(PROJ_X, side / 2 + 0.32, 0);
-      L.normal.setVisible(true);
-      L.alpha.setVisible(true);
-      L.phi.setVisible(true);
-      L.load.setVisible(true);
-      anchors.emf.set(0, RING_Y[0] + 0.12, RING_R + 0.55);
+      anchors.phi.set(PROJ_X, -side / 2, side / 2);
     }
     const t = s.labels;
     if (t) {
@@ -707,6 +700,7 @@ export function createFaradayScene(
         m.dispose();
         sceneStats.liveMaterials--;
       }
+      for (const x of textures.splice(0)) x.dispose();
       stage.dispose();
       sceneStats.liveRenderers--;
       sceneStats.liveScenes--;
