@@ -8,8 +8,8 @@ import { registerDebugHook } from '../../core/debug';
 import type { AppContext, Disposable, SimModule } from '../../core/types';
 import { createResetViewButton } from '../../render';
 import { createLoop, createSimLayout, el } from '../../ui';
-import { defaultParams } from '../kers-braking/model';
-import { brakingStateAt, type BrakingState } from './model';
+import { PRESETS } from '../kers-braking/model';
+import { brakingStateAt, type BrakingState, type MgukEra } from './model';
 import { createTeardownPanel } from './panel';
 import { createTeardownStage, type TeardownStage } from './stage';
 import './style.css';
@@ -31,12 +31,15 @@ let liveMounts = 0;
 
 function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const layout = createSimLayout(host, { modelNoteIT: MODEL_NOTE_IT });
-  const params = defaultParams();
+  let era: MgukEra = '2025';
+  let params = { ...PRESETS.find((p) => p.id === era)!.values };
+  // The 350 kW event needs more battery headroom: start 2026 at 25% SoC.
+  const initialSoc = () => (era === '2026' ? 0.25 : undefined);
   let phase = 0;
   let hold = 0;
   let playing = !ctx.reducedMotion;
   let pendingDt = 0;
-  let state: BrakingState = brakingStateAt(0, params);
+  let state: BrakingState = brakingStateAt(0, params, initialSoc(), era);
 
   let scene: TeardownStage | null = null;
   try {
@@ -52,6 +55,13 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const panel = createTeardownPanel(layout.controls, {
     formatIT: ctx.formatIT,
     playing,
+    initialEra: era,
+    onEra: (nextEra) => {
+      era = nextEra;
+      params = { ...PRESETS.find((p) => p.id === era)!.values };
+      scene?.setPMax(params.Pmax * 1e3);
+      draw(0);
+    },
     onPhase: (p) => {
       phase = p;
       hold = 0;
@@ -77,7 +87,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   if (resetView) layout.toolbar.append(resetView.element);
 
   function draw(dt: number): void {
-    state = brakingStateAt(phase, params);
+    state = brakingStateAt(phase, params, initialSoc(), era);
     scene?.update(state, dt);
     scene?.render();
     panel.update(state, phase);

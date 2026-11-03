@@ -22,6 +22,7 @@ import { SIM_IDS } from '../../../src/core/registry';
 import { formatIT } from '../../../src/core/format';
 import * as dims from '../../../src/sims/mguk-teardown/dims';
 import sim from '../../../src/sims/mguk-teardown/index';
+import { PRESETS } from '../../../src/sims/kers-braking/model';
 import { brakingStateAt } from '../../../src/sims/mguk-teardown/model';
 import { READOUTS, createTeardownPanel } from '../../../src/sims/mguk-teardown/panel';
 
@@ -29,6 +30,7 @@ const make = (over: Partial<Parameters<typeof createTeardownPanel>[1]> = {}) => 
   const host = document.createElement('div');
   document.body.append(host);
   const cb = {
+    onEra: vi.fn(),
     onPhase: vi.fn(),
     onPlayToggle: vi.fn(),
     onHousing: vi.fn(),
@@ -69,6 +71,70 @@ describe('mguk-teardown panel', () => {
     expect(host.querySelector('[data-out="v"]')?.textContent).toContain('km/h');
     panel.dispose();
     expect(host.childElementCount).toBe(0);
+  });
+
+  it('updates live powers, energy bars, cap badge and braking phase', () => {
+    const { host, panel } = make();
+    const preset = PRESETS.find((p) => p.id === '2025')!;
+    const out = (key: string) => host.querySelector(`[data-out="${key}"]`)!.textContent;
+    const soc = host.querySelector<HTMLProgressElement>(
+      'progress[aria-label="Carica batteria (SoC)"]',
+    )!;
+    const recovered = host.querySelector<HTMLProgressElement>(
+      'progress[aria-label="Energia recuperata / limite per giro"]',
+    )!;
+    for (const phase of [0, 0.3, 0.7, 1]) {
+      const state = brakingStateAt(phase, preset.values);
+      panel.update(state, phase);
+      for (const row of READOUTS) expect(out(row.key)).toBe(row.text(state, formatIT, preset));
+      expect(soc.value).toBeCloseTo(state.soc);
+      expect(recovered.value).toBeCloseTo(state.recovered / preset.lapLimitJoules);
+      expect(host.querySelector<HTMLElement>('[data-out="powerCapActive"]')!.hidden).toBe(
+        !state.powerCapActive,
+      );
+      expect(out('phase')).toContain(
+        phase === 0 ? 'Inizio frenata' : phase === 1 ? 'Fine frenata (P ≤ 0)' : 'Frenata in corso',
+      );
+    }
+    expect(out('pMech')).toContain('kW');
+    expect(out('pBrakes')).toContain('kW');
+    expect(out('brakeHeat')).toContain('MJ');
+    expect(out('mgukLoss')).toContain('MJ');
+    expect(host.textContent).toContain('correzione fissa FIA');
+    panel.dispose();
+  });
+
+  it('switches era to the 350 kW cap, 60,000 rpm and 8.5 MJ lap limit', () => {
+    const { host, panel, cb } = make();
+    const preset = PRESETS.find((p) => p.id === '2026')!;
+    host.querySelector<HTMLInputElement>('input[type="radio"][value="2026"]')!.click();
+    expect(cb.onEra).toHaveBeenLastCalledWith('2026');
+    for (const phase of [0, 0.5, 1]) {
+      const state = brakingStateAt(phase, preset.values, 0.25, '2026');
+      panel.update(state, phase);
+      expect(host.querySelector('[data-out="pKers"]')!.textContent).toContain(
+        formatIT(350, 0, 'kW'),
+      );
+      expect(host.querySelector('[data-out="recovered"]')!.textContent).toContain(
+        formatIT(8.5, 1, 'MJ'),
+      );
+      expect(host.querySelector('[data-out="rpm"]')!.textContent).toContain(
+        formatIT((state.rpm / 60_000) * 100, 1, '%'),
+      );
+      expect(host.querySelector('[data-out="eta"]')!.textContent).toBe(formatIT(97, 0, '%'));
+      const bar = host.querySelector<HTMLProgressElement>(
+        'progress[aria-label="Energia recuperata / limite per giro"]',
+      )!;
+      expect(bar.value).toBeCloseTo(state.recovered / 8.5e6);
+    }
+    expect(host.textContent).toContain(preset.noteIT);
+    host.querySelector<HTMLInputElement>('input[type="radio"][value="2025"]')!.click();
+    expect(cb.onEra).toHaveBeenLastCalledWith('2025');
+    expect(host.querySelector('[data-out="pKers"]')!.textContent).toContain(formatIT(120, 0, 'kW'));
+    expect(host.querySelector('[data-out="recovered"]')!.textContent).toContain(
+      formatIT(2, 1, 'MJ'),
+    );
+    panel.dispose();
   });
 
   it('shows zero power at phase 1 and a play/pause toggle', () => {

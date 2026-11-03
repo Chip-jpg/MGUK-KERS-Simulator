@@ -100,6 +100,7 @@ export interface TeardownStage {
   update(state: BrakingState, dt?: number): void;
   /** Draw one frame. */
   render(): void;
+  setPMax(w: number): void;
   setHousing(m: HousingMode): void;
   setView(v: 'home' | 'mguk'): void;
   /** Rotor angle θ [rad] (debug / tests). */
@@ -154,6 +155,7 @@ export function createTeardownStage(
   const home0 = frameView(HOME_FRAME, stage.camera.aspect);
   stage.setView(home0.position, home0.target, false);
   const flow = ribbon;
+  let activePMax = opts.pMax;
   const labelLayer = labels;
   const a = parts.anchors;
   const L: Record<'mguk' | 'gears' | 'wheel' | 'inverter' | 'battery', Label> = {
@@ -215,14 +217,20 @@ export function createTeardownStage(
       parts.setAngles(theta, WHEEL_PER_ROTOR);
       const flowing = s.pKers > 0;
       flow.setVisible(flowing);
-      flow.setPower(flowing ? s.pKers : 0);
+      // Keep the original ribbon calibration while normalizing to the active era.
+      flow.setPower(flowing ? (s.pKers * opts.pMax) / Math.max(1, activePMax) : 0);
       parts.setSoc(s.soc);
       parts.setBrakeHeat(s.brakeHeat);
-      L.mguk.setText(`MGU-K · ${fmt(s.pKers / 1e3, 0, 'kW')}`);
-      L.battery.setText(`SoC ${fmt(s.soc * 100, 1, '%')}`);
+      L.mguk.setText(`MGU-K · ${fmt(s.pKers / 1e3, 0, 'kW')} · ${fmt(s.rpm, 0, 'giri/min')}`);
+      L.battery.setText(`SoC ${fmt(s.soc * 100, 1, '%')} · ${fmt(s.recovered / 1e6, 3, 'MJ')}`);
+      L.inverter.setText(`Inverter · ${fmt(s.current, 0, 'A')}`);
+      L.wheel.setText(`Ruota posteriore · ${fmt(s.v * 3.6, 0, 'km/h')}`);
     },
     render() {
       if (!disposed) stage.render();
+    },
+    setPMax(w) {
+      activePMax = w;
     },
     setHousing: (m) => parts.setHousingMode(m),
     setView(v) {

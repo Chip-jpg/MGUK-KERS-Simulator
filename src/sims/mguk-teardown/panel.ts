@@ -9,7 +9,8 @@ import {
   type SegmentedHandle,
   type Slider,
 } from '../../ui';
-import type { BrakingState } from './model';
+import { PRESETS, type KersPreset } from '../kers-braking/model';
+import { MGUK_MAX_RPM_BY_ERA, type BrakingState, type MgukEra } from './model';
 import type { HousingMode } from './geometry';
 
 export const PHASE_SPEC: ParamSpec = {
@@ -26,6 +27,8 @@ type Fmt = (n: number, digits?: number, unit?: string) => string;
 export interface PanelOptions {
   formatIT: Fmt;
   initialPhase?: number;
+  initialEra?: MgukEra;
+  onEra(era: MgukEra): void;
   playing?: boolean;
   onPhase(phase: number): void;
   onPlayToggle(playing: boolean): void;
@@ -44,19 +47,67 @@ export interface TeardownPanel extends Disposable {
 export const READOUTS: ReadonlyArray<{
   key: string;
   labelIT: string;
-  text: (s: BrakingState, f: Fmt) => string;
+  text: (s: BrakingState, f: Fmt, preset: KersPreset) => string;
 }> = [
   { key: 'v', labelIT: 'Velocità', text: (s, f) => f(s.v * 3.6, 0, 'km/h') },
-  { key: 'rpm', labelIT: 'Giri rotore', text: (s, f) => f(s.rpm, 0, 'giri/min') },
+  {
+    key: 'rpm',
+    labelIT: 'Giri rotore',
+    text: (s, f, p) =>
+      `${f(s.rpm, 0, 'giri/min')} (${f((s.rpm / MGUK_MAX_RPM_BY_ERA[p.id]) * 100, 1, '%')})`,
+  },
   { key: 'torque', labelIT: 'Coppia', text: (s, f) => f(s.torque, 1, 'N·m') },
-  { key: 'pKers', labelIT: 'Potenza MGU-K → batteria', text: (s, f) => f(s.pKers / 1e3, 0, 'kW') },
+  {
+    key: 'pKers',
+    labelIT: 'Potenza elettrica MGU-K → batteria',
+    text: (s, f, p) =>
+      `${f(s.pKers / 1e3, 0, 'kW')} / ${f(p.values.Pmax, 0, 'kW')} (${f((s.pKers / (p.values.Pmax * 1e3)) * 100, 1, '%')})`,
+  },
+  { key: 'pMech', labelIT: 'Potenza meccanica', text: (s, f) => f(s.pMech / 1e3, 1, 'kW') },
+  { key: 'pBrakes', labelIT: 'Potenza freni', text: (s, f) => f(s.pBrakes / 1e3, 1, 'kW') },
   { key: 'emf', labelIT: 'Tensione indotta (EMF)', text: (s, f) => f(s.emf, 0, 'V') },
   { key: 'current', labelIT: 'Corrente', text: (s, f) => f(s.current, 0, 'A') },
   { key: 'soc', labelIT: 'Carica batteria (SoC)', text: (s, f) => f(s.soc * 100, 1, '%') },
+  {
+    key: 'recovered',
+    labelIT: 'Energia recuperata / limite per giro',
+    text: (s, f, p) =>
+      `${f(s.recovered / 1e6, 3, 'MJ')} / ${f(p.lapLimitJoules / 1e6, 1, 'MJ')} (${f((s.recovered / p.lapLimitJoules) * 100, 1, '%')})`,
+  },
+  { key: 'eta', labelIT: 'Rendimento η', text: (_s, f, p) => f(p.values.eta * 100, 0, '%') },
+  { key: 'brakeHeat', labelIT: 'Calore freni', text: (s, f) => f(s.brakeHeat / 1e6, 3, 'MJ') },
+  { key: 'mgukLoss', labelIT: 'Perdite MGU-K', text: (s, f) => f(s.mgukLoss / 1e6, 3, 'MJ') },
+  {
+    key: 'phase',
+    labelIT: 'Fase della frenata',
+    text: (s, f) =>
+      `${s.t === 0 ? 'Inizio frenata' : s.pKers <= 0 ? 'Fine frenata (P ≤ 0)' : 'Frenata in corso'} · t = ${f(s.t, 2, 's')}`,
+  },
 ];
 
 export function createTeardownPanel(host: HTMLElement, o: PanelOptions): TeardownPanel {
   const element = el('section', { class: 'mgt-panel', attrs: { 'aria-label': 'Pannello MGU-K' } });
+  let preset = PRESETS.find((p) => p.id === (o.initialEra ?? '2025'))!;
+  let lastState: BrakingState | undefined;
+  const era = createSegmented<MgukEra>({
+    labelIT: 'Regolamento',
+    options: PRESETS.map((p) => ({ value: p.id, labelIT: p.labelIT })),
+    value: preset.id,
+    onChange: (id) => {
+      preset = PRESETS.find((p) => p.id === id)!;
+      note.textContent = preset.noteIT;
+      if (lastState) update(lastState, lastPhase);
+      o.onEra(id);
+    },
+  });
+  const note = el('p', { class: 'mgt-note', text: preset.noteIT });
+  const capBadge = el('span', {
+    class: 'badge badge--small',
+    text: 'limite potenza attivo',
+    dataset: { out: 'powerCapActive' },
+  });
+  capBadge.hidden = true;
+  const bars = new Map<string, HTMLProgressElement>();
   let playing = o.playing ?? true;
   let lastPhase = o.initialPhase ?? 0;
 
@@ -106,9 +157,20 @@ export function createTeardownPanel(host: HTMLElement, o: PanelOptions): Teardow
   const grid = el('dl', { class: 'mgt-grid' });
   const outs = new Map<string, HTMLElement>();
   for (const r of READOUTS) {
-    const dd = el('dd', { dataset: { out: r.key }, text: '—' });
+    const dd = el('span', { dataset: { out: r.key }, text: '—' });
+    const value = el('dd', {}, [dd]);
+    if (r.key === 'pKers') value.append(capBadge);
+    if (r.key === 'soc' || r.key === 'recovered') {
+      const bar = document.createElement('progress');
+      bar.className = 'mgt-bar';
+      bar.max = 1;
+      bar.value = 0;
+      bar.setAttribute('aria-label', r.labelIT);
+      bars.set(r.key, bar);
+      value.append(bar);
+    }
     outs.set(r.key, dd);
-    grid.append(el('div', { class: 'mgt-grid__row' }, [el('dt', { text: r.labelIT }), dd]));
+    grid.append(el('div', { class: 'mgt-grid__row' }, [el('dt', { text: r.labelIT }), value]));
   }
   const cap = el('p', {
     class: 'mgt-cap',
@@ -118,32 +180,40 @@ export function createTeardownPanel(host: HTMLElement, o: PanelOptions): Teardow
   element.append(
     el('div', { class: 'mgt-row' }, [play.element]),
     slider.element,
+    era.element,
     grid,
+    note,
     housing.element,
     view.element,
     cap,
   );
   host.append(element);
 
+  function update(s: BrakingState, phase: number): void {
+    lastState = s;
+    capBadge.hidden = !s.powerCapActive;
+    bars.get('soc')!.value = s.soc;
+    bars.get('recovered')!.value = s.recovered / preset.lapLimitJoules;
+    for (const r of READOUTS) {
+      const n = outs.get(r.key);
+      const t = r.text(s, o.formatIT, preset);
+      if (n && n.textContent !== t) n.textContent = t;
+    }
+    if (playing && Math.abs(phase - lastPhase) > 1e-6) {
+      lastPhase = phase;
+      slider.set(phase);
+    }
+  }
   return {
     element,
-    update(s, phase) {
-      for (const r of READOUTS) {
-        const n = outs.get(r.key);
-        const t = r.text(s, o.formatIT);
-        if (n && n.textContent !== t) n.textContent = t;
-      }
-      if (playing && Math.abs(phase - lastPhase) > 1e-6) {
-        lastPhase = phase;
-        slider.set(phase);
-      }
-    },
+    update,
     setPlaying,
     dispose() {
       play.dispose();
       slider.dispose();
       housing.dispose();
       view.dispose();
+      era.dispose();
       element.remove();
     },
   };

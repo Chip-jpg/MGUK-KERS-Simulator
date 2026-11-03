@@ -40,3 +40,31 @@
   color: var(--color-text-muted);
   font-size: var(--fs-xs);
 }
+
+.mgt-grid__row:has(.mgt-bar) dd {
+  flex: 1;
+}
+
+.mgt-bar {
+  display: block;
+  width: 100%;
+  height: 0.4rem;
+  margin-top: var(--space-1);
+  accent-color: var(--q-energy);
+}
+
+.mgt-grid dd .badge {
+  display: block;
+  margin-top: var(--space-1);
+  white-space: normal;
+}
+
+.mgt-grid dd .badge[hidden] {
+  display: none;
+}
+
+.mgt-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
