@@ -159,17 +159,25 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
       `field-biot-savart` e `pmsm-dq`; resta `car-dynamics`, che estende la frenata KERS
       ([D13](docs/DECISIONS.md)).
 
+- [x] **v0.6.0 — Grafica 3D**: nuova grafica di tutti i simulatori guidata dalla fisica dei modelli: materiali realistici, ombre, linee di campo, particelle di corrente, temperature e nastri di energia con scale dichiarate, qualità grafica Alta / Bilanciata / Base.
+
+- [x] **v0.7.4 — Tipografia indicatori**: indicatori dell’alternatore/motore con lo stesso stile delle etichette degli altri simulatori e testo più nitido, posizione e letture invariate.
 - [x] **v0.7.3 — Indicatori macchina**: letture leggibili e ferme accanto ai componenti dell’alternatore/motore, senza seguire il rotore.
 - [x] **v0.7.2 — Preset guida**: confronto MGU-K 2025 (120 kW) / 2026 (350 kW), selezione evidenziata e riavvio comparabile.
 - [x] **v0.7.1 — Interfaccia**: sensori ancorati ai componenti, spaziature MGU-K, limite fisso 200 FPS e pedali a pulsante.
 - [x] **v0.7.0 — Guida e correzioni**: accelerazione/frenata reversibili, nuova guida con pedali, batteria con arresto a scarica, telemetria live, sensori fissi, schermo intero, scale dei grafici robuste e FPS automatici, analisi estesa del trasformatore.
 
-Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
+Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md). I tag git e le
+GitHub Release partono dalla v0.7.0: le versioni precedenti sono documentate solo in
+`CHANGELOG.md`.
 
 ## Come pubblicare una release
 
 1. Una sola volta: in **Settings → Pages → Build and deployment → Source** scegli
-   **GitHub Actions**.
+   **GitHub Actions**; poi in **Settings → Environments → github-pages → Deployment
+   branches and tags** aggiungi una regola **Tag** con pattern `v*`, mantenendo `main`.
+   Senza questa regola i deploy avviati dai tag vengono rifiutati dalle regole di
+   protezione dell’ambiente.
 2. Aggiorna `CHANGELOG.md` (sposta le voci di `[Unreleased]` in una nuova sezione
    `## [X.Y.Z] - AAAA-MM-GG`) e la versione in `package.json`, poi fai il merge su `main`.
 3. Crea e pubblica il tag annotato: il push del tag `v*` avvia il workflow
@@ -179,6 +187,10 @@ Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
    git tag -a vX.Y.Z -m "KERS Lab vX.Y.Z"
    git push origin vX.Y.Z
    ```
+
+   Se l’esecuzione del tag fallisce o il sito non si aggiorna, avvia a mano il workflow:
+   **Actions → Deploy to GitHub Pages → Run workflow** sul branch `main`
+   (`workflow_dispatch`).
 
 4. Crea la **GitHub Release** dal tag (`Releases → Draft a new release`, oppure
    `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file note.md`), copiando come note
