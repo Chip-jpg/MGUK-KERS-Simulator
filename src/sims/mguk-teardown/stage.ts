@@ -16,7 +16,8 @@ import {
   type StageInfo,
 } from '../../render';
 import { ROTOR_SPEED_PER_VEHICLE_SPEED, type BrakingState } from './model';
-import { CRANK_GEAR_TEETH, PINION_TEETH, WHEEL_R } from './dims';
+import { CAR_DIMS } from '../shared/car/dims';
+import { CRANK_GEAR_TEETH, PINION_TEETH, SCENE_SCALE } from './dims';
 import { createTeardown, type HousingMode, type Teardown } from './geometry';
 
 /**
@@ -27,13 +28,15 @@ import { createTeardown, type HousingMode, type Teardown } from './geometry';
  */
 export const VISUAL_TIME_SCALE = 0.01;
 
+/** Rear tyre radius [m] (shared car, 720 mm tyre). */
+const WHEEL_R = CAR_DIMS.tyreRadius;
 /** Wheel angle per rotor angle: 1 / (rotor rad per metre of travel · wheel radius). */
 export const WHEEL_PER_ROTOR = 1 / (ROTOR_SPEED_PER_VEHICLE_SPEED * WHEEL_R);
 /** Crankshaft turns per wheel turn through the (unseen) transmission: derived from the model. */
 export const CRANK_PER_WHEEL = PINION_TEETH / CRANK_GEAR_TEETH / WHEEL_PER_ROTOR;
 
 /** Ribbon radius [scene units] at P = Pmax. */
-const RIBBON_R_AT_PMAX = 0.03;
+const RIBBON_R_AT_PMAX = 0.022;
 
 const FOV = 36;
 const DEFAULT_ASPECT = 2.1;
@@ -48,23 +51,23 @@ interface FrameSpec {
   elevation: number;
   azimuth: number;
 }
-/** "Insieme": the whole line wheel → MGU-K → inverter → battery (≈ 9.3 units wide), from slightly above. */
+/** "Insieme": wheel → MGU-K → inverter → ES (≈ 6.8 units wide), 3/4 from above. */
 const HOME_FRAME: FrameSpec = {
-  target: [0, -0.1, -0.4],
-  halfW: 4.9,
-  halfH: 1.6,
-  fill: 0.82,
-  elevation: 20,
-  azimuth: 12,
+  target: [-0.25, 1.4, -1.1],
+  halfW: 3.4,
+  halfH: 1.8,
+  fill: 0.7,
+  elevation: 30,
+  azimuth: 24,
 };
-/** "MGU-K": the open machine (Ø 0.52 units) with the crank gear beside it, face-on. */
+/** "MGU-K": the opened machine (Ø 0.52 units at 2:1) with its gear pair, 3/4 into the cut. */
 const MGUK_FRAME: FrameSpec = {
-  target: [-0.2, 0.04, 0.2],
+  target: [-0.05, 0.3 * SCENE_SCALE, 0],
   halfW: 0.62,
-  halfH: 0.4,
-  fill: 0.85,
-  elevation: 16,
-  azimuth: 9,
+  halfH: 0.42,
+  fill: 0.68,
+  elevation: 26,
+  azimuth: 48,
 };
 
 /** Camera position/target that fits `f` into a canvas of the given aspect ratio. */
@@ -119,7 +122,7 @@ export function createTeardownStage(
       'Scena 3D: spaccato dell’MGU-K in frenata con statore, avvolgimenti in rame, rotore a magneti permanenti, ingranaggi verso albero motore e ruota, inverter e batteria con livello di carica; il nastro viola mostra il flusso di energia ruota, MGU-K, inverter, batteria.',
     camera: { ...HOME_VIEW, fov: FOV, far: 120 },
     controls: { minDistance: 0.9, maxDistance: 26, maxPolarAngle: (88 * Math.PI) / 180 },
-    floorY: -WHEEL_R * 4 - 0.02,
+    floorY: -0.002,
     floor: { radius: 40 },
     shadowRadius: 8,
   });
@@ -162,12 +165,12 @@ export function createTeardownStage(
       sensorHeight: '1.7rem',
     }),
     gears: labels.add({
-      text: `Ingranaggi ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
+      text: `Riduzione semplificata (1 coppia) ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
       anchor: a.gears,
       priority: 6,
       occlude: false,
       size: 'sm',
-      offset: [-34, 30],
+      offset: [-90, 64],
     }),
     wheel: labels.add({
       text: 'Ruota posteriore',
@@ -211,6 +214,7 @@ export function createTeardownStage(
       flow.setVisible(flowing);
       flow.setPower(flowing ? s.pKers : 0);
       parts.setSoc(s.soc);
+      parts.setBrakeHeat(s.brakeHeat);
       L.mguk.setText(`MGU-K · ${fmt(s.pKers / 1e3, 0, 'kW')}`);
       L.battery.setText(`SoC ${fmt(s.soc * 100, 1, '%')}`);
     },
