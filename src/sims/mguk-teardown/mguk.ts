@@ -72,7 +72,10 @@ export type Look =
   | 'rubber'
   | 'orange'
   | 'pcb'
-  | 'brass';
+  | 'brass'
+  | 'esCarbon'
+  | 'cell'
+  | 'module';
 
 /** Callbacks the assembly gives the builders, so materials stay in one place. */
 export interface PartSink {

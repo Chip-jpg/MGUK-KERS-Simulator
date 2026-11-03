@@ -188,11 +188,11 @@ export function buildPower(
   const modD = 0.09;
   const acTabs: THREE.Vector3[] = [];
   for (const x of modX) {
-    box(inverter, modW, 0.004, modD, x, yM + 0.002, 0.01, 'plastic', 0.001);
-    box(inverter, modW, 0.012, 0.004, x, yM + 0.006, 0.01 - modD / 2 + 0.002, 'plastic', 0.001);
-    box(inverter, modW, 0.012, 0.004, x, yM + 0.006, 0.01 + modD / 2 - 0.002, 'plastic', 0.001);
-    box(inverter, 0.004, 0.012, modD, x - modW / 2 + 0.002, yM + 0.006, 0.01, 'plastic', 0.001);
-    box(inverter, 0.004, 0.012, modD, x + modW / 2 - 0.002, yM + 0.006, 0.01, 'plastic', 0.001);
+    box(inverter, modW, 0.004, modD, x, yM + 0.002, 0.01, 'module', 0.001);
+    box(inverter, modW, 0.012, 0.004, x, yM + 0.006, 0.01 - modD / 2 + 0.002, 'module', 0.001);
+    box(inverter, modW, 0.012, 0.004, x, yM + 0.006, 0.01 + modD / 2 - 0.002, 'module', 0.001);
+    box(inverter, 0.004, 0.012, modD, x - modW / 2 + 0.002, yM + 0.006, 0.01, 'module', 0.001);
+    box(inverter, 0.004, 0.012, modD, x + modW / 2 - 0.002, yM + 0.006, 0.01, 'module', 0.001);
     box(inverter, modW - 0.01, 0.0015, modD - 0.01, x, yM + 0.0048, 0.01, 'ceramic', 0.0004);
     box(inverter, 0.02, 0.001, modD - 0.02, x - 0.011, yM + 0.006, 0.01, 'copper', 0.0003);
     box(inverter, 0.02, 0.001, modD - 0.02, x + 0.011, yM + 0.006, 0.01, 'copper', 0.0003);
@@ -329,11 +329,11 @@ export function buildPower(
   const ew = 0.008;
   const eyb = -EH / 2;
   const trayH = EH * 0.78;
-  box(es, EW, 0.01, ED, 0, eyb + 0.005, 0, 'carbon', 0.004);
-  box(es, EW, trayH, ew, 0, eyb + trayH / 2, -ED / 2 + ew / 2, 'carbon', 0.003);
-  box(es, EW, trayH, ew, 0, eyb + trayH / 2, ED / 2 - ew / 2, 'carbon', 0.003);
-  box(es, ew, trayH, ED - 2 * ew, -EW / 2 + ew / 2, eyb + trayH / 2, 0, 'carbon', 0.003);
-  box(es, ew, trayH, ED - 2 * ew, EW / 2 - ew / 2, eyb + trayH / 2, 0, 'carbon', 0.003);
+  box(es, EW, 0.01, ED, 0, eyb + 0.005, 0, 'esCarbon', 0.004);
+  box(es, EW, trayH, ew, 0, eyb + trayH / 2, -ED / 2 + ew / 2, 'esCarbon', 0.003);
+  box(es, EW, trayH, ew, 0, eyb + trayH / 2, ED / 2 - ew / 2, 'esCarbon', 0.003);
+  box(es, ew, trayH, ED - 2 * ew, -EW / 2 + ew / 2, eyb + trayH / 2, 0, 'esCarbon', 0.003);
+  box(es, ew, trayH, ED - 2 * ew, EW / 2 - ew / 2, eyb + trayH / 2, 0, 'esCarbon', 0.003);
   // flange seam with bolts (ref 03)
   const ySeam = eyb + trayH;
   box(es, EW + 0.014, 0.006, 0.014, 0, ySeam, -ED / 2, 'darkSteel', 0.002);
@@ -384,7 +384,7 @@ export function buildPower(
     if (r > 0)
       box(es, EW - 2 * ew - 0.012, ch * 0.9, 0.003, 0, cy, z - cd / 2 - 0.003, 'alu', 0.001);
   }
-  inst(es, new THREE.BoxGeometry(cw * 0.9, ch, cd), cellPos, 'ceramic');
+  inst(es, new THREE.BoxGeometry(cw * 0.9, ch, cd), cellPos, 'cell');
   inst(es, new THREE.CylinderGeometry(0.0028, 0.0028, 0.006, 10), termPos, 'brass');
   const socMesh = new THREE.InstancedMesh(
     sink.geo(new THREE.BoxGeometry(cw * 0.78, 0.0016, cd * 0.34)),
@@ -429,11 +429,11 @@ export function buildPower(
     const main = new THREE.Mesh(sink.geo(chamferBox(EW + 0.01, 0.022, ED + 0.01, 0.006, 2)));
     main.position.set(0, 0.011, ED / 2);
     pivot.add(main);
-    sink.cover(main, 'carbon');
+    sink.cover(main, 'esCarbon');
     const step = new THREE.Mesh(sink.geo(chamferBox(EW * 0.62, 0.014, ED * 0.7, 0.005, 2)));
     step.position.set(EW * 0.12, 0.028, ED / 2 + ED * 0.08);
     pivot.add(step);
-    sink.cover(step, 'carbon');
+    sink.cover(step, 'esCarbon');
     lids.push({ pivot, open: -1.75 });
   }
 

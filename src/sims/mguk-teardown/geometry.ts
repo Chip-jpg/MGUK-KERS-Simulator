@@ -12,6 +12,7 @@ import { BRAKE_DISC_ILLUSTRATIVE } from '../../physics';
 import { CAR_DIMS } from '../shared/car/dims';
 import { DISC_START_DEFAULT_C } from '../shared/car/discs';
 import { discFace } from '../shared/car/textures';
+import { carbonAlbedo } from '../../render/textures';
 import {
   BATTERY_POS,
   CABLE_R,
@@ -121,6 +122,27 @@ export function createTeardown(stage: Stage): Teardown {
     insulator: () => std(0xd6c38e, 0.7, 0),
     orange: () => std(0xee7a1f, 0.5, 0.05),
     pcb: () => std(0x2e6a47, 0.6, 0.1),
+    // ES casing: darker satin carbon than the clear-coated kit one, so it holds against the
+    // white studio at "Insieme" distance (ref 03)
+    esCarbon: () => {
+      const map = ownTex(new THREE.CanvasTexture(carbonAlbedo()));
+      map.colorSpace = THREE.SRGBColorSpace;
+      map.wrapS = map.wrapT = THREE.RepeatWrapping;
+      map.repeat.set(6, 6);
+      return new THREE.MeshPhysicalMaterial({
+        color: 0x5c616a,
+        map,
+        roughness: 0.42,
+        metalness: 0.15,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.3,
+        envMapIntensity: 0.6,
+      });
+    },
+    // blue-wrapped prismatic cells: the rows read apart from the alu module walls
+    cell: () => std(0x35547d, 0.55, 0.15),
+    // black PBT power-module frames, so DBC, dies and copper stand out (ref 16)
+    module: () => std(0x24272c, 0.6, 0.05),
   };
   const ownLook = new Map<Look, THREE.MeshStandardMaterial>();
   const ownMat = (look: Look): THREE.MeshStandardMaterial => {
@@ -187,7 +209,8 @@ export function createTeardown(stage: Stage): Teardown {
   const CAP_COLOR: Record<CapKind, number> = {
     // red section faces, as on the exhibition cutaways (refs 08, 15)
     cast: 0xc8463c,
-    iron: 0x8e3a35,
+    // the stator stack is cut as grey laminated iron (ref 10), apart from the red housing
+    iron: 0xffffff,
     steel: 0xd9786c,
     carbon: 0x2a2d32,
     copper: 0xc97b4a,
@@ -195,6 +218,24 @@ export function createTeardown(stage: Stage): Teardown {
   };
   const capGroup = new THREE.Group();
   mg.root.add(capGroup);
+  /** Lamination stripes: one light sheet and a dark insulation line per texel row pair. */
+  const lamTex = (): THREE.Texture => {
+    const c = document.createElement('canvas');
+    c.width = 4;
+    c.height = 8;
+    const x = c.getContext('2d');
+    if (x) {
+      x.fillStyle = '#8d939c';
+      x.fillRect(0, 0, 4, 8);
+      x.fillStyle = '#3c4047';
+      x.fillRect(0, 6, 4, 2);
+    }
+    const t = ownTex(new THREE.CanvasTexture(c));
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(1, 1 / 1.6); // one sheet per 1.6 mm (illustrative: real sheets are 0.1–0.2 mm)
+    return t;
+  };
   for (const [kind, g] of mg.caps) {
     sink.geo(g);
     const m = new THREE.Mesh(
@@ -202,8 +243,9 @@ export function createTeardown(stage: Stage): Teardown {
       own(
         new THREE.MeshStandardMaterial({
           color: CAP_COLOR[kind],
-          roughness: 0.85,
-          metalness: 0,
+          ...(kind === 'iron' ? { map: lamTex() } : {}),
+          roughness: kind === 'iron' ? 0.55 : 0.85,
+          metalness: kind === 'iron' ? 0.35 : 0,
           side: THREE.DoubleSide,
           polygonOffset: true,
           polygonOffsetFactor: -1,
@@ -566,7 +608,8 @@ export function createTeardown(stage: Stage): Teardown {
       else c.o.material = glassMat();
       c.o.castShadow = cutting;
     }
-    for (const l of pw.lids) l.pivot.rotation.x = cutting ? l.open : 0;
+    // lids stay open in both modes: closed, their stacked glass fins hid modules and cells
+    for (const l of pw.lids) l.pivot.rotation.x = l.open;
     capGroup.visible = cutting;
   };
   apply();

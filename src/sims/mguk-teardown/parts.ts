@@ -147,6 +147,10 @@ export class CapBuilder {
     for (const [k, a] of this.quads) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(a, 3));
+      // u = radius, v = axial position [mm]: lets a cap carry axial stripes (laminations)
+      const uv: number[] = [];
+      for (let i = 0; i < a.length; i += 3) uv.push(a[i]! + a[i + 1]!, a[i + 2]!);
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
       g.computeVertexNormals();
       out.set(k, g);
     }
