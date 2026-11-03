@@ -129,6 +129,7 @@ export function createTeardownStage(
     floorY: -0.002,
     floor: { radius: 40 },
     shadowRadius: 8,
+    look: 'teardown',
   });
   let ribbon: EnergyRibbon | null = null;
   let labels: LabelLayer | null = null;
@@ -165,9 +166,10 @@ export function createTeardownStage(
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      offset: [26, 30],
-      sensorWidth: '16ch',
-      sensorHeight: '1.7rem',
+      // two lines ("MGU-K · 120 kW ·" / "27.778 giri/min"), on the background left of the motor
+      offset: [-140, 12],
+      sensorWidth: '17ch',
+      sensorHeight: '2.9rem',
     }),
     gears: labels.add({
       text: `Riduzione semplificata (1 coppia) ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
@@ -175,15 +177,19 @@ export function createTeardownStage(
       priority: 6,
       occlude: false,
       size: 'sm',
-      offset: [-90, 64],
+      offset: [-160, 88],
     }),
     wheel: labels.add({
       text: 'Ruota posteriore',
-      anchor: a.wheel,
+      // hub height: the tyre-top anchor falls outside the home framing and the label was dropped
+      anchor: a.wheel.clone().setY(a.wheel.y * 0.5),
       priority: 6,
       occlude: false,
       size: 'sm',
-      offset: [0, -22],
+      // two lines on the background left of the tyre ("Ruota posteriore ·" / "200 km/h")
+      offset: [-190, 22],
+      sensorWidth: '19ch',
+      sensorHeight: '2.6rem',
     }),
     inverter: labels.add({
       text: 'Inverter',
@@ -191,7 +197,10 @@ export function createTeardownStage(
       priority: 6,
       occlude: false,
       size: 'sm',
-      offset: [18, 24],
+      // one line on the floor in front of the inverter, clear of modules and lid
+      offset: [-20, 112],
+      sensorWidth: '18ch',
+      sensorHeight: '1.6rem',
     }),
     battery: labels.add({
       text: 'Batteria',
@@ -199,9 +208,10 @@ export function createTeardownStage(
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      offset: [0, 28],
-      sensorWidth: '14ch',
-      sensorHeight: '1.7rem',
+      // two lines ("SoC 54,5 % ·" / "0,180 MJ") below the casing, off the cell rows
+      offset: [40, 112],
+      sensorWidth: '13ch',
+      sensorHeight: '2.9rem',
     }),
   };
   let theta = 0;

@@ -67,6 +67,81 @@ export interface StageOptions {
   tier?: QualityTier;
   /** Gentle intro camera move on mount (default true; off with reduced motion). */
   intro?: boolean;
+  /**
+   * Studio preset (opt-in). `'default'`: the light "technical museum" studio.
+   * `'teardown'`: a graded charcoal studio in both themes, softbox reflections, a warm key
+   * and a cool rim over a low fill, Neutral tone mapping, a dark floor that only carries
+   * the contact shadow — metal and copper read with contrast, no white haze.
+   */
+  look?: 'default' | 'teardown';
+}
+
+/** Teardown studio: backdrop gradient stops (centre → edge) and the matching flat/floor tones. */
+export const TEARDOWN_STUDIO = {
+  backdrop: ['#535b66', '#2e333b', '#16191d'],
+  flat: 0x262a30,
+  floor: 0x30353c,
+} as const;
+
+/** Screen-space backdrop of the teardown studio: a soft lift behind the subject, dark rim. */
+function teardownBackdrop(): HTMLCanvasElement {
+  const N = 512;
+  const c = document.createElement('canvas');
+  c.width = N;
+  c.height = N;
+  const g = c.getContext('2d');
+  if (g) {
+    const [a, b, e] = TEARDOWN_STUDIO.backdrop;
+    const grad = g.createRadialGradient(N * 0.5, N * 0.42, N * 0.04, N * 0.5, N * 0.5, N * 0.78);
+    grad.addColorStop(0, a);
+    grad.addColorStop(0.5, b);
+    grad.addColorStop(1, e);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, N, N);
+  }
+  return c;
+}
+
+/** A dark room with three softboxes and a dim floor: highlights on metal without a white fill. */
+function teardownEnvScene(): { scene: THREE.Scene; dispose(): void } {
+  const env = new THREE.Scene();
+  env.background = new THREE.Color(0x0e1013);
+  const geos: THREE.BufferGeometry[] = [];
+  const mats: THREE.Material[] = [];
+  const panel = (w: number, h: number, pos: Vec3Like, k: number, tint = 0xffffff): void => {
+    const geo = new THREE.PlaneGeometry(w, h);
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(tint).multiplyScalar(k),
+      side: THREE.DoubleSide,
+    });
+    geos.push(geo);
+    mats.push(mat);
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(...pos);
+    m.lookAt(0, 0, 0);
+    env.add(m);
+  };
+  panel(10, 10, [0, 14, 2], 2.2, 0xfff4e8); // top softbox
+  panel(3, 12, [-12, 4, 6], 2.6, 0xfff1e2); // key-side strip
+  panel(3, 12, [12, 4, -6], 1.8, 0xd8e6ff); // rim-side strip
+  panel(16, 1.5, [0, 1.5, 14], 0.5); // low front kicker
+  {
+    const geo = new THREE.CircleGeometry(40, 32);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x1a1d22, side: THREE.DoubleSide });
+    geos.push(geo);
+    mats.push(mat);
+    const floor = new THREE.Mesh(geo, mat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -2;
+    env.add(floor);
+  }
+  return {
+    scene: env,
+    dispose() {
+      geos.forEach((x) => x.dispose());
+      mats.forEach((x) => x.dispose());
+    },
+  };
 }
 
 /** Default radius of the studio floor disc [scene units]. */
@@ -148,6 +223,7 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
   let theme: Theme = ctx.theme ?? currentTheme();
   const floorY = opts.floorY ?? -2;
   const shadowRadius = opts.shadowRadius ?? 6;
+  const teardown = opts.look === 'teardown';
 
   // Context AA only when the stage starts without post-processing (base);
   // with a composer, AA comes from MSAA targets / SMAA.
@@ -158,7 +234,7 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
   });
   renderStats.liveRenderers++;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMapping = teardown ? THREE.NeutralToneMapping : THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.info.autoReset = false; // one frame = scene + all post passes
@@ -257,9 +333,15 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
     if (envRT) return;
     const pmrem = new THREE.PMREMGenerator(renderer);
     renderStats.livePmrem++;
-    const room = new RoomEnvironment();
-    envRT = pmrem.fromScene(room, 0.04);
-    room.dispose();
+    if (teardown) {
+      const studio = teardownEnvScene();
+      envRT = pmrem.fromScene(studio.scene, 0.04);
+      studio.dispose();
+    } else {
+      const room = new RoomEnvironment();
+      envRT = pmrem.fromScene(room, 0.04);
+      room.dispose();
+    }
     pmrem.dispose();
     renderStats.livePmrem--;
     renderStats.liveRenderTargets++;
@@ -281,6 +363,12 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
   const tuneBloom = (): void => {
     const b = settings.bloom;
     if (!bloomPass || !b) return;
+    if (teardown) {
+      // only true HDR emissives (disc glow) bloom; lit metal never spreads into a haze
+      bloomPass.threshold = 1.1;
+      bloomPass.strength = b.strength * 0.5;
+      return;
+    }
     const dark = theme === 'dark';
     bloomPass.threshold = dark ? b.threshold : 1.05;
     bloomPass.strength = dark ? b.strength : b.strength * 0.6;
@@ -347,6 +435,10 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
   const bgColor = new THREE.Color();
   /** Gradient backdrop texture, or a flat colour in base (one full-screen pass less). */
   function applyBackground(): void {
+    if (teardown) {
+      scene.background = settings.pbr ? backdropTex : bgColor.setHex(TEARDOWN_STUDIO.flat);
+      return;
+    }
     scene.background = settings.pbr
       ? backdropTex
       : bgColor.setHex(studioBackgroundColor(theme === 'dark'));
@@ -387,8 +479,33 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
     key.intensity = dark ? 1.7 : 1.6;
     rim.intensity = dark ? 1.0 : 0.7;
     renderer.toneMappingExposure = dark ? 1.0 : 0.95;
+    if (teardown) applyTeardownStudio();
     tuneBloom();
   };
+  /** The teardown preset is theme-independent: the viewport stays a charcoal studio. */
+  function applyTeardownStudio(): void {
+    backdropTex?.dispose();
+    backdropTex = new THREE.CanvasTexture(teardownBackdrop());
+    backdropTex.colorSpace = THREE.SRGBColorSpace;
+    // plain dark floor (no grid): lit by the key it stays below the backdrop, the fade
+    // melts it into the background and the contact shadow is the only thing on it
+    floorMat.map = null;
+    floorMat.color.setHex(TEARDOWN_STUDIO.floor);
+    floorMat.roughness = 1;
+    floorMat.needsUpdate = true;
+    floorBasic.map = null;
+    floorBasic.color.setHex(TEARDOWN_STUDIO.flat);
+    floorBasic.needsUpdate = true;
+    applyBackground();
+    hemi.color.set(0xd6e0f0);
+    hemi.groundColor.set(0x14161a);
+    key.color.set(0xfff0dc);
+    key.intensity = 3.2;
+    rim.color.set(0xb8d0ff);
+    rim.intensity = 2.2;
+    fill.intensity = 0.25;
+    renderer.toneMappingExposure = 1.05;
+  }
 
   // --- tier ------------------------------------------------------------------------------
   const tierCbs = new Set<(s: TierSettings) => void>();
@@ -413,12 +530,12 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
     if (settings.ibl) {
       ensureEnv();
       scene.environment = envRT?.texture ?? null;
-      scene.environmentIntensity = 0.55;
-      hemi.intensity = 0.35;
+      scene.environmentIntensity = teardown ? 0.7 : 0.55;
+      hemi.intensity = teardown ? 0.15 : 0.35;
     } else {
       scene.environment = null;
       dropEnv();
-      hemi.intensity = 1.25;
+      hemi.intensity = teardown ? 0.9 : 1.25;
     }
     materials.setTier(settings);
     buildPost();
