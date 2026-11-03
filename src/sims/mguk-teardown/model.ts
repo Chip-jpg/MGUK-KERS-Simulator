@@ -11,27 +11,45 @@ import {
   type KersUiParams,
 } from '../kers-braking/model';
 
-/**
- * MGU-K max rotational speed in the FIA F1 Technical Regulations 2014–2025.
- * FIA 2014 Power Unit leaflet (verify article number):
- * https://www.fia.com/sites/default/files/publication/file/FIA%20F1%20Power%20Unit%20leaflet.pdf
- */
+/** FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3. */
 export const MGUK_MAX_RPM = 50_000;
+/**
+ * 2025: FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3.
+ * 2026: FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.18.5:
+ * relative rotational speed between any two parts, represented here by rotor rpm.
+ */
+export const MGUK_MAX_RPM_BY_ERA = { '2025': MGUK_MAX_RPM, '2026': 60_000 } as const;
+/**
+ * Crank-referenced caps, not rotor torque:
+ * FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3;
+ * FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.11.
+ */
+export const MGUK_MAX_TORQUE_CRANK_NM_BY_ERA = { '2025': 200, '2026': 500 } as const;
+export type MgukEra = keyof typeof MGUK_MAX_RPM_BY_ERA;
 
 /**
- * Rotor angular speed / vehicle speed [rad/m]. Illustrative fixed coupling:
- * assumption, not from regulations; no wheel-to-rotor gearing exists in the repo.
- * Maps the KERS initial-speed slider maximum exactly to MGUK_MAX_RPM.
+ * Rotor angular speed / vehicle speed [rad/m]: didactic single-gear simplification.
+ * In reality the link has a fixed speed ratio to the crankshaft, so rotor rpm
+ * follows engine rpm and the selected gear, not vehicle speed:
+ * FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3;
+ * FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.18.2.
+ * Gear ratios are not public. This maps the slider maximum to the era's max rpm.
  */
 export const ROTOR_SPEED_PER_VEHICLE_SPEED =
   (MGUK_MAX_RPM * 2 * Math.PI) / 60 / toSI({ ...defaultParams(), v1: kersParams.v1.max }).v1;
 
 /**
- * Illustrative permanent-magnet DC-equivalent machine constant [V·s/rad].
- * Assumption: Faraday EMF = K_E * omega reaches DEFAULT_BATTERY.voltage at
- * MGUK_MAX_RPM; no machine winding or magnetic-flux data exists in the repo.
+ * Assumed DC-equivalent machine constant [V·s/rad], no public winding/flux data.
+ * Assumed DC bus voltage, below the 1000 V ceiling:
+ * FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.13.5;
+ * FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.17.6.
+ * EMF reaches DEFAULT_BATTERY.voltage at the era's maximum rpm.
  */
-export const K_E = DEFAULT_BATTERY.voltage / ((MGUK_MAX_RPM * 2 * Math.PI) / 60);
+export const K_E_BY_ERA = {
+  '2025': DEFAULT_BATTERY.voltage / ((MGUK_MAX_RPM_BY_ERA['2025'] * 2 * Math.PI) / 60),
+  '2026': DEFAULT_BATTERY.voltage / ((MGUK_MAX_RPM_BY_ERA['2026'] * 2 * Math.PI) / 60),
+} as const;
+export const K_E = K_E_BY_ERA['2025'];
 
 export interface BrakingState {
   /** Time since braking started [s]. */
@@ -50,7 +68,11 @@ export interface BrakingState {
   readonly omega: number;
   /** Rotor speed [rpm]. */
   readonly rpm: number;
-  /** Absorbed shaft torque magnitude pMech / omega; zero at rest [N·m]. */
+  /**
+   * Rotor-side torque pMech / omega; zero at rest [N·m]. FIA caps are crank-side
+   * (see MGUK_MAX_TORQUE_CRANK_NM_BY_ERA). No torqueCapActive flag is honest
+   * without an assumed crank-to-rotor ratio; that engine/gear model is deferred.
+   */
   readonly torque: number;
   /**
    * Induced EMF = K_E * omega [V], following Faraday's speed dependence.
@@ -91,6 +113,7 @@ export function brakingStateAt(
   phase: number,
   params: KersUiParams = defaultParams(),
   initialSoc = createBattery().energy / DEFAULT_BATTERY.capacity,
+  era: MgukEra = '2025',
 ): BrakingState {
   if (Number.isNaN(phase)) throw new RangeError('brakingStateAt: phase must not be NaN');
   const initialEnergy = createBattery(DEFAULT_BATTERY, initialSoc).energy;
@@ -112,8 +135,8 @@ export function brakingStateAt(
   });
   // powersAt can exceed the cap by a rounding ulp when multiplying by eta.
   const pKers = Math.min(si.Pmax, power.pElec);
-  const omega = state.v * ROTOR_SPEED_PER_VEHICLE_SPEED;
-  const emf = K_E * omega;
+  const omega = state.v * ROTOR_SPEED_PER_VEHICLE_SPEED * (MGUK_MAX_RPM_BY_ERA[era] / MGUK_MAX_RPM);
+  const emf = K_E_BY_ERA[era] * omega;
   const batteryEnergy = initialEnergy + state.stored;
   return Object.freeze({
     t: state.t,
@@ -142,6 +165,7 @@ export function brakingStateAtTime(
   t: number,
   params: KersUiParams = defaultParams(),
   initialSoc = createBattery().energy / DEFAULT_BATTERY.capacity,
+  era: MgukEra = '2025',
 ): BrakingState {
-  return brakingStateAt(t / params.tBrake, params, initialSoc);
+  return brakingStateAt(t / params.tBrake, params, initialSoc, era);
 }

@@ -50,7 +50,7 @@ import './style.css';
 export { params } from './model';
 
 export const MODEL_NOTE_IT =
-  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante, nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K. Nella scena: spessore dei nastri viola ∝ potenza (0,12 m a 350 kW); temperatura dei dischi da un modello termico a un nodo per disco (dischi carbonio-carbonio illustrativi: 1,2 kg anteriori, 0,9 kg posteriori, c = 1400 J/(kg·K); raffreddamento per convezione e irraggiamento), con la potenza dei freni a disco ripartita in modo fisso 60 % anteriore / 40 % posteriore; tutto il calore va nel disco (pastiglie e pinze non modellate); colore del corpo nero alla temperatura calcolata, bagliore solo sopra 700 K con luminosità in scala logaritmica (intensità 2,6·(L/L₂₅₀₀)^1,5, L = log₁₀ del rapporto tra la luminanza visibile del corpo nero a T e a 700 K); bagliore dell’MGU-K ∝ √(|P|/350 kW) (la radice lo rende visibile anche a bassa potenza), luminosità della batteria 0,6 + 1,2 × frazione di carica (indicativa).';
+  'decelerazione costante, resistenza aerodinamica e rotolamento trascurate, rendimento η costante (default 0,95: correzione fissa FIA usata come stima del rendimento, non un rendimento misurato; FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2; nel 2026 0,97, FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.21), nessun limite di energia per giro o di carica della batteria. Pₘₐₓ è il limite di potenza elettrica dell’MGU-K. Nella scena: spessore dei nastri viola ∝ potenza (0,12 m a 350 kW); temperatura dei dischi da un modello termico a un nodo per disco (dischi carbonio-carbonio illustrativi: 1,2 kg anteriori, 0,9 kg posteriori, c = 1400 J/(kg·K); raffreddamento per convezione e irraggiamento), con la potenza dei freni a disco ripartita in modo fisso 60 % anteriore / 40 % posteriore; tutto il calore va nel disco (pastiglie e pinze non modellate); colore del corpo nero alla temperatura calcolata, bagliore solo sopra 700 K con luminosità in scala logaritmica (intensità 2,6·(L/L₂₅₀₀)^1,5, L = log₁₀ del rapporto tra la luminanza visibile del corpo nero a T e a 700 K); bagliore dell’MGU-K ∝ √(|P|/350 kW) (la radice lo rende visibile anche a bassa potenza), luminosità della batteria 0,6 + 1,2 × frazione di carica (indicativa).';
 
 /** Pause at the end of the event before the playback restarts [s]. */
 const END_HOLD = 1.5;
@@ -124,11 +124,11 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     const spec = params[key];
     const hintIT =
       key === 'eta'
-        ? 'Valore illustrativo (0,9 di default).'
+        ? 'Default 0,95: correzione fissa FIA usata come stima del rendimento, non un rendimento misurato (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2); nel 2026 0,97 (FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.21).'
         : key === 'Pmax'
           ? 'Limite sulla potenza elettrica inviata alla batteria.'
           : key === 'm'
-            ? '800 kg: valore tondo illustrativo.'
+            ? '800 kg: massa minima regolamentare 2025, senza carburante e salvo incremento per caldo (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 4.1).'
             : undefined;
     const s = createSlider({
       spec,

@@ -34,8 +34,8 @@ describe('kers-braking params', () => {
     }
   });
 
-  it('defaults match the theory example (10-kers-mguk): 800 kg, 300→100 km/h, 3 s, 120 kW, η 0,9', () => {
-    expect(defaultParams()).toEqual({ m: 800, v1: 300, v2: 100, Pmax: 120, eta: 0.9, tBrake: 3 });
+  it('defaults match the theory example (10-kers-mguk): 800 kg, 300→100 km/h, 3 s, 120 kW, η 0,95', () => {
+    expect(defaultParams()).toEqual({ m: 800, v1: 300, v2: 100, Pmax: 120, eta: 0.95, tBrake: 3 });
   });
 
   it('converts display units to SI at the boundary', () => {
@@ -47,11 +47,16 @@ describe('kers-braking params', () => {
 });
 
 describe('kers-braking gates', () => {
-  for (const id of ['2025', '2026'] as const) {
-    it(`preset ${id}: 800 kg, 300→100 km/h ⇒ ΔE_k displayed "2,47 MJ"`, () => {
+  for (const [id, mass, energyMJ, display] of [
+    ['2025', 800, 2.469135802469136, '2,47'],
+    ['2026', 770, 2.376543209876543, '2,38'],
+  ] as const) {
+    it(`preset ${id}: ${mass} kg, 300→100 km/h ⇒ ΔE_k displayed "${display} MJ"`, () => {
+      // ΔEk = m/2 · ((300/3.6)² − (100/3.6)²):
+      // 800 kg → 2.469135802469136 MJ; (724 + 46) kg → 2.376543209876543 MJ.
       const s = summarize(preset(id));
-      expect(s.result.dEk / 1e6).toBeCloseTo(2.469, 3);
-      expect(formatIT(s.result.dEk / 1e6, 2, 'MJ')).toBe('2,47 MJ');
+      expect(s.result.dEk / 1e6).toBeCloseTo(energyMJ, 3);
+      expect(formatIT(s.result.dEk / 1e6, 2, 'MJ')).toBe(`${display}\u00A0MJ`);
     });
 
     it(`preset ${id}: recovered + dissipated = ΔE_k (exact and after display rounding)`, () => {
@@ -64,17 +69,22 @@ describe('kers-braking gates', () => {
     });
   }
 
-  it('2025 preset numbers (Pmax electrical cap, D8): 0,36 MJ stored, 18,5 s at P_max', () => {
+  it('2025 preset numbers (Pmax electrical cap, D8): 0,36 MJ stored, 19,5 s at P_max', () => {
     const s = summarize(preset('2025'));
     expect(s.result.recovered).toBeCloseTo(120e3 * 3, 3);
-    expect(s.result.timeToRecoverAtPmax).toBeCloseTo((0.9 * s.result.dEk) / 120e3, 9);
+    // t = 0.95 · [800/2 · ((300/3.6)² − (100/3.6)²)] / 120000
+    //   = 19.54732510288066 s; stored = 120000 · 3 = 360000 J.
+    expect(s.result.timeToRecoverAtPmax).toBeCloseTo(19.54732510288066, 9);
     expect(s.meanPower / 1e3).toBeCloseTo(823, 0);
   });
 
-  it('2026 preset recovers more than 2025', () => {
+  it('2026 preset switches power, FIA correction and mass together and recovers more than 2025', () => {
     expect(summarize(preset('2026')).result.recovered).toBeGreaterThan(
       summarize(preset('2025')).result.recovered,
     );
+    // C4.1 base 724 kg + unverified 46 kg tyre estimate = 770 kg.
+    const switched = { ...defaultParams(), ...preset('2026') };
+    expect(switched).toEqual({ m: 770, v1: 300, v2: 100, Pmax: 350, eta: 0.97, tBrake: 3 });
     expect(preset('2026').Pmax).toBe(350);
     expect(preset('2025').Pmax).toBe(120);
   });
@@ -83,9 +93,14 @@ describe('kers-braking gates', () => {
     expect(PRESETS.every((p) => p.verified && p.sources.length > 0)).toBe(true);
     // Italian typography: titles quoted with “ ”, never straight quotes (QA-025)
     for (const s of PRESETS.flatMap((p) => p.sources)) expect(s.labelIT).not.toContain('"');
-    expect(MIN_MASS_2026.kg).toBe(768);
+    // 724 kg regulatory base + 46 kg secondary tyre estimate = 770 kg.
+    expect(MIN_MASS_2026.kg).toBe(770);
+    expect(MIN_MASS_2026.baseKg).toBe(724);
+    expect(MIN_MASS_2026.nominalTyreMassKg).toBe(46);
+    expect(MIN_MASS_2026.verified).toBe(false);
     expect(LAP_LIMIT_2025.joules).toBe(2e6);
-    expect(LAP_RANGE_2026.verified).toBe(false);
+    expect(LAP_RANGE_2026.verified).toBe(true);
+    expect(LAP_RANGE_2026.joules).toBe(8.5e6);
   });
 
   it('random parameter sets keep the energy balance', () => {

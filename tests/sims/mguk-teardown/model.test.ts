@@ -14,10 +14,29 @@ import {
   brakingStateAtTime,
   K_E,
   MGUK_MAX_RPM,
+  MGUK_MAX_RPM_BY_ERA,
+  MGUK_MAX_TORQUE_CRANK_NM_BY_ERA,
+  K_E_BY_ERA,
   ROTOR_SPEED_PER_VEHICLE_SPEED,
 } from '../../../src/sims/mguk-teardown/model';
 
 describe('MGU-K teardown braking readouts', () => {
+  it('keeps era limits and the original default machine constants', () => {
+    expect(MGUK_MAX_RPM_BY_ERA).toEqual({ '2025': 50_000, '2026': 60_000 });
+    expect(MGUK_MAX_TORQUE_CRANK_NM_BY_ERA).toEqual({ '2025': 200, '2026': 500 });
+    expect(MGUK_MAX_RPM).toBe(50_000);
+    // Original mapping: 360 km/h = 100 m/s; ω = 50000 · 2π/60 rad/s.
+    // ω/v = 50π/3 rad/m; K_E = 800/ω = 0.48/π V·s/rad.
+    expect(ROTOR_SPEED_PER_VEHICLE_SPEED).toBeCloseTo((50 * Math.PI) / 3, 12);
+    expect(K_E).toBeCloseTo(0.48 / Math.PI, 12);
+    expect(K_E).toBe(K_E_BY_ERA['2025']);
+    // 2026: ωmax = 60000 · 2π/60; K_E = 800/ωmax = 0.4/π.
+    expect(K_E_BY_ERA['2026']).toBeCloseTo(0.4 / Math.PI, 12);
+    const params = { ...defaultParams(), v1: 360 };
+    expect(brakingStateAt(0, params, 0, '2026').rpm).toBeCloseTo(60_000, 9);
+    expect(brakingStateAt(0, params, 0, '2026').emf).toBeCloseTo(800, 9);
+  });
+
   it('matches the existing state and hand calculation at half the default event', () => {
     const params = defaultParams();
     const existing = stateAt(params, params.tBrake / 2);

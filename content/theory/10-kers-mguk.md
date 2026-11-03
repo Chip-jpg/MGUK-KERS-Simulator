@@ -16,7 +16,7 @@ Energia cinetica da smaltire in una frenata da $v_1$ a $v_2$:
 
 $$\Delta E_k = \frac{1}{2}\,m\left(v_1^2 - v_2^2\right)$$
 
-$P_{\max}$ è il limite sulla potenza **elettrica** dell'MGU-K (quella che arriva alla batteria): con rendimento $\eta$, la potenza meccanica che l'MGU-K può assorbire dalla frenata è al massimo $P_{\max}/\eta$:
+$P_{\max}$ è il tetto **elettrico** assunto nel modello D8 (nel 2025 il testo FIA non chiarisce se i 120 kW siano prima o dopo la correzione fissa): con rendimento $\eta$, la potenza meccanica che l'MGU-K può assorbire dalla frenata è al massimo $P_{\max}/\eta$:
 
 $$P_{\text{MGU-K}}(t) = \min\!\left(P_{\text{frenata}}(t),\ \frac{P_{\max}}{\eta}\right)$$
 
@@ -30,7 +30,7 @@ Potenza media richiesta dalla frenata: $\bar P = \Delta E_k / t_f$. Tempo per as
 
 **Frenata = alternatore + Lenz.** Le ruote fanno girare il rotore: il flusso negli avvolgimenti varia, nasce una f.e.m. ([Faraday-Neumann](03-faraday-neumann.md)) e la corrente indotta, inviata alla batteria, genera una coppia opposta alla rotazione. **Accelerazione = motore + Lorentz.** La corrente della batteria produce una coppia che si somma a quella del motore termico.
 
-**Batteria finita nel laboratorio.** La carica è il rapporto tra energia disponibile e capacità: $\mathrm{SoC}=E_{\mathrm{batt}}/E_{\mathrm{cap}}$. In accelerazione l'energia della batteria diminuisce; in frenata aumenta, con perdite di conversione. Il modello usa $I=P/V$ e, se si introduce resistenza interna, $P_J=RI^2$. La macchina motrice si disattiva quando la batteria è scarica e può ripartire dopo una ricarica almeno al 5 %: questa soglia è una scelta didattica del simulatore, non un dato regolamentare. Nel laboratorio della spira la capacità è illustrativamente 5 kJ; nella guida è 4 MJ, anch'essa scelta didattica, distinta dai limiti di energia **per giro**.
+**Batteria finita nel laboratorio.** La carica è il rapporto tra energia disponibile e capacità: $\mathrm{SoC}=E_{\mathrm{batt}}/E_{\mathrm{cap}}$. In accelerazione l'energia della batteria diminuisce; in frenata aumenta, con perdite di conversione. Il modello usa $I=P/V$ e, se si introduce resistenza interna, $P_J=RI^2$. La macchina motrice si disattiva quando la batteria è scarica e può ripartire dopo una ricarica almeno al 5 %: questa soglia è una scelta didattica del simulatore, non un dato regolamentare. Nel laboratorio della spira la capacità è illustrativamente 5 kJ; nella guida è 4 MJ, finestra utilizzabile regolamentare ΔSoC (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2 diagramma; FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.9), distinta dai limiti di energia **per giro**.
 
 **Prova interattiva.** In [MGU-K: accelerazione e frenata](#/sim/kers-drive) puoi osservare la stessa vettura e la stessa macchina nei due sensi di conversione; il confronto a decelerazione costante conserva i preset e i risultati analitici precedenti. Il passaggio finale è [Guida: acceleratore e freno](#/sim/drive-sim): ↑/W aumenta gradualmente l'acceleratore, ↓/S il freno, oppure usa i pedali sullo schermo. Lo scenario accelera fino a 300 km/h e frena fino a 100 km/h. I grafici mostrano accelerazione con segno, potenze e carica. Il modello longitudinale include resistenza aerodinamica e al rotolamento: la durata della frenata è calcolata e può differire dai 3 s ipotizzati nell'esempio qui sotto, mentre la variazione di energia cinetica rimane circa 2,47 MJ per 800 kg.
 
@@ -40,25 +40,28 @@ Potenza media richiesta dalla frenata: $\bar P = \Delta E_k / t_f$. Tempo per as
 
 **Numeri del regolamento.**
 
-- Fino al 2025: MGU-K massimo **120 kW**; al massimo **2 MJ per giro** dall'MGU-K alla batteria e **4 MJ per giro** dalla batteria all'MGU-K. Fonte: [FIA, Power Unit Regulations 2014](https://www.fia.com/sites/default/files/publication/file/FIA%20F1%20Power%20Unit%20leaflet.pdf); [Honda, Powertrain MGU-H / MGU-K](https://global.honda/en/tech/motorsports/Formula-1/Powertrain_MGU-H_MGU-K/).
-- Dal 2026: MGU-K fino a circa **350 kW**, MGU-H eliminata. Fonte: [Formula 1, regolamento motori 2026](https://www.formula1.com/en/latest/article/more-efficient-less-fuel-and-carbon-net-zero-7-things-you-need-to-know-about.ZhtzvU3cPCv8QO7jtFxQR).
-- Energia recuperabile per giro nel 2026: **circa 7–9 MJ** (fonti secondarie, variabile per evento) [DA VERIFICARE]. Fonte: [Honda, 2026 Regulations Overview](https://global.honda/en/F1/features/2026_Commentary/regulations/); [PlanetF1](https://www.planetf1.com/news/fia-miami-gp-energy-recharge-rules-no-reduction-update-clarification).
-- Massa minima 2026: **768 kg** = 722 kg (auto + pilota, senza carburante) + 46 kg di pneumatici stimati. Fonte: [FIA, comunicato sui regolamenti 2026](https://www.fia.com/news/new-era-competition-fia-showcases-future-focused-formula-1-regulations-2026-and-beyond); [Formula 1, regolamenti 2026](https://www.formula1.com/en/latest/article/fia-unveils-formula-1-regulations-for-2026-and-beyond-featuring-more-agile.75qJiYOHXgeJqsVQtDr2UB).
+- 2014–2025: **120 kW**, **50.000 rpm**, **200 Nm riferiti all’albero motore**; **2 MJ/giro** MGU-K → batteria e **4 MJ/giro** batteria → MGU-K. FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3 e 5.3.2 diagramma.
+- 2026: **350 kW potenza elettrica DC**, **60.000 rpm** relativi fra parti, **500 Nm riferiti all’albero motore**. FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.7, C5.18.5, C5.2.11. Il limite di erogazione dipende dalla velocità (C5.2.8); non è un limite di recupero. MGU-H assente (C5.2.1).
+- Recupero 2026 al bus HV DC CU-K: **8,5 MJ/giro**, riducibili a **7 MJ** in alcuni eventi e fino a **4 MJ** in qualifica; fino a **+0,5 MJ** ai sensi di B7.2 (**massimo 9 MJ**). FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.10. B7.2 non verificato separatamente.
+- Massa minima 2026: **724 kg + massa nominale pneumatici**, **726 kg + pneumatici** in qualifica. FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C4.1, C4.7. I **46 kg** di pneumatici sono una stima secondaria non verificata: totale stimato **770 kg**.
+- η = **0,95** nel 2025 e **0,97** nel 2026: **correzione fissa FIA usata come stima del rendimento, non un rendimento misurato**. FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2; FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.21.
 
 ## Esempio numerico
 
-Massa $m = 800\ \text{kg}$: **valore tondo illustrativo, non la massa regolamentare**. Frenata da $300$ a $100$ km/h, cioè da $83{,}33$ a $27{,}78$ m/s, in $t_f = 3\ \text{s}$ (durata ipotetica).
+Massa $m = 800\ \text{kg}$: **minimo regolamentare 2025**, salvo incremento per caldo, senza carburante (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 4.1). Frenata da $300$ a $100$ km/h, cioè da $83{,}33$ a $27{,}78$ m/s, in $t_f = 3\ \text{s}$ (durata ipotetica).
 
 $$\Delta E_k = \tfrac12 \cdot 800 \cdot \left(83{,}33^2 - 27{,}78^2\right) \approx 2{,}47 \cdot 10^6\ \text{J} = 2{,}47\ \text{MJ}$$
 
-$$\bar P = \frac{2{,}47\ \text{MJ}}{3\ \text{s}} \approx 820\ \text{kW}$$
+$$\bar P = \frac{2{,}47\ \text{MJ}}{3\ \text{s}} \approx 823\ \text{kW}$$
 
-Con decelerazione costante la potenza di frenata scende da circa $1{,}23$ MW a $0{,}41$ MW, sempre sopra il tetto meccanico $P_{\max}/\eta$: l'MGU-K lavora a potenza massima per tutti i 3 s. Con un rendimento illustrativo $\eta = 0{,}9$:
+Con decelerazione costante la potenza di frenata scende da circa $1{,}23$ MW a $0{,}41$ MW, sempre sopra il tetto meccanico $P_{\max}/\eta$: l'MGU-K lavora a potenza massima per tutti i 3 s. Con la correzione FIA usata come stima del rendimento sopra citata:
 
-- Con $P_{\max} = 120\ \text{kW}$: assorbiti meccanicamente $\tfrac{120\ \text{kW}}{0{,}9}\cdot 3\ \text{s} \approx 0{,}40\ \text{MJ}$; in batteria $E_{\text{rec}} = 120\ \text{kW}\cdot 3\ \text{s} = 0{,}36\ \text{MJ}$ (circa $15\ \%$); perdite MGU-K circa $0{,}04$ MJ; ai freni circa $2{,}07$ MJ.
-- Con $P_{\max} = 350\ \text{kW}$: in batteria $E_{\text{rec}} = 1{,}05\ \text{MJ}$ (circa $43\ \%$); perdite MGU-K circa $0{,}12$ MJ; ai freni circa $1{,}30$ MJ.
+- Con $\eta = 0{,}95$ e $P_{\max} = 120\ \text{kW}$: assorbiti meccanicamente $\tfrac{120\ \text{kW}}{0{,}95}\cdot 3\ \text{s} \approx 0{,}379\ \text{MJ}$; in batteria $E_{\text{rec}} = 120\ \text{kW}\cdot 3\ \text{s} = 0{,}36\ \text{MJ}$ (circa $15\ \%$); perdite MGU-K circa $0{,}019$ MJ; ai freni circa $2{,}090$ MJ.
+- A parità di massa (800 kg, confronto di potenza e η), con $\eta = 0{,}97$ e $P_{\max} = 350\ \text{kW}$: in batteria $E_{\text{rec}} = 1{,}05\ \text{MJ}$ (circa $43\ \%$); perdite MGU-K circa $0{,}032$ MJ; ai freni circa $1{,}387$ MJ.
 
-Per assorbire tutti i 2,47 MJ alla potenza massima servirebbero $t = 0{,}9 \cdot 2{,}47\ \text{MJ} / 120\ \text{kW} \approx 18{,}5\ \text{s}$ (in batteria solo $0{,}9 \cdot 2{,}47 \approx 2{,}22$ MJ). Il modello trascura resistenza aerodinamica e attriti.
+Il preset 2026 applica anche la massa stimata di **770 kg** (724 + 46 kg): $\Delta E_k = \tfrac12 \cdot 770 \cdot [(300/3{,}6)^2 - (100/3{,}6)^2] \approx 2{,}377\ \text{MJ}$, visualizzati come **2,38 MJ**. Con $\eta = 0{,}97$ e 350 kW per 3 s: in batteria **1,05 MJ**, perdite **0,032 MJ**, ai freni **1,294 MJ**.
+
+Per assorbire tutti i 2,47 MJ alla potenza massima servirebbero $t = 0{,}95 \cdot 2{,}4691358\ \text{MJ} / 120\ \text{kW} \approx 19{,}5473\ \text{s}$ (in batteria solo $0{,}95 \cdot 2{,}47 \approx 2{,}35$ MJ). Il modello trascura resistenza aerodinamica e attriti.
 
 ## Collegamento con KERS / MGU-K
 

@@ -78,7 +78,7 @@ export function createPresets(o: {
     notes.append(
       el('p', { class: 'kers-presets__note' }, [
         el('strong', { text: 'Massa: ' }),
-        `800 kg è un valore tondo illustrativo, non la massa regolamentare. Massa minima 2026: ${MIN_MASS_2026.noteIT} `,
+        `800 kg è la massa minima regolamentare 2025, senza carburante e salvo incremento per caldo (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 4.1). Massa minima 2026: ${MIN_MASS_2026.noteIT} `,
         sourceLinks(MIN_MASS_2026.sources),
       ]),
     );
