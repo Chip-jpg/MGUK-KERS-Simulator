@@ -107,6 +107,7 @@ export const it = {
       'joule-transformer': 'Trasformatore e perdite Joule',
       'rl-energy': 'Autoinduzione, circuito RL, energia',
       'car-dynamics': 'Dinamica della vettura: frenata combinata MGU-K + freni',
+      'mguk-teardown': 'MGU-K in frenata: spaccato 3D',
     },
   },
   errors: {

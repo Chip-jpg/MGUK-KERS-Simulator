@@ -1,0 +1,42 @@
+/* mguk-teardown simulator (scoped by .mgt-* class names). */
+
+.mgt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mgt-grid {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.mgt-grid__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.mgt-grid dt {
+  color: var(--color-text-muted);
+}
+
+.mgt-grid dd {
+  margin: 0;
+  min-width: 9ch;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.mgt-grid__row:nth-child(4) dd {
+  color: var(--q-energy);
+}
+
+.mgt-cap {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
