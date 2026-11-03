@@ -486,11 +486,14 @@ export function createTeardown(stage: Stage): Teardown {
     up(shaftB, 0.035),
     up(shaftA, 0.03),
     meshPoint,
+    // shaft → across the air gap at the drive-end winding overhang (z < −stack/2), so the
+    // ribbon does not hide the magnets in the open quarter → over the housing to the terminal
     mmPolar(26, q, -70),
-    mmPolar(33, q, -38),
-    mmPolar(33, q, 0),
-    mmPolar(45, q, 18),
-    mmPolar(66, q * 1.2, 22),
+    mmPolar(30, q, -46),
+    mmPolar(44, q, -44),
+    mmPolar(60, q * 1.3, -46),
+    mmPolar(72, TERMINAL_UP, -40),
+    mmPolar(76, TERMINAL_UP, 0),
     mmPolar(76, TERMINAL_UP, 18),
     ...busV.slice(1).map((v) => up(v, 0.014)),
     invP(pw.at.modules),

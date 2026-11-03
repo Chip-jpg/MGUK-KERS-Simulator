@@ -287,7 +287,37 @@ export function buildPower(
     lid.position.set(0, 0.004, D / 2);
     pivot.add(lid);
     sink.cover(lid, 'alu');
-    lids.push({ pivot, open: -2.55 });
+    // outer cooling fins (along z) and inner stiffening ribs + gasket rim, so the open lid
+    // reads as a cast part rather than a blank plate
+    const ribs = (
+      w: number,
+      h: number,
+      d: number,
+      y: number,
+      xs: number[],
+      look: Look,
+      zs = [D / 2],
+    ): void => {
+      for (const x of xs)
+        for (const z of zs) {
+          const r = new THREE.Mesh(sink.geo(chamferBox(w, h, d, Math.min(w, h) * 0.3, 1)));
+          r.position.set(x, y, z);
+          pivot.add(r);
+          sink.cover(r, look);
+        }
+    };
+    const nFin = 9;
+    ribs(
+      0.004,
+      0.008,
+      D - 0.02,
+      0.012,
+      Array.from({ length: nFin }, (_, k) => (k / (nFin - 1) - 0.5) * (W - 0.03)),
+      'alu',
+    );
+    ribs(0.006, 0.006, D - 0.01, -0.003, [-W / 2 + 0.004, W / 2 - 0.004, -W / 6, W / 6], 'housing');
+    ribs(W - 0.01, 0.006, 0.006, -0.003, [0], 'housing', [0.006, D - 0.004, D / 2]);
+    lids.push({ pivot, open: -2.95 });
   }
 
   // ================================================================ energy store

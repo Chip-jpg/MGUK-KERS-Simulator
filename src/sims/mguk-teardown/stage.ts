@@ -36,7 +36,7 @@ export const WHEEL_PER_ROTOR = 1 / (ROTOR_SPEED_PER_VEHICLE_SPEED * WHEEL_R);
 export const CRANK_PER_WHEEL = PINION_TEETH / CRANK_GEAR_TEETH / WHEEL_PER_ROTOR;
 
 /** Ribbon radius [scene units] at P = Pmax. */
-const RIBBON_R_AT_PMAX = 0.022;
+const RIBBON_R_AT_PMAX = 0.016;
 
 const FOV = 36;
 const DEFAULT_ASPECT = 2.1;
@@ -51,14 +51,17 @@ interface FrameSpec {
   elevation: number;
   azimuth: number;
 }
-/** "Insieme": wheel → MGU-K → inverter → ES (≈ 6.8 units wide), 3/4 from above. */
+/**
+ * "Insieme": MGU-K → inverter → ES framed tight, 3/4 from above; the wheel is allowed to
+ * crop at the left edge so the machine, not the tyre, carries the view.
+ */
 const HOME_FRAME: FrameSpec = {
-  target: [-0.25, 1.4, -1.1],
-  halfW: 3.4,
-  halfH: 1.8,
-  fill: 0.7,
-  elevation: 30,
-  azimuth: 24,
+  target: [0.55, 1.05, -0.95],
+  halfW: 2.5,
+  halfH: 1.45,
+  fill: 0.82,
+  elevation: 32,
+  azimuth: 34,
 };
 /** "MGU-K": the opened machine (Ø 0.52 units at 2:1) with its gear pair, 3/4 into the cut. */
 const MGUK_FRAME: FrameSpec = {
@@ -66,8 +69,8 @@ const MGUK_FRAME: FrameSpec = {
   halfW: 0.62,
   halfH: 0.42,
   fill: 0.68,
-  elevation: 26,
-  azimuth: 48,
+  elevation: 30,
+  azimuth: 62,
 };
 
 /** Camera position/target that fits `f` into a canvas of the given aspect ratio. */

@@ -32,7 +32,7 @@ test.describe('navigation smoke', () => {
 
     await nav.getByRole('link', { name: 'Simulatori', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Simulatori' })).toBeVisible();
-    await expect(page.locator('.sim-index > li')).toHaveCount(8);
+    await expect(page.locator('.sim-index > li')).toHaveCount(9);
 
     await page.goto('./#/sim/faraday');
     await expect(page.locator('.sim-scene')).toBeVisible();
