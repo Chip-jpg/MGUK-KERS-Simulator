@@ -32,7 +32,7 @@ import {
   type MaterialKind,
   type Stage,
   type StageInfo,
-  type TraceJob,
+  type TracedLine,
 } from '../../render';
 import { quantityColorHex } from '../../ui';
 import { params, type FaradayMode, type FaradayParams } from './model';
@@ -42,6 +42,7 @@ import {
   FACE_HZ,
   FLOOR_Y,
   GAP_HALF,
+  LAMP_POS,
   RING_Y,
   SHAFT_BOT,
   SHAFT_TOP,
@@ -94,16 +95,16 @@ export interface FaradayScene {
 }
 
 // --- coil dimensions (scene units, 1 unit = 2,5 cm; illustrative) ------------------------
-/** Coil side at S = S_max (6 cm): leaves 0,15 units to the pole faces when α = 0. */
-const LOOP_SIDE_MAX = 2.4;
-const WIRE_R = 0.021;
+/** Coil side at S = S_max (7,5 cm): leaves 0,25 units to the pole faces when α = 90°. */
+const LOOP_SIDE_MAX = 3.0;
+const WIRE_R = 0.04;
 const PROJ_X = GAP_HALF - 0.06;
-/** Default framing: 3/4 from the front right, slightly above the slip rings. */
+/** Default framing: whole rig, slight 3/4 from the front right, looking into the gap. */
 const FOV = 34;
-const VIEW_TARGET: [number, number, number] = [0.15, -0.2, 0.35];
-const VIEW_DIST = 12.2;
-const VIEW_EL = (27 * Math.PI) / 180;
-const VIEW_AZ = (35 * Math.PI) / 180;
+const VIEW_TARGET: [number, number, number] = [0, -2.2, 0.4];
+const VIEW_DIST = 25.5;
+const VIEW_EL = (21 * Math.PI) / 180;
+const VIEW_AZ = (20 * Math.PI) / 180;
 const ROTATING_VIEW = {
   position: [
     VIEW_TARGET[0] + VIEW_DIST * Math.cos(VIEW_EL) * Math.sin(VIEW_AZ),
@@ -117,6 +118,7 @@ const TURN_CAP = { alta: 24, bilanciata: 16, base: 8 } as const;
 /** Teardown tints of the kit materials (re-applied every frame: tier switches replace them). */
 const TINTS: Array<[MaterialKind, string, number, number]> = [
   ['plastic', 'bakelite', 0x3a2c24, 0.55],
+  ['plastic', 'wood', 0x5e3f26, 0.62],
   ['plastic', 'socketRed', 0xa8261e, 0.4],
   ['plastic', 'socketBlack', 0x17181b, 0.45],
   ['plastic', 'former', 0x343a42, 0.5],
@@ -127,17 +129,21 @@ const TINTS: Array<[MaterialKind, string, number, number]> = [
   ['enamel', '', 0xe48a50, 0.34],
 ];
 
+/** Length of the n̂ shaft: tip stays 0,3 units clear of the pole faces at α = 0. */
+const normalLen = (side: number): number => Math.min(GAP_HALF - 0.55, 0.5 + side * 0.25);
+
 /** Smallest drawn coil side (S = S_min): keeps the working part readable. */
-const LOOP_SIDE_MIN = 0.8;
+const LOOP_SIDE_MIN = 1.4;
 
 /**
- * Visual side of the loop for an area S [m²]: grows with √S from LOOP_SIDE_MIN (S_min) to
- * LOOP_SIDE_MAX (S_max). Illustrative (affine in √S, not to scale) so the default coil fills
- * the gap; the label always shows the real S-dependent Φ.
+ * Visual side of the loop for an area S [m²]: grows with log S from LOOP_SIDE_MIN (S_min) to
+ * LOOP_SIDE_MAX (S_max). Illustrative (monotonic, not to scale) so the default coil
+ * (S = 0,02 m² → ≈ 2,4 units) fills most of the gap; the label always shows the real Φ.
  */
 export function loopSide(S: number): number {
   const { min, max } = params.S;
-  const f = Math.sqrt(Math.min(1, Math.max(0, (S - min) / (max - min))));
+  const s = Math.min(max, Math.max(min, Number.isFinite(S) ? S : min));
+  const f = Math.log(s / min) / Math.log(max / min);
   return LOOP_SIDE_MIN + (LOOP_SIDE_MAX - LOOP_SIDE_MIN) * f;
 }
 
@@ -178,9 +184,9 @@ export function createFaradayScene(
     ariaLabel:
       'Scena 3D: generatore da laboratorio con nucleo a U in ferro laminato, bobine di campo aperte in sezione, espansioni polari N e S, linee del campo B calcolate nel traferro, bobina di N spire che ruota su un albero verticale con anelli e spazzole collegati a una lampadina, e l’area proiettata attraversata dal flusso.',
     camera: { ...ROTATING_VIEW, fov: FOV },
-    controls: { minDistance: 4, maxDistance: 26 },
+    controls: { minDistance: 4, maxDistance: 36 },
     floorY: FLOOR_Y,
-    shadowRadius: 6.5,
+    shadowRadius: 7.5,
     look: 'teardown',
   });
   sceneStats.liveRenderers++;
@@ -228,38 +234,32 @@ export function createFaradayScene(
   scene.add(rig.root);
   stage.occluders.push(...rig.occluders);
 
-  // --- field lines (computed: gapField) ----------------------------------------------------
-  const field: FieldLines = createFieldLines(stage, { linewidth: 1.7, spacing: 1.0, speed: 1.1 });
-  const traceJob = (): TraceJob => {
-    // fewer, thinner lines than the light studio: the coil must read through them
-    const n = Math.max(12, Math.round(30 * stage.settings.lineDensity));
-    return {
-      field: {
-        kind: 'gap',
-        geometry: { gap: 2 * GAP_HALF, width: 2 * FACE_HY, depth: 2 * FACE_HZ },
-        B0: 1,
-      },
-      seeds: seedRect(
-        [-GAP_HALF + 0.03, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-        FACE_HY - 0.06,
-        FACE_HZ - 0.06,
-        n,
-      ),
-      options: {
-        bounds: { min: [-3.2, -2.6, -3.0], max: [3.2, 2.6, 3.0] },
-        stopBoxes: [
-          {
-            min: [GAP_HALF - 0.02, -FACE_HY - 0.05, -FACE_HZ - 0.05],
-            max: [3.2, FACE_HY + 0.05, FACE_HZ + 0.05],
-          },
-        ],
-        maxAngle: 0.05,
-      },
-    };
+  // --- field lines: the model's uniform B between the pole faces -----------------------------
+  // straight, evenly spaced N → S lines on a regular grid over the face (equal flux per line);
+  // fringing outside the faces is left out on purpose: the sim assumes a uniform field.
+  const field: FieldLines = createFieldLines(stage, {
+    linewidth: 1.6,
+    spacing: 1.2,
+    speed: 1.1,
+    base: 0.85,
+    gain: 0.7,
+  });
+  const straightLines = (): TracedLine[] => {
+    const seeds = seedRect([0, 0, 0], [0, 1, 0], [0, 0, 1], FACE_HY - 0.2, FACE_HZ - 0.2, 12);
+    const M = 24;
+    return seeds.map(([, y, z]) => {
+      const points = new Float32Array(M * 3);
+      const mags = new Float32Array(M).fill(1);
+      const arc = new Float32Array(M);
+      for (let i = 0; i < M; i++) {
+        const x = -GAP_HALF + 0.01 + ((2 * GAP_HALF - 0.02) * i) / (M - 1);
+        points.set([x, y, z], 3 * i);
+        arc[i] = x + GAP_HALF;
+      }
+      return { points, mags, arc, count: M, closed: false, reason: 'source' as const };
+    });
   };
-  void field.setJob(traceJob());
+  field.setLines(straightLines());
 
   // --- rotating coil -------------------------------------------------------------------------
   const coil = new THREE.Group();
@@ -289,19 +289,19 @@ export function createFaradayScene(
     new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.1, emissiveIntensity: 0.6 }),
   );
   const nShaft = new THREE.Mesh(
-    geo(new THREE.CylinderGeometry(0.022, 0.022, 1, 10).rotateZ(-Math.PI / 2)),
+    geo(new THREE.CylinderGeometry(0.035, 0.035, 1, 12).rotateZ(-Math.PI / 2)),
     normalMat,
   );
   const nHead = new THREE.Mesh(
-    geo(new THREE.ConeGeometry(0.075, 0.22, 16).rotateZ(-Math.PI / 2)),
+    geo(new THREE.ConeGeometry(0.1, 0.26, 18).rotateZ(-Math.PI / 2)),
     normalMat,
   );
   coil.add(nShaft, nHead);
   const coilFlow: CurrentFlow = createCurrentFlow(stage, {
     path: [new THREE.Vector3(), new THREE.Vector3(0, 1, 0)],
     closed: true,
-    count: 46,
-    radius: 0.032,
+    count: 28,
+    radius: 0.036,
     speedPerAmp: 1.4,
     vMax: 1.6,
     smooth: false,
@@ -393,10 +393,10 @@ export function createFaradayScene(
     coilFlow.setPath(fp, true);
     hubTop.position.y = a0;
     hubBottom.position.y = -a0;
-    const nLen = 0.45 + side * 0.32;
+    const nLen = normalLen(side);
     nShaft.scale.set(nLen, 1, 1);
     nShaft.position.set(nLen / 2, 0, 0);
-    nHead.position.set(nLen + 0.1, 0, 0);
+    nHead.position.set(nLen + 0.12, 0, 0);
   };
 
   // --- external circuit current -------------------------------------------------------------------
@@ -472,83 +472,63 @@ export function createFaradayScene(
   scene.add(bRef);
   stage.castShadows(coil);
 
-  // --- labels: on the background around the rig, never on the coil -------------------------------
+  // --- labels: each on a short leader from its part, outside the gap (never on the coil) -----------
+  // Left column: N, B, load (lamp). Right column: S, f.e.m. (brushes), Φ, α. n̂ above the gap.
   const labels = createLabelLayer(stage, overlay);
-  const anchors = {
+  const parts = {
     n: rig.anchors.n,
     s: rig.anchors.s,
-    b: v(-GAP_HALF + 0.1, -FACE_HY + 0.25, FACE_HZ),
+    b: v(-GAP_HALF + 0.35, -0.5, FACE_HZ - 0.2),
     normal: v(),
     alpha: v(),
     phi: v(),
     emf: rig.anchors.brushes,
     load: rig.anchors.lamp,
   };
-  const L: Record<keyof typeof anchors, Label> = {
-    n: labels.add({
-      text: 'N',
-      anchor: anchors.n,
-      size: 'lg',
-      priority: 9,
-      occlude: false,
-      offset: [-40, -34],
-    }),
-    s: labels.add({
-      text: 'S',
-      anchor: anchors.s,
-      size: 'lg',
-      priority: 9,
-      occlude: false,
-      offset: [40, -34],
-    }),
-    b: labels.add({
-      text: 'B',
-      anchor: anchors.b,
-      quantity: 'b',
-      priority: 6,
-      occlude: false,
-      offset: [-190, 40],
-    }),
-    normal: labels.add({ text: 'n̂', anchor: anchors.normal, quantity: 'accent', priority: 7 }),
-    alpha: labels.add({
-      text: 'α',
-      anchor: anchors.alpha,
-      quantity: 'accent',
-      priority: 5,
-      size: 'sm',
-      occlude: false,
-      offset: [160, 74],
-    }),
-    phi: labels.add({
-      text: 'Φ',
-      anchor: anchors.phi,
-      quantity: 'b',
-      priority: 8,
-      occlude: false,
-      offset: [200, 30],
-      sensorWidth: '14ch',
-      sensorHeight: '2.9rem',
-    }),
-    emf: labels.add({
-      text: 'f.e.m.',
-      anchor: anchors.emf,
-      quantity: 'emf',
-      priority: 8,
-      occlude: false,
-      offset: [170, -60],
-      sensorWidth: '16ch',
-    }),
-    load: labels.add({
-      text: 'carico',
-      anchor: anchors.load,
-      quantity: 'energy',
-      priority: 4,
-      size: 'sm',
-      occlude: false,
-      offset: [-170, -40],
-      sensorWidth: '20ch',
-      sensorHeight: '2.6rem',
-    }),
+  type Key = keyof typeof parts;
+  /** Label positions (world); the leader runs from the part to here. */
+  const ends: Record<Key, THREE.Vector3> = {
+    n: v(-4.6, 1.9, FACE_HZ),
+    s: v(4.6, 1.9, FACE_HZ),
+    b: v(-6.8, -0.4, FACE_HZ),
+    normal: v(1.3, 2.45, 1.2),
+    alpha: v(6.6, -2.6, FACE_HZ),
+    phi: v(6.8, -0.4, FACE_HZ),
+    emf: v(4.6, 3.0, 0.9),
+    load: v(-7.0, -4.2, LAMP_POS.z),
+  };
+  const KEYS = Object.keys(parts) as Key[];
+  const leaderPos = new Float32Array(KEYS.length * 6);
+  const leaderGeo = geo(new THREE.BufferGeometry());
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = mat(
+    new THREE.LineBasicMaterial({ color: 0x9da7b3, transparent: true, opacity: 0.75 }),
+  );
+  const leaders = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaders.frustumCulled = false;
+  scene.add(leaders);
+  const updateLeaders = (rotating: boolean): void => {
+    KEYS.forEach((k, i) => {
+      const on = rotating || !['normal', 'alpha', 'phi'].includes(k);
+      const a = parts[k];
+      const b = on ? ends[k] : a;
+      leaderPos.set([a.x, a.y, a.z, b.x, b.y, b.z], 6 * i);
+    });
+    (leaderGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+  };
+  const tag = (
+    k: Key,
+    o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
+  ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  const L: Record<Key, Label> = {
+    n: tag('n', { text: 'N', size: 'lg', priority: 9 }),
+    s: tag('s', { text: 'S', size: 'lg', priority: 9 }),
+    b: tag('b', { text: 'B', quantity: 'b', priority: 6 }),
+    normal: tag('normal', { text: 'n̂', quantity: 'accent', priority: 7, size: 'sm' }),
+    alpha: tag('alpha', { text: 'α', quantity: 'accent', priority: 5, size: 'sm' }),
+    phi: tag('phi', { text: 'Φ', quantity: 'b', priority: 8, sensorWidth: '14ch' }),
+    emf: tag('emf', { text: 'f.e.m.', quantity: 'emf', priority: 8, sensorWidth: '16ch' }),
+    load: tag('load', { text: 'carico', quantity: 'energy', priority: 4, sensorWidth: '20ch' }),
   };
 
   // --- theme -----------------------------------------------------------------------------------------
@@ -569,7 +549,7 @@ export function createFaradayScene(
   const offTier = stage.onTierChange((s) => {
     coilKey = '';
     lampLight.visible = s.tier !== 'base';
-    void field.setJob(traceJob());
+    field.setLines(straightLines());
   });
   lampLight.visible = stage.tier !== 'base';
 
@@ -639,7 +619,7 @@ export function createFaradayScene(
         0.12 + 0.3 * Math.abs(c) * Math.min(1, p.B / 0.5);
       outline.scale.set(1, side, side);
       // α arc under the coil
-      const ay = -side / 2 - 0.22;
+      const ay = -side / 2 - 0.1;
       const ar = 0.55 + side * 0.18;
       for (let i = 0; i < ARC_N; i++) {
         const th = (s.alpha * i) / (ARC_N - 1);
@@ -652,12 +632,14 @@ export function createFaradayScene(
       bRef.position.set(0, ay, 0);
       bRef.scale.set(Math.min(ar + 0.25, PROJ_X - 0.05), 1, 1);
       const mid = s.alpha / 2;
-      anchors.alpha.set((ar + 0.2) * Math.cos(mid), ay, -(ar + 0.2) * Math.sin(mid));
-      const nLen = 0.45 + side * 0.32;
-      anchors.normal.set(nLen + 0.38, 0, 0);
-      coil.localToWorld(anchors.normal);
-      anchors.phi.set(PROJ_X, -side / 2, side / 2);
+      parts.alpha.set(ar * Math.cos(mid), ay, -ar * Math.sin(mid));
+      // n̂: leader from the arrow tip up to a fixed spot above the gap (off the winding)
+      parts.normal.set(normalLen(side) + 0.25, 0, 0);
+      coil.localToWorld(parts.normal);
+      parts.phi.set(PROJ_X, -side / 4, (side / 2) * Math.abs(c));
     }
+    for (const k of ['normal', 'alpha', 'phi'] as const) L[k].setVisible(rotating);
+    updateLeaders(rotating);
     const t = s.labels;
     if (t) {
       L.b.setText(t.b);

@@ -5,9 +5,9 @@
  * Reference (real dimensions, one source): LEYBOLD 562 11 "U-core with yoke", instruction
  * sheet 562 11 (https://www.famaf.unc.edu.ar/~pury/famaf.gui/modern1/leybold/56211e.pdf):
  * limb cross-section 4 cm × 4 cm, width of the U-core 15 cm, height 13 cm. Those three
- * numbers set the iron (1 scene unit = 2,5 cm). ILLUSTRATIVE (not from the sheet): the pole
- * shoes and the 7,5 cm gap, the field-coil bobbins, the rotating-coil former, the aluminium
- * bridge with bearing, slip rings, brush holder, lamp board and pulley.
+ * numbers set the iron (1 scene unit = 2,5 cm). ILLUSTRATIVE (not from the sheet): the shaped
+ * pole shoes and the 8,75 cm gap, the field-coil bobbins, the rotating-coil former, the
+ * aluminium bridge with bearing, slip rings, brush holder, wooden base board and lamp board.
  *
  * The field coils on the limbs are shown opened (front half removed by a clipping plane,
  * z > 0) with flat section caps: copper turns in cross-section around the laminated limb.
@@ -27,9 +27,9 @@ export const CORE_W = cm(15); // 6
 export const CORE_H = cm(13); // 5,2
 export const LIMB_X = CORE_W / 2 - LIMB / 2; // limb axes at x = ±2,2
 // --- illustrative pole shoes and gap ------------------------------------------------------
-export const GAP_HALF = 1.5; // pole faces at x = ±1,5 (7,5 cm gap)
-export const FACE_HY = 1.45;
-export const FACE_HZ = 1.45;
+export const GAP_HALF = 1.75; // pole faces at x = ±1,75 (8,75 cm gap)
+export const FACE_HY = 1.65;
+export const FACE_HZ = 1.5;
 export const LIMB_TOP = -FACE_HY; // shoes sit on the limb ends
 export const CORE_BOT = LIMB_TOP - CORE_H; // −6,65
 export const YOKE_TOP = CORE_BOT + LIMB;
@@ -38,13 +38,13 @@ export const FLOOR_Y = BASE_TOP - 0.3;
 // --- bridge, slip rings, brushes, lamp (illustrative) --------------------------------------
 export const BRIDGE_Y = FACE_HY; // underside of the aluminium bridge
 export const BRIDGE_T = 0.12;
-export const RING_Y = [1.98, 2.34] as const;
+export const RING_Y = [BRIDGE_Y + 0.53, BRIDGE_Y + 0.89] as const;
 export const RING_R = 0.2;
-export const SHAFT_TOP = 2.86;
+export const SHAFT_TOP = BRIDGE_Y + 1.41;
 export const SHAFT_BOT = YOKE_TOP + 0.42;
 export const BLOCK_Z = [0.56, 0.96] as const; // brush-holder block, front of the shaft
-/** Lamp board on the top of the N pole shoe, in front of the bridge. */
-export const LAMP_POS = new THREE.Vector3(-2.25, FACE_HY, 0.93);
+/** Lamp board on the base board, front left (the leads run down to it). */
+export const LAMP_POS = new THREE.Vector3(-3.45, BASE_TOP, 1.75);
 
 /** Geometry / material sink with resource tracking (owned by the scene). */
 export interface RigSink {
@@ -159,16 +159,30 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
     return m;
   };
 
-  // --- base board (bakelite on rubber feet) -------------------------------------------------
+  // --- base board (varnished beech on rubber feet, brass wood screws) ----------------------------
+  add(k.mesh(k.geo(chamferBox(8.6, 0.22, 4.9, 0.06)), 'plastic', 'wood'), 0, BASE_TOP - 0.11, 0.3);
+  // darker edge band under the plank so it reads as a thick board on the dark floor
   add(
-    k.mesh(k.geo(chamferBox(8.4, 0.26, 4.6, 0.05)), 'plastic', 'bakelite'),
+    k.mesh(k.geo(chamferBox(8.5, 0.05, 4.8, 0.02)), 'plastic', 'bakelite'),
     0,
-    BASE_TOP - 0.13,
-    0.25,
+    BASE_TOP - 0.245,
+    0.3,
   );
-  const footGeo = k.geo(new THREE.CylinderGeometry(0.22, 0.24, 0.04, 20));
-  for (const fx of [-3.8, 3.8])
-    for (const fz of [-1.8, 2.3]) add(k.mesh(footGeo, 'rubber'), fx, FLOOR_Y + 0.02, fz);
+  const footGeo = k.geo(new THREE.CylinderGeometry(0.22, 0.26, 0.05, 20));
+  for (const fx of [-3.85, 3.85])
+    for (const fz of [-1.85, 2.45]) add(k.mesh(footGeo, 'rubber'), fx, FLOOR_Y + 0.025, fz);
+  const woodScrewGeo = k.geo(new THREE.CylinderGeometry(0.09, 0.07, 0.03, 20));
+  for (const fx of [-3.95, 3.95])
+    for (const fz of [-1.95, 2.55]) add(k.mesh(woodScrewGeo, 'brass'), fx, BASE_TOP + 0.01, fz);
+  // steel angle clamps screwed to the board, holding the yoke
+  const clampGeo = k.geo(chamferBox(0.5, 0.5, 0.1, 0.02));
+  const clampFootGeo = k.geo(chamferBox(0.5, 0.06, 0.34, 0.015));
+  for (const bx of [-1.4, 1.4])
+    for (const bz of [-1, 1]) {
+      add(k.mesh(clampGeo, 'darkSteel'), bx, BASE_TOP + 0.25, bz * (LIMB / 2 + 0.06));
+      add(k.mesh(clampFootGeo, 'darkSteel'), bx, BASE_TOP + 0.03, bz * (LIMB / 2 + 0.27));
+      add(k.mesh(woodScrewGeo, 'steel'), bx, BASE_TOP + 0.07, bz * (LIMB / 2 + 0.32));
+    }
 
   // --- U-core: yoke + two limbs, laminated iron (562 11 proportions) -------------------------
   const yoke = k.mesh(k.geo(chamferBox(CORE_W, LIMB, LIMB, 0.03, 1)), 'iron', 'core');
@@ -191,18 +205,40 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
     }
 
   // --- pole shoes on the limb ends, N (−x) and S (+x) ---------------------------------------
+  // shaped pole pieces: full-height flat face at the gap, outer flank tapered down to the limb
   const shoeW = LIMB_X + LIMB / 2 - GAP_HALF;
-  const shoeGeo = k.geo(chamferBox(shoeW, 2 * FACE_HY, 2 * FACE_HZ, 0.05));
-  const plateGeo = k.geo(new THREE.PlaneGeometry(0.62, 0.62));
+  const OUT = LIMB_X + LIMB / 2;
+  const TOP_X = GAP_HALF + 0.62; // flat top of the shoe (carries the bridge)
+  const FLANK_Y = -0.45; // the outer flank starts to taper here
+  const shoeGeo = (sx: number): THREE.BufferGeometry => {
+    const sh = new THREE.Shape();
+    sh.moveTo(sx * GAP_HALF, -FACE_HY);
+    sh.lineTo(sx * OUT, -FACE_HY);
+    sh.lineTo(sx * OUT, FLANK_Y);
+    sh.lineTo(sx * TOP_X, FACE_HY);
+    sh.lineTo(sx * GAP_HALF, FACE_HY);
+    sh.closePath();
+    return k.geo(
+      new THREE.ExtrudeGeometry(sh, {
+        depth: 2 * FACE_HZ - 0.08,
+        bevelEnabled: true,
+        bevelThickness: 0.04,
+        bevelSize: 0.03,
+        bevelSegments: 2,
+        curveSegments: 1,
+      }).translate(0, 0, -FACE_HZ + 0.04),
+    );
+  };
+  const plateGeo = k.geo(new THREE.PlaneGeometry(0.5, 0.5));
   const screwGeo = k.geo(new THREE.CylinderGeometry(0.1, 0.1, 0.06, 6));
   for (const sx of [-1, 1] as const) {
     const cx = sx * (GAP_HALF + shoeW / 2);
-    const shoe = k.mesh(shoeGeo, 'iron', 'shoe');
-    add(shoe, cx, 0, 0);
+    const shoe = k.mesh(shoeGeo(sx), 'iron', 'shoe');
+    add(shoe, 0, 0, 0);
     occluders.push(shoe);
     const plate = k.mesh(plateGeo, sx < 0 ? 'magnetN' : 'magnetS');
-    add(plate, cx, 0.35, FACE_HZ + 0.004);
-    for (const z of [-0.95]) add(k.mesh(screwGeo, 'darkSteel'), cx, FACE_HY + 0.03, z);
+    add(plate, cx, -0.95, FACE_HZ + 0.006);
+    add(k.mesh(screwGeo, 'darkSteel'), sx * (GAP_HALF + 0.31), FACE_HY + 0.03, -0.95);
   }
 
   // --- field coils on both limbs, front half opened ------------------------------------------
@@ -331,7 +367,11 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
   // --- aluminium bridge across the shoe tops, upper bearing ---------------------------------
   // a narrow bar (the gap stays open from above) with a tongue that carries the brush holder
   const bridgeHalfZ = 0.32;
-  const bridge = k.mesh(k.geo(chamferBox(6.0, BRIDGE_T, 2 * bridgeHalfZ, 0.025)), 'steel', 'alu');
+  const bridge = k.mesh(
+    k.geo(chamferBox(2 * TOP_X + 0.3, BRIDGE_T, 2 * bridgeHalfZ, 0.025)),
+    'steel',
+    'alu',
+  );
   add(bridge, 0, BRIDGE_Y + BRIDGE_T / 2, 0);
   const tongueZ1 = BLOCK_Z[1] + 0.06;
   add(
@@ -340,7 +380,7 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
     BRIDGE_Y + BRIDGE_T / 2,
     (bridgeHalfZ - 0.04 + tongueZ1) / 2,
   );
-  for (const bx of [-2.75, -1.95, 1.95, 2.75])
+  for (const bx of [-(GAP_HALF + 0.31), GAP_HALF + 0.31])
     add(k.mesh(screwGeo, 'darkSteel'), bx, BRIDGE_Y + BRIDGE_T + 0.03, 0);
   const top = BRIDGE_Y + BRIDGE_T;
   add(
@@ -454,7 +494,7 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
   board.position.y = boardH / 2;
   const holder = k.mesh(k.geo(new THREE.CylinderGeometry(0.14, 0.16, 0.24, 28)), 'brass', 'lamp');
   holder.position.y = boardH + 0.12;
-  const bulb = k.mesh(k.geo(new THREE.SphereGeometry(0.26, 40, 28)), 'glass', 'lamp');
+  const bulb = k.mesh(k.geo(new THREE.SphereGeometry(0.32, 40, 28)), 'glass', 'lamp');
   bulb.position.y = boardH + 0.5;
   bulb.renderOrder = 4;
   bulb.castShadow = false;
@@ -485,23 +525,40 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
   light.position.y = boardH + 0.5;
   lampG.add(light);
 
-  // --- leads: red from brush 2 socket, black from brush 1 socket, to the lamp board -------------------
+  // --- leads: red from brush 2 socket, black from brush 1 socket, down the front to the lamp ---------
   const v = (x: number, y: number, z: number): THREE.Vector3 => new THREE.Vector3(x, y, z);
   const sockZ = BLOCK_Z[1] + 0.16;
   const lx = LAMP_POS.x + 0.32;
   const ly = LAMP_POS.y + boardH + 0.12;
+  const lz = LAMP_POS.z;
+  const B = BASE_TOP + 0.035; // cable lying on the board
+  const red = [
+    v(-0.18, RING_Y[1], sockZ),
+    v(-0.45, RING_Y[1] + 0.02, sockZ + 0.45),
+    v(-1.05, 0.9, 2.2),
+    v(-1.35, -2.5, 2.3),
+    v(-1.55, B + 0.25, 2.32),
+    v(-1.9, B, 2.3),
+    v(-2.55, B, 2.25),
+    v(lx + 0.15, ly + 0.3, lz + 0.3),
+    v(lx, ly, lz + 0.28),
+  ];
+  const black = [
+    v(-0.18, RING_Y[0], sockZ),
+    v(-0.4, RING_Y[0] - 0.02, sockZ + 0.36),
+    v(-0.9, 0.7, 2.02),
+    v(-1.2, -2.5, 2.1),
+    v(-1.42, B + 0.25, 2.12),
+    v(-1.8, B, 2.1),
+    v(-2.45, B, 1.98),
+    v(lx + 0.15, ly + 0.3, lz - 0.3),
+    v(lx, ly, lz - 0.28),
+  ];
   const leadPath = [
     v(0, RING_Y[1], RING_R + 0.2),
-    v(-0.18, RING_Y[1], sockZ),
-    v(-0.45, RING_Y[1] + 0.05, sockZ + 0.35),
-    v(-1.1, top + 0.55, LAMP_POS.z + 0.75),
-    v(lx + 0.25, ly + 0.2, LAMP_POS.z + 0.42),
-    v(lx, ly, LAMP_POS.z + 0.28),
-    v(lx - 0.3, ly + 0.25, LAMP_POS.z),
-    v(lx, ly, LAMP_POS.z - 0.28),
-    v(lx + 0.45, ly + 0.22, LAMP_POS.z - 0.05),
-    v(-0.75, top + 0.42, sockZ + 0.2),
-    v(-0.18, RING_Y[0], sockZ),
+    ...red,
+    v(LAMP_POS.x, ly + 0.3, lz),
+    ...[...black].reverse(),
     v(0, RING_Y[0], RING_R + 0.2),
   ];
   const cable = (pts: THREE.Vector3[], key: string): void => {
@@ -513,8 +570,8 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
       root.add(plug);
     }
   };
-  cable(leadPath.slice(1, 6), 'socketRed');
-  cable(leadPath.slice(7, 11), 'socketBlack');
+  cable(red, 'socketRed');
+  cable(black, 'socketBlack');
 
   stage.castShadows(root);
   bulb.castShadow = false;
@@ -525,10 +582,10 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
     leadPath,
     occluders,
     anchors: {
-      n: v(-(GAP_HALF + shoeW / 2), FACE_HY, FACE_HZ),
-      s: v(GAP_HALF + shoeW / 2, FACE_HY, FACE_HZ),
+      n: v(-(OUT + TOP_X) / 2, (FLANK_Y + FACE_HY) / 2, FACE_HZ),
+      s: v((OUT + TOP_X) / 2, (FLANK_Y + FACE_HY) / 2, FACE_HZ),
       brushes: v(0.3, (RING_Y[0] + RING_Y[1]) / 2, BLOCK_Z[1]),
-      lamp: v(LAMP_POS.x, LAMP_POS.y + 0.8, LAMP_POS.z),
+      lamp: v(LAMP_POS.x, LAMP_POS.y + 1.0, LAMP_POS.z),
     },
   };
 }
