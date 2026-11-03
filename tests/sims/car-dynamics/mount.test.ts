@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AppContext } from '../../../src/core/types';
 import { formatIT } from '../../../src/core/format';
+import { createDrivePresets } from '../../../src/sims/shared/drive-presets';
 import { defaultParams, summarize } from '../../../src/sims/car-dynamics/model';
 
 vi.mock('uplot', () => ({
@@ -28,7 +29,7 @@ interface Dbg {
   eAero: number;
   balanceError: number;
   compareRecovered: number | null;
-  params: { Pmax: number; balance: number; mu: number };
+  params: { eta: number; Pmax: number; balance: number; mu: number };
 }
 
 const dbg = (): Dbg | undefined =>
@@ -102,9 +103,17 @@ describe('car-dynamics mount (DOM, no WebGL)', () => {
       ?.click();
     const p26 = dbg();
     expect(p26?.params.Pmax).toBe(350);
-    expect(out('stored')).toBe('0,55 MJ');
+    expect(p26?.params.eta).toBe(0.97);
+    // ∫min(350 kW / 0.97, F_rear·v)dt × 0.97 = 0.564290 MJ.
+    expect(out('stored')).toBe('0,56 MJ');
     expect(out('cStored')).toBe('0,64 MJ');
     expect(p26?.eStored ?? 0).toBeLessThan(p26?.compareRecovered ?? 0);
+
+    buttons()
+      .find((b) => b.dataset['preset'] === '2025')
+      ?.click();
+    expect(dbg()?.params.eta).toBe(0.95);
+    expect(dbg()?.params.Pmax).toBe(120);
 
     // aero off
     host.querySelector<HTMLInputElement>('input[role=switch]')?.click();
@@ -167,4 +176,18 @@ describe('car-dynamics mount (DOM, no WebGL)', () => {
     expect(host.childElementCount).toBe(0);
     warn.mockRestore();
   });
+});
+
+// Exercise the actual drive preset buttons in both directions.
+it('drive presets switch the FIA efficiency proxy with the era', () => {
+  const select = vi.fn();
+  const presets = createDrivePresets(select);
+  for (const [era, power, eta] of [
+    ['2026', 350, 0.97],
+    ['2025', 120, 0.95],
+  ] as const) {
+    presets.element.querySelector<HTMLButtonElement>(`[data-preset="${era}"]`)?.click();
+    expect(select).toHaveBeenLastCalledWith(power, eta);
+  }
+  presets.dispose();
 });

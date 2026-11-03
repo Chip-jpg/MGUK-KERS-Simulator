@@ -3,12 +3,12 @@ import { createButton } from '../../ui/controls';
 import { el } from '../../ui/dom';
 
 /** Reuse the established regulation presets without their analytical braking parameters. */
-export function createDrivePresets(onSelect: (powerKw: number) => void) {
+export function createDrivePresets(onSelect: (powerKw: number, efficiency: number) => void) {
   const buttons = PRESETS.map((preset) => {
     const button = createButton({
       labelIT: preset.labelIT,
       title: `MGU-K: ${preset.values.Pmax} kW. Riparte con la stessa carica iniziale.`,
-      onClick: () => onSelect(preset.values.Pmax),
+      onClick: () => onSelect(preset.values.Pmax, preset.values.eta),
     });
     button.element.dataset['preset'] = preset.id;
     button.element.setAttribute('aria-pressed', 'false');
@@ -33,7 +33,7 @@ export function createDrivePresets(onSelect: (powerKw: number) => void) {
       el('details', {}, [
         el('summary', { text: 'Differenza tra gli assetti e fonti' }),
         el('p', {
-          text: 'Nel 2026 la MGU-K è più potente e la MGU-H è eliminata. Qui la MGU-H non è simulata: i preset cambiano solo i limiti elettrici MGU-K di erogazione e recupero. Massa, motore termico e capacità batteria restano illustrativi e invariati.',
+          text: 'Nel 2026 la MGU-K è più potente e la MGU-H è eliminata. Qui la MGU-H non è simulata: i preset cambiano i limiti elettrici MGU-K di erogazione e recupero e η (0,95 nel 2025, Art. 5.3.2; 0,97 nel 2026, C5.2.21), correzione fissa FIA usata come stima del rendimento, non un rendimento misurato. Massa, motore termico e capacità batteria restano illustrativi e invariati.',
         }),
         ...PRESETS.map((preset) =>
           el('p', {}, [

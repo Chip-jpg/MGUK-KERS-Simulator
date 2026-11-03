@@ -15,7 +15,7 @@ import { createTeardownStage, type TeardownStage } from './stage';
 import './style.css';
 
 export const MODEL_NOTE_IT =
-  'dimensioni reali ma illustrative (da massa minima 7 kg e giri massimi 50 000 giri/min del regolamento FIA; misure interne ipotizzate), accoppiamento fisso rotore–ruota (da v ↔ giri/min del modello: ipotesi, non dati del regolamento), tensione indotta e corrente di una macchina equivalente a magneti permanenti (EMF = Kₑ·ω), batteria virtuale senza perdite aggiuntive. Un solo ingresso, la fase della frenata, comanda rotore, ingranaggi, ruota, flusso di energia (nastro viola ∝ P/Pₘₐₓ, acceso solo con P > 0) e livello di carica. La rotazione è mostrata 100 volte più lenta del reale per evitare l’aliasing a 50 000 giri/min.';
+  'dimensioni reali ma illustrative (da massa minima 7 kg e giri massimi 50 000 giri/min: FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3; misure interne ipotizzate), nella realtà l’MGU-K ha un rapporto fisso con l’albero motore (TR25 Art. 5.3.3; FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.18.2): i suoi giri seguono quelli del motore e la marcia inserita; qui una semplificazione didattica a marcia unica associa velocità del veicolo e giri del rotore (rapporti non pubblici), tensione indotta e corrente di una macchina equivalente a magneti permanenti (EMF = Kₑ·ω), batteria virtuale senza perdite aggiuntive. Un solo ingresso, la fase della frenata, comanda rotore, ingranaggi, ruota, flusso di energia (nastro viola ∝ P/Pₘₐₓ, acceso solo con P > 0) e livello di carica. La rotazione è mostrata 100 volte più lenta del reale per evitare l’aliasing a 50 000 giri/min.';
 
 /** Pause at the end of the event before the playback restarts [s]. */
 const END_HOLD = 1.5;

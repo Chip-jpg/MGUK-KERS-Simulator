@@ -272,11 +272,11 @@ MGU-K can take at most the rear-axle force, so at low speed and high $P_{max}$ i
 than the constant-deceleration model.
 
 **Example** (simulator defaults: 800 kg, 300 → 100 km/h, $C_dA = 1{,}2$ m², $C_lA = 3{,}5$ m²,
-ρ = 1,225 kg/m³, μ = 1,6, β = 0,58, h = 0,30 m, L = 3,6 m, η = 0,9, B = 12, C = 1,9, E = 0,5 ⇒
+ρ = 1,225 kg/m³, μ = 1,6, β = 0,58, h = 0,30 m, L = 3,6 m, η = 0,95, B = 12, C = 1,9, E = 0,5 ⇒
 κ* ≈ 0,106): $t_{brake} \approx 1{,}83$ s, distance ≈ 93 m, deceleration from ≈ 5,3 g to ≈ 2,0 g;
-ΔE_k = 2,469 MJ = 0,24 MJ into the MGU-K (0,22 MJ stored with 120 kW, ≈ 8,9 %: power-limited
-for the whole zone) + 1,99 MJ friction brakes + 0,23 MJ drag. With 350 kW: 0,55 MJ stored
-(≈ 22,3 %), and below ≈ 167 km/h the MGU-K is limited by the rear-axle force instead of by
+ΔE_k = 2,469 MJ = 0,23 MJ into the MGU-K (0,22 MJ stored with 120 kW, ≈ 8,9 %: power-limited
+for the whole zone) + 2,01 MJ friction brakes + 0,23 MJ drag. With 350 kW at the same η = 0,95: 0,56 MJ stored
+(≈ 22,7 %), and below ≈ 162,5 km/h the MGU-K is limited by the rear-axle force instead of by
 $P_{max}$. Without aero the same zone takes ≈ 3,56 s and ≈ 198 m.
 
 **Validity limits.** Educational model: no transient of the ABS, no tyre load sensitivity
@@ -621,11 +621,14 @@ Work/heat integrals use the same RK4 stages as speed, enabling the gate:
 
 Illustrative defaults: m=800 kg, ρ=1.225 kg/m³, CdA=0.8 m², Crr=0.012,
 engine force=10 kN / power=500 kW, motor force=5 kN, disc force=16 kN,
-ηmachine=0.9, ηbattery=0.95, capacity=4 MJ. These are educational choices,
+ηmachine=0.95 (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2,
+fixed correction used as an efficiency proxy, not measured efficiency),
+ηbattery=0.95, capacity=4 MJ. The vehicle parameters are educational choices,
 not specifications of an actual F1 car. The displayed 120 kW default matches
 the historical verified preset in OPEN_FACTS; arbitrary slider values are
-user-selected examples, not regulation claims. Existing 2025/2026 presets
-remain in the constant-deceleration comparison.
+user-selected examples, not regulation claims. The drive presets also switch η to 0.95 / 0.97 using the sourced
+2025/2026 corrections (2026: FIA 2026 F1 Regulations Section C,
+Issue 21 (19 Oct 2026), C5.2.21), alongside the electrical limits.
 
 The guided scenario detects 300 and 100 km/h crossings within the fixed step;
 800 kg gives ΔEk=2,469135802 MJ. Its duration follows the force model, rather

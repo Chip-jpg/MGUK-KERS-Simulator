@@ -188,7 +188,8 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     },
   });
   const enginePresets = interactive
-    ? createDrivePresets((powerKw) => {
+    ? createDrivePresets((powerKw, efficiency) => {
+        p.efficiency = efficiency;
         power.set(powerKw, true);
         reset(false);
       })

@@ -38,7 +38,7 @@ Nota: il testo è riportato dalla traduzione italiana diffusa da UNRIC e dalla C
 
 ## Esempio numerico
 
-Con le regole fino al 2025 l'MGU-K poteva inviare alla batteria al massimo 2 MJ per giro (Fonte: [FIA, Power Unit Regulations 2014](https://www.fia.com/sites/default/files/publication/file/FIA%20F1%20Power%20Unit%20leaflet.pdf)):
+Con le regole fino al 2025 l'MGU-K poteva inviare alla batteria al massimo 2 MJ per giro (Fonte: [FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2 (diagram)](https://www.fia.com/sites/default/files/documents/fia_2025_formula_1_technical_regulations_-_issue_03_-_2025-04-07.pdf)):
 
 $$2\ \text{MJ} = \frac{2}{3{,}6}\ \text{kWh} \approx 0{,}56\ \text{kWh}$$
 

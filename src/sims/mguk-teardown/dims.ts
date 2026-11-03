@@ -2,12 +2,12 @@
  * Real dimensions of the MGU-K teardown scene [m]. Every constant states whether it is a
  * published value or an ASSUMPTION; nothing here is a scraped CAD figure.
  *
- * PRIMARY REFERENCE: FIA Formula 1 Technical Regulations 2014–2025 (Power Unit, MGU-K) and
- * the FIA 2014 Power Unit leaflet
- * https://www.fia.com/sites/default/files/publication/file/FIA%20F1%20Power%20Unit%20leaflet.pdf
- * Published there (article numbers to be verified, as in model.ts): MGU-K max speed 50 000 rpm,
- * max power 120 kW, minimum mass 7 kg; ES (battery) minimum mass 20 kg; tyre/wheel envelope
- * (2022+: 18 in rim, rear tyre ≈ 0.405 m wide, overall diameter ≈ 0.72 m).
+ * PRIMARY REFERENCE: FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025),
+ * Art. 5.3.3: MGU-K minimum mass 7 kg, max speed 50 000 rpm, max power 120 kW;
+ * Art. 5.5.3: ES cells and inter-cell connections 20–25 kg.
+ * https://www.fia.com/sites/default/files/documents/fia_2025_formula_1_technical_regulations_-_issue_03_-_2025-04-07.pdf
+ * Tyre/wheel envelope (2022+: 18 in rim, rear tyre ≈ 0.405 m wide,
+ * overall diameter ≈ 0.72 m).
  * The FIA does NOT publish the machine envelope, so the MGU-K outline is ASSUMED from
  * the published 7 kg: a surface-PM machine has a mean density ≈ 5000 kg/m³ → ≈ 1.4 L, i.e. a
  * cylinder Ø 0.13 m × 0.105 m (π·0.065²·0.105 ≈ 1.39 L). Internal proportions follow a
