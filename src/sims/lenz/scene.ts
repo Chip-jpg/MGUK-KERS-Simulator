@@ -424,9 +424,10 @@ export function createLenzScene(
 
   // --- field lines -------------------------------------------------------------------------------
   const magLines: FieldLines = createFieldLines(stage, {
-    linewidth: 2.1,
+    linewidth: 1.8,
     spacing: 0.95,
     speed: 0.85,
+    opacity: 0.6,
   });
   const indOpts = {
     linewidth: 1.35,
@@ -434,7 +435,7 @@ export function createLenzScene(
     speed: 0.7,
     base: 0.1,
     gain: 1.7,
-    opacity: 0.85,
+    opacity: 0.7,
   };
   const indLines: Record<'pos' | 'neg', FieldLines> = {
     pos: createFieldLines(stage, indOpts),
@@ -462,7 +463,7 @@ export function createLenzScene(
     const f = fieldFromSpec(field);
     const face = -MAG_LEN / 2 - 0.03;
     const cands = seedDisc([face, 0, 0], [0, 1, 0], [0, 0, 1], MAG_SIDE * 0.47, 500);
-    const n = Math.max(14, Math.round(28 * stage.settings.lineDensity));
+    const n = Math.max(10, Math.round(14 * stage.settings.lineDensity));
     const job: TraceJob = {
       field,
       seeds: seedByFlux(f, cands, [1, 0, 0], n),
@@ -487,7 +488,7 @@ export function createLenzScene(
     const key = `${r0.toFixed(3)}|${len.toFixed(3)}|${stage.tier}`;
     if (key === indKey) return;
     indKey = key;
-    const n = Math.max(8, Math.round(18 * stage.settings.lineDensity));
+    const n = Math.max(6, Math.round(9 * stage.settings.lineDensity));
     for (const sgn of [1, -1] as const) {
       const field: FieldSpec = {
         kind: 'solenoid',
@@ -681,20 +682,14 @@ export function createLenzScene(
 
   // --- labels: fixed callout spots off the working part, leader lines to the parts -------------
   const labels = createLabelLayer(stage, overlay);
-  type Key = 'face' | 'coil' | 'bMag' | 'bInd' | 'current' | 'force';
+  type Key = 'face' | 'current' | 'force';
   const parts: Record<Key, THREE.Vector3> = {
     face: v(),
-    coil: v(),
-    bMag: v(),
-    bInd: v(),
     current: galvo.root.localToWorld(v(0, 1.42, 0.2)),
     force: v(),
   };
   const ends: Record<Key, THREE.Vector3> = {
     face: v(0.2, 2.75, 0),
-    coil: v(-0.6, BENCH_TOP + 0.05, 3.0),
-    bMag: v(5.2, -1.75, 2.5),
-    bInd: v(-2.2, 2.35, -0.4),
     current: galvo.root.localToWorld(v(-0.2, 2.15, 0.2)),
     // idle spot of the force sensor (above the rail), moves with the arrow while F ≠ 0
     force: v(3.6, 2.0, 0),
@@ -717,15 +712,9 @@ export function createLenzScene(
     face: tag('face', { text: 'faccia N', size: 'lg', priority: 9 }),
     current: tag('current', { text: 'i', quantity: 'i', priority: 8, sensorWidth: '24ch' }),
     force: tag('force', { text: 'F', quantity: 'f', priority: 7, sensorWidth: '20ch' }),
-    bMag: tag('bMag', { text: 'B̄', quantity: 'b', priority: 6, sensorWidth: '22ch' }),
-    bInd: tag('bInd', { text: 'B indotto', quantity: 'b', priority: 5, size: 'sm' }),
-    coil: tag('coil', { text: 'N', priority: 4, size: 'sm' }),
   };
   const shown: Record<Key, boolean> = {
     face: true,
-    coil: true,
-    bMag: true,
-    bInd: true,
     current: true,
     force: true,
   };
@@ -819,13 +808,8 @@ export function createLenzScene(
 
     // label anchors (parts follow the coil size and the magnet)
     parts.face.set(-FORMER_HALF - FLANGE_T, rFlange * 0.75, -rFlange * 0.4);
-    parts.coil.set(0.1, -rOut * 0.55, rOut * 0.85);
-    parts.bMag.set(Math.max(0.75, xm - MAG_LEN / 2 - 0.45), -0.32, 0.2);
-    parts.bInd.set(-FORMER_HALF - 1.0, Math.min(rOut + 0.5, 1.6), 0);
     ends.face.set(-1.2, rFlange + 2.5, -0.8);
-    ends.bInd.set(-3.6, Math.max(2.6, rFlange + 1.4), -0.6);
     shown.face = f.sign !== 0;
-    shown.bInd = showInd;
     shown.force = arrow.visible;
     // sensor labels never turn into empty "-,--" boxes: they stay on with their real (zero) text;
     // only the leader line follows the activity
@@ -833,9 +817,6 @@ export function createLenzScene(
     updateLeaders();
     const t = f.labels;
     L.face.setText(t.face);
-    L.coil.setText(t.coil);
-    L.bMag.setText(t.bMag);
-    L.bInd.setText(t.bInd);
     L.current.setText(t.current);
     L.force.setText(t.force);
 
