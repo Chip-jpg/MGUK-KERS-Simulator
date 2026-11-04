@@ -167,7 +167,7 @@ export function createTeardownStage(
     mguk: a.mguk.clone().add(v3(-0.75, 0.55, 0.35)),
     gears: a.gears.clone().add(v3(-0.9, -0.4, 1.1)),
     wheel: hub.clone().add(v3(-0.6, 0.5, 0.2)),
-    inverter: a.inverter.clone().add(v3(0, 1.0, -0.3)),
+    inverter: a.inverter.clone().add(v3(-0.9, 1.0, -0.3)),
     battery: a.battery.clone().add(v3(0.2, -0.35, 0.9)),
   };
   // the gear pair sits behind the rotor from the front: lead to its toothed rim on the near side
