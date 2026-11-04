@@ -117,8 +117,12 @@ export interface Mguk {
 /** Angular position of the terminal block (top, left of the cut quarter) [rad]. */
 export const TERMINAL_ANGLE = (112 * Math.PI) / 180;
 
-export function buildMguk(sink: PartSink, tess = 1): Mguk {
-  const S = (n: number): number => Math.max(16, Math.round(n * tess));
+/** `lean` (base tier only) trims segment counts; other tiers keep the full approved look. */
+export function buildMguk(sink: PartSink, tess = 1, lean = false): Mguk {
+  const S = (n: number): number => Math.max(lean ? 14 : 16, Math.round(n * tess));
+  /** Path / arc subdivisions scaled by the tier (hairpins and magnets are 48-fold instanced). */
+  const T = (n: number, min: number): number =>
+    lean ? Math.max(min, Math.round(n * tess * tess)) : n;
   const root = new THREE.Group();
   root.name = 'mguk';
   const rotor = new THREE.Group();
@@ -327,7 +331,7 @@ export function buildMguk(sink: PartSink, tess = 1): Mguk {
       pts.push(polar(r0 + (r1 - r0) * t, span * t, -L2 - 3.5 - 8 * lift - 0.5 * p));
     }
     pts.push(polar(r1, span, -L2 - 1));
-    around(sweptRect(pts, wireH * 0.9, wireW, 40), 'copper');
+    around(sweptRect(pts, wireH * 0.9, wireW, T(40, 8)), 'copper');
   }
   // twisted legs at the front: alternate layers lean opposite ways and meet half a pitch over
   for (let k = 0; k < HAIRPIN_LAYERS; k++) {
@@ -341,11 +345,11 @@ export function buildMguk(sink: PartSink, tess = 1): Mguk {
       polar(r, dir * span * 0.5, L2 + 11.2),
       polar(r, dir * span * 0.5, L2 + 12.5),
     ];
-    around(sweptRect(pts, wireH * 0.9, wireW, 24), 'copper');
+    around(sweptRect(pts, wireH * 0.9, wireW, T(24, 5)), 'copper');
   }
   // welded tips: one blob per joined pair of legs
   {
-    const blob = new THREE.SphereGeometry(1, 10, 8);
+    const blob = new THREE.SphereGeometry(1, T(10, 6), T(8, 4));
     for (let p = 0; p + 1 < HAIRPIN_LAYERS; p += 2) {
       const rm = ((layerR[p] ?? Rb) + (layerR[p + 1] ?? Rb)) / 2;
       const g = blob
@@ -412,7 +416,7 @@ export function buildMguk(sink: PartSink, tess = 1): Mguk {
     s.absarc(0, 0, rHub, half, -half, true);
     s.closePath();
     const segL = (2 * L2 - (MAGNET_SEGMENTS - 1) * 0.8) / MAGNET_SEGMENTS;
-    const geoM = extrudeZ(s, 0, segL, 0.25, 8);
+    const geoM = extrudeZ(s, 0, segL, lean && tess < 0.8 ? 0 : 0.25, T(8, 2));
     const sets: Record<'magnetN' | 'magnetS', THREE.Matrix4[]> = { magnetN: [], magnetS: [] };
     for (let p = 0; p < POLE_COUNT; p++) {
       for (let k = 0; k < MAGNET_SEGMENTS; k++) {

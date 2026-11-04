@@ -7,7 +7,13 @@
  * Layout in metres inside a root scaled by SCENE_SCALE; the MGU-K frame is in mm × MGUK_ZOOM.
  */
 import * as THREE from 'three';
-import { applyHeatGlow, chamferBox, type MaterialKind, type Stage } from '../../render';
+import {
+  applyHeatGlow,
+  chamferBox,
+  mergeStatic,
+  type MaterialKind,
+  type Stage,
+} from '../../render';
 import { BRAKE_DISC_ILLUSTRATIVE } from '../../physics';
 import { CAR_DIMS } from '../shared/car/dims';
 import { DISC_START_DEFAULT_C } from '../shared/car/discs';
@@ -94,7 +100,8 @@ export function createTeardown(stage: Stage): Teardown {
     texs.push(t);
     return t;
   };
-  const tess = Math.max(0.5, stage.settings.tessellation);
+  const lean = stage.tier === 'base';
+  const tess = Math.max(lean ? 0.3 : 0.5, stage.settings.tessellation);
 
   // ---------------------------------------------------------------- materials
   const KIT: Partial<Record<Look, [MaterialKind, string]>> = {
@@ -197,7 +204,7 @@ export function createTeardown(stage: Stage): Teardown {
   root.scale.setScalar(SCENE_SCALE);
   stage.scene.add(root);
 
-  const mg = buildMguk(sink, tess);
+  const mg = buildMguk(sink, tess, lean);
   mg.root.scale.setScalar(MM);
   mg.root.position.set(0, MGUK_Y, 0);
   root.add(mg.root);
@@ -613,6 +620,48 @@ export function createTeardown(stage: Stage): Teardown {
     capGroup.visible = cutting;
   };
   apply();
+  // base tier: bake everything that never moves into one mesh per material (draw-call budget
+  // under software GL). Rotor, cages, crank gear, wheel spin, lids and section caps keep their
+  // own objects; the mode-dependent cut / cover meshes merge per look (their entries follow).
+  if (stage.tier === 'base') {
+    const swap = <T extends { o: THREE.Mesh | THREE.InstancedMesh }>(
+      list: T[],
+      merged: THREE.Mesh,
+      src: readonly THREE.Mesh[],
+    ): void => {
+      const first = list.find((e) => e.o === src[0]);
+      if (!first) return;
+      for (let k = list.length - 1; k >= 0; k--)
+        if (src.includes(list[k]!.o as THREE.Mesh)) list.splice(k, 1);
+      list.push({ ...first, o: merged });
+    };
+    mergeStatic(root, {
+      kit,
+      track: (g) => {
+        geos.push(g);
+        return g;
+      },
+      drop: (g) => {
+        const k = geos.indexOf(g);
+        if (k >= 0) geos.splice(k, 1);
+        g.dispose();
+      },
+      keep: [
+        mg.rotor,
+        ...mg.cages,
+        crank,
+        spin,
+        capGroup,
+        ...pw.lids.map((l) => l.pivot),
+        pw.socMesh,
+        ...covers.map((c) => c.o), // material flips with the housing mode
+      ],
+      onMerge(merged, src) {
+        swap(cutMeshes, merged, src);
+        swap(solidMeshes, merged, src);
+      },
+    });
+  }
   const offTier = stage.onTierChange(() => {
     for (const s of solidMeshes) if (!KIT[s.look]) s.o.material = ownMat(s.look);
     apply();

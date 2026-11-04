@@ -17,6 +17,8 @@ export interface MergeStaticOptions {
   drop?: (g: THREE.BufferGeometry) => void;
   /** Objects (with their sub-trees) that must stay as they are. */
   keep?: Iterable<THREE.Object3D | null | undefined>;
+  /** Called per baked group with the new mesh and the meshes it replaced (already detached). */
+  onMerge?: (merged: THREE.Mesh, sources: readonly THREE.Mesh[]) => void;
 }
 
 const ATTRS = ['position', 'normal', 'uv'] as const;
@@ -104,6 +106,7 @@ export function mergeStatic(
       o.kit.forget(m);
       o.drop?.(m.geometry);
     }
+    o.onMerge?.(mesh, list);
     after -= list.length - 1;
   }
   return { before, after };
