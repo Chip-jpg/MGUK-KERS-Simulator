@@ -683,7 +683,7 @@ export function createRlScene(
   };
   const ends: Record<Key, THREE.Vector3> = {
     battery: v(BAT.x - 1.2, 1.85, BAT.z - 0.3),
-    switch: v(SW.x - 0.6, BENCH_TOP + 0.04, SW.z + 1.25),
+    switch: v(SW.x - 1.7, BENCH_TOP + 0.04, SW.z + 1.6),
     current: v(SW.x + 1.4, BENCH_TOP + 0.04, SW.z + 1.35),
     resistor: v(RES.x + 1.2, BENCH_TOP + 0.04, RES.z + 1.7),
     solenoid: v(SOL.x + SOL.len / 2 + 1.7, SOL.y + 0.2, SOL.z + 0.2),
@@ -704,13 +704,15 @@ export function createRlScene(
     k: Key,
     o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
   ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  /** Reserved readout box hugging a one-line text. */
+  const fit = (w: string) => ({ sensorWidth: w, sensorHeight: '1.7rem' });
   const L: Record<Key, Label> = {
-    current: tag('current', { text: 'i', quantity: 'i', priority: 9, sensorWidth: '26ch' }),
-    emf: tag('emf', { text: 'f.e.m.', quantity: 'emf', priority: 8, sensorWidth: '30ch' }),
-    battery: tag('battery', { text: 'E', quantity: 'emf', priority: 7, sensorWidth: '30ch' }),
-    energy: tag('energy', { text: 'U', quantity: 'energy', priority: 7, sensorWidth: '18ch' }),
-    resistor: tag('resistor', { text: 'R', priority: 6, sensorWidth: '30ch' }),
-    solenoid: tag('solenoid', { text: 'L', quantity: 'b', priority: 6, sensorWidth: '18ch' }),
+    current: tag('current', { text: 'i', quantity: 'i', priority: 9, ...fit('26ch') }),
+    emf: tag('emf', { text: 'f.e.m.', quantity: 'emf', priority: 8, ...fit('34ch') }),
+    battery: tag('battery', { text: 'E', quantity: 'emf', priority: 7, ...fit('31ch') }),
+    energy: tag('energy', { text: 'U', quantity: 'energy', priority: 7, ...fit('16ch') }),
+    resistor: tag('resistor', { text: 'R', priority: 6, ...fit('32ch') }),
+    solenoid: tag('solenoid', { text: 'L', quantity: 'b', priority: 6, ...fit('19ch') }),
     switch: tag('switch', { text: 'interruttore', priority: 5, size: 'sm' }),
   };
   const shown: Record<Key, boolean> = {
@@ -815,7 +817,6 @@ export function createRlScene(
     L.resistor.setText(t.resistor);
     L.solenoid.setText(t.solenoid);
     L.emf.setText(t.emf);
-    L.emf.setVisible(emfArrow.visible);
     L.energy.setText(t.energy);
   };
 
