@@ -240,7 +240,12 @@ export function createMachineScene(
   stage.occluders.push(...stator.occluders, ...bench.occluders);
 
   // field lines in the gap (computed)
-  const field: FieldLines = createFieldLines(stage, { linewidth: 2.0, spacing: 0.9, speed: 1.0 });
+  const field: FieldLines = createFieldLines(stage, {
+    linewidth: 1.1,
+    spacing: 0.9,
+    speed: 1.0,
+    opacity: 0.55,
+  });
   machine.add(field.object);
   const traceJob = (): TraceJob => {
     const n = Math.max(12, Math.round(36 * stage.settings.lineDensity));
@@ -257,7 +262,7 @@ export function createMachineScene(
         FACE_HY - 0.08,
         FACE_HZ - 0.08,
         n,
-      ),
+      ).filter((p, i) => Math.abs(p[1]) > 1.0 || Math.abs(p[2]) > 0.95 || i % 3 === 0),
       options: {
         bounds: { min: [-1.7, -2.6, -2.4], max: [1.7, 2.6, 2.4] },
         stopBoxes: [
@@ -705,14 +710,14 @@ export function createMachineScene(
   const L: Record<Key | 'n' | 's', Label> = {
     n: labels.add({
       text: 'N',
-      anchor: v(-1.15, magY, 0.9),
+      anchor: v(-2.05, magY + 0.15, 1.1),
       size: 'lg',
       priority: 10,
       occlude: false,
     }),
     s: labels.add({
       text: 'S',
-      anchor: v(-1.15, -magY, 0.9),
+      anchor: v(-2.05, -magY - 0.15, 1.1),
       size: 'lg',
       priority: 10,
       occlude: false,

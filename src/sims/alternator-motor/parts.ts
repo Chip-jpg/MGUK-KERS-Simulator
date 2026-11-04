@@ -48,7 +48,7 @@ export const SHAFT_END = -3.0;
 /** Top of the brush rocker arm (world y). */
 export const ARM_TOP = 0.66;
 export const CONVERTER_POS = new THREE.Vector3(-3.55, BASE_TOP, 1.45);
-export const BATTERY_POS = new THREE.Vector3(-4.75, BASE_TOP, -0.35);
+export const BATTERY_POS = new THREE.Vector3(-5.3, BASE_TOP, -1.0);
 
 /** Teardown tints of the kit materials (re-applied every frame: tier switches replace them). */
 const TINTS: Array<[MaterialKind, string, number, number]> = [
