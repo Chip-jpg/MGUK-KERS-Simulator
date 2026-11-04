@@ -4,6 +4,7 @@
  * Nothing here recomputes physics: every number shown comes from the state; the only
  * constants are geometric (gear tooth counts, wheel radius) and one visual time scale.
  */
+import * as THREE from 'three';
 import type { AppContext } from '../../core/types';
 import {
   createEnergyRibbon,
@@ -56,10 +57,10 @@ interface FrameSpec {
  * crop at the left edge so the machine, not the tyre, carries the view.
  */
 const HOME_FRAME: FrameSpec = {
-  target: [0.55, 1.05, -0.95],
-  halfW: 2.5,
-  halfH: 1.45,
-  fill: 0.82,
+  target: [0.55, 1.6, -0.95],
+  halfW: 2.9,
+  halfH: 2.1,
+  fill: 0.84,
   elevation: 32,
   azimuth: 34,
 };
@@ -159,57 +160,83 @@ export function createTeardownStage(
   let activePMax = opts.pMax;
   const labelLayer = labels;
   const a = parts.anchors;
+  const v3 = (x: number, y: number, z: number): THREE.Vector3 => new THREE.Vector3(x, y, z);
+  const hub = a.wheel.clone().setY(a.wheel.y * 0.5);
+  // Callout spots (world offsets from each part's anchor), joined to the part by a short leader.
+  const spot = {
+    mguk: a.mguk.clone().add(v3(-0.75, 0.55, 0.35)),
+    gears: a.gears.clone().add(v3(-0.9, -0.4, 1.1)),
+    wheel: hub.clone().add(v3(-0.6, 0.5, 0.2)),
+    inverter: a.inverter.clone().add(v3(0, 1.0, -0.3)),
+    battery: a.battery.clone().add(v3(0.2, -0.35, 0.9)),
+  };
+  // the gear pair sits behind the rotor from the front: lead to its toothed rim on the near side
+  const from = {
+    mguk: a.mguk,
+    gears: a.gears.clone().add(v3(0, 0, 0.5)),
+    wheel: hub,
+    inverter: a.inverter,
+    battery: a.battery,
+  };
+  const spotKeys = Object.keys(spot) as (keyof typeof spot)[];
+  const leaderPos = new Float32Array(spotKeys.length * 6);
+  spotKeys.forEach((k, i) => {
+    const p = from[k];
+    const q = spot[k];
+    leaderPos.set([p.x, p.y, p.z, q.x, q.y, q.z], 6 * i);
+  });
+  const leaderGeo = new THREE.BufferGeometry();
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = new THREE.LineBasicMaterial({
+    color: 0x9da7b3,
+    transparent: true,
+    opacity: 0.85,
+    depthTest: false,
+  });
+  const leaders = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaders.frustumCulled = false;
+  stage.scene.add(leaders);
   const L: Record<'mguk' | 'gears' | 'wheel' | 'inverter' | 'battery', Label> = {
     mguk: labels.add({
       text: 'MGU-K',
-      anchor: a.mguk,
+      anchor: spot.mguk,
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      // two lines ("MGU-K · 120 kW ·" / "27.778 giri/min"), on the background left of the motor
-      offset: [-140, 12],
       sensorWidth: '17ch',
       sensorHeight: '2.9rem',
     }),
     gears: labels.add({
       text: `Riduzione semplificata (1 coppia) ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
-      anchor: a.gears,
+      anchor: spot.gears,
       priority: 6,
       occlude: false,
       size: 'sm',
-      offset: [-160, 88],
     }),
     wheel: labels.add({
       text: 'Ruota posteriore',
-      // hub height: the tyre-top anchor falls outside the home framing and the label was dropped
-      anchor: a.wheel.clone().setY(a.wheel.y * 0.5),
+      anchor: spot.wheel,
       priority: 6,
       occlude: false,
       size: 'sm',
-      // two lines on the background left of the tyre ("Ruota posteriore ·" / "200 km/h")
-      offset: [-190, 22],
       sensorWidth: '19ch',
       sensorHeight: '2.6rem',
     }),
     inverter: labels.add({
       text: 'Inverter',
-      anchor: a.inverter,
+      anchor: spot.inverter,
       priority: 6,
       occlude: false,
       size: 'sm',
-      // one line on the floor in front of the inverter, clear of modules and lid
-      offset: [-20, 112],
-      sensorWidth: '18ch',
+      sensorWidth: '17ch',
       sensorHeight: '1.6rem',
     }),
     battery: labels.add({
       text: 'Batteria',
-      anchor: a.battery,
+      anchor: spot.battery,
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      // two lines ("SoC 54,5 % ·" / "0,180 MJ") below the casing, off the cell rows
-      offset: [40, 112],
       sensorWidth: '13ch',
       sensorHeight: '2.9rem',
     }),
@@ -253,6 +280,9 @@ export function createTeardownStage(
       if (disposed) return;
       disposed = true;
       labelLayer.dispose();
+      stage.scene.remove(leaders);
+      leaderGeo.dispose();
+      leaderMat.dispose();
       flow.dispose();
       parts.dispose();
       stage.dispose();
