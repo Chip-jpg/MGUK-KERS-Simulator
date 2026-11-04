@@ -27,6 +27,7 @@ import {
   applyHeatGlow,
   chamferBox,
   createEnergyRibbon,
+  mergeStatic,
   radialFade,
   type EnergyRibbon,
   type MaterialKind,
@@ -331,7 +332,9 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
   stage.scene.add(root);
   const noShadow: THREE.Object3D[] = [];
 
-  const radial = Math.max(16, Math.round(36 * tess));
+  // base tier: fewer segments (software-GL budget); alta / bilanciata keep their counts
+  const base = stage.tier === 'base';
+  const radial = base ? 14 : Math.max(16, Math.round(36 * tess));
   const sub = tess >= 0.9 ? 6 : 3;
 
   // --- monocoque + nose, engine cover / airbox (cut), sections ----------------------------
@@ -609,7 +612,7 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
   // --- MGU-K: opened housing, stator teeth, copper end windings, glowing rotor band ------
   const mguk = new THREE.Group();
   mguk.position.set(MGUK.x, MGUK.y, MGUK.z);
-  const hs = Math.max(32, Math.round(64 * tess));
+  const hs = base ? 24 : Math.max(32, Math.round(64 * tess));
   const housing = ownMesh(
     geo(new THREE.CylinderGeometry(MGUK.r, MGUK.r, MGUK.len, hs, 1, true).rotateZ(Math.PI / 2)),
     housingMat,
@@ -742,7 +745,7 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
   const wheels: Wheel[] = [];
   const R = CAR_DIMS.tyreRadius;
   const rimR = CAR_DIMS.rimRadius;
-  const latheSegs = Math.max(28, Math.round(64 * tess));
+  const latheSegs = base ? 20 : Math.max(28, Math.round(64 * tess));
   const makeTyre = (W: number): THREE.BufferGeometry => {
     const hw = W / 2;
     const p = [
@@ -934,6 +937,27 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
   for (const r of [mech, elec, loss]) {
     body.add(r.object);
     r.object.renderOrder = 7;
+  }
+  // base tier: bake the static body parts to one mesh per material (draw-call budget). Kept as
+  // they are: the paint meshes (swapped on a tier switch), the battery fill gauge, the glowing
+  // MGU-K band and the energy ribbons (rebuilt every frame).
+  if (base) {
+    mergeStatic(body, {
+      kit,
+      track: geo,
+      drop: (g) => {
+        if (geometries.delete(g)) carStats.liveGeometries--;
+        g.dispose();
+      },
+      keep: [
+        ...paintSlots.flatMap((sl) => sl.meshes),
+        batFill,
+        band,
+        mech.object,
+        elec.object,
+        loss.object,
+      ],
+    });
   }
   // kit materials animated every frame (re-fetched after a tier/theme switch)
   const glow = { battery: kit.get('glowEnergy', 'battery'), mguk: kit.get('glowEnergy', 'mguk') };

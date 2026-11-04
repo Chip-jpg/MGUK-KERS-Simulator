@@ -121,8 +121,10 @@ export function createCarSceneCore(
   const L: Record<keyof CoreTexts | 'start' | 'end', Label> = {
     mguk: labels.add({
       text: 'MGU-K',
-      sensorHeight: '1.7rem',
-      sensorWidth: '27ch',
+      // compact one-line sensor boxes (like the car-dynamics force labels)
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '25ch',
       anchor: a.mguk,
       quantity: 'energy',
       priority: 9,
@@ -132,7 +134,9 @@ export function createCarSceneCore(
     }),
     battery: labels.add({
       text: 'Batteria',
-      sensorHeight: '1.7rem',
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '17ch',
       anchor: a.battery,
       quantity: 'energy',
       priority: 9,
@@ -142,7 +146,9 @@ export function createCarSceneCore(
     }),
     discFront: labels.add({
       text: 'Disco ant.',
-      sensorHeight: '1.7rem',
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '18ch',
       anchor: a.discFront,
       priority: 8,
       occlude: false,
@@ -150,7 +156,9 @@ export function createCarSceneCore(
     }),
     discRear: labels.add({
       text: 'Disco post.',
-      sensorHeight: '1.7rem',
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '19ch',
       anchor: a.discRear,
       priority: 8,
       occlude: false,
