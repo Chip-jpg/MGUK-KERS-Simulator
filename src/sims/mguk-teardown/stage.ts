@@ -163,9 +163,11 @@ export function createTeardownStage(
   const v3 = (x: number, y: number, z: number): THREE.Vector3 => new THREE.Vector3(x, y, z);
   const hub = a.wheel.clone().setY(a.wheel.y * 0.5);
   // Callout spots (world offsets from each part's anchor), joined to the part by a short leader.
+  // 18-tooth pinion of the 18:60 pair (axis x=0, y=MGUK_Y·4, z≈-0.65, rear of the rotor): lead to its toothed rim
+  const gearRim = v3(0.1, 1.17, -0.63);
   const spot = {
     mguk: a.mguk.clone().add(v3(-0.75, 0.55, 0.35)),
-    gears: a.gears.clone().add(v3(-0.9, -0.4, 1.1)),
+    gears: gearRim.clone().add(v3(0.2, -0.8, -0.2)),
     wheel: hub.clone().add(v3(-0.6, 0.5, 0.2)),
     inverter: a.inverter.clone().add(v3(-0.9, 1.0, -0.3)),
     battery: a.battery.clone().add(v3(0.2, -0.35, 0.9)),
@@ -173,7 +175,7 @@ export function createTeardownStage(
   // the gear pair sits behind the rotor from the front: lead to its toothed rim on the near side
   const from = {
     mguk: a.mguk,
-    gears: a.gears.clone().add(v3(0, 0, 0.5)),
+    gears: gearRim,
     wheel: hub,
     inverter: a.inverter,
     battery: a.battery,
