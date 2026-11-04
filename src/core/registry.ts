@@ -11,6 +11,7 @@ export const SIM_IDS = [
   // Phase 4 (optional, advanced)
   'car-dynamics',
   'drive-sim',
+  'mguk-teardown',
 ] as const;
 
 export type SimId = (typeof SIM_IDS)[number];

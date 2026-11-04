@@ -11,11 +11,23 @@ export interface BatterySpec {
 }
 
 export const DEFAULT_BATTERY: Readonly<BatterySpec> = {
+  // Regulated usable SoC window ΔSoC ≤ 4 MJ, not total cell capacity:
+  // FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2 diagram;
+  // FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.9.
   capacity: 4e6,
+  // Assumptions, close to Mercedes' published 96% ES efficiency (direction unspecified):
+  // https://www.mercedesamgf1.com/news/eq-power-in-f1-a-decade-of-hybrid-success
   chargeEfficiency: 0.95,
   dischargeEfficiency: 0.95,
+  // 2025 MGU-K path only (not unrestricted MGU-H charging):
+  // FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2 diagram, 5.3.3.
+  // 350 kW in the 2026 preset: FIA 2026 F1 Regulations Section C,
+  // Issue 21 (19 Oct 2026), C5.2.7.
   chargePower: 120e3,
   dischargePower: 120e3,
+  // Assumed voltage, below the 1000 V maximum working voltage:
+  // FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.13.5;
+  // FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.17.6.
   voltage: 800,
   resistance: 0,
   restartSoc: 0.05,

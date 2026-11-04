@@ -28,7 +28,7 @@ const hrefIds = (p: HTMLElement): string[] =>
 describe('simulator → theory links', () => {
   it('every SimModule.theoryId exists', async () => {
     const sims = await loadSimModules();
-    expect(sims.length).toBe(8);
+    expect(sims.length).toBe(9);
     for (const sim of sims) expect(THEORY_IDS.has(sim.theoryId), sim.id).toBe(true);
   });
 

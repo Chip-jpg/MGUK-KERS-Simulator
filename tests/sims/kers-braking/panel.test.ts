@@ -15,7 +15,9 @@ describe('kers-braking balance card', () => {
       host.querySelector(`[data-out="${k}"]`)?.textContent;
     expect(out('dEk')).toBe('2,47\u00A0MJ');
     expect(out('recovered')).toBe('0,36\u00A0MJ');
-    expect(out('tRec')).toBe('18,5\u00A0s');
+    // t = 0.95 · [800/2 · ((300/3.6)² − (100/3.6)²)] / 120000
+    //   = 19.54732510288066 s → 19,5 s at one decimal.
+    expect(out('tRec')).toBe('19,5\u00A0s');
     // QA-012: the time is to *absorb* all ΔE_k at the cap, not to store all of it.
     const tRecRow = host.querySelector('[data-out="tRec"]')?.closest('div')?.textContent ?? '';
     expect(tRecRow).toContain('Tempo per assorbire tutta ΔEₖ alla potenza massima');
@@ -54,8 +56,9 @@ describe('kers-braking presets', () => {
     expect(p.element.textContent).not.toContain('valore da verificare');
     b2026?.click();
     expect(onPreset).toHaveBeenCalledWith(PRESETS[1]);
-    p.element.querySelector<HTMLButtonElement>('[data-preset="min-mass-2026"]')?.click();
-    expect(onMinMass).toHaveBeenCalledWith(768);
+    // 724 + 46 = 770 kg remains an unverified estimate: no mass-only button.
+    expect(p.element.querySelector('[data-preset="min-mass-2026"]')).toBeNull();
+    expect(onMinMass).not.toHaveBeenCalled();
     p.dispose();
     expect(document.body.contains(p.element)).toBe(false);
   });

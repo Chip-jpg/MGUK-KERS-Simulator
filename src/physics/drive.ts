@@ -35,7 +35,11 @@ export const DEFAULT_DRIVE: Readonly<DriveSpec> = {
   brakeForce: 16000,
   deployPower: 120e3,
   harvestPower: 120e3,
-  efficiency: 0.9,
+  /**
+   * FIA fixed correction used as an efficiency proxy, not a measured efficiency.
+   * FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2.
+   */
+  efficiency: 0.95,
   battery: { ...DEFAULT_BATTERY },
 };
 export interface DriveInput {

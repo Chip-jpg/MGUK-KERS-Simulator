@@ -14,7 +14,7 @@
  */
 import * as THREE from 'three';
 import type { Stage } from '../../../render';
-import { studioBackgroundColor } from '../../../render';
+import { TEARDOWN_STUDIO, mergeStatic } from '../../../render';
 import { carStats } from './stats';
 import { CAR_DIMS } from './dims';
 import { TRACK_TILE_M, TRACK_WIDTH_M, asphaltTile, boardFace } from './textures';
@@ -96,7 +96,7 @@ export function createTrack(stage: Stage): Track {
     t.anisotropy = 8;
   }
   const makeAsphalt = (): THREE.MeshStandardMaterial | THREE.MeshLambertMaterial => {
-    const map = stage.theme === 'dark' ? asphaltTex.dark : asphaltTex.light;
+    const map = asphaltTex.dark;
     return stage.settings.pbr
       ? new THREE.MeshStandardMaterial({ map, roughness: 0.92, metalness: 0 })
       : new THREE.MeshLambertMaterial({ map, color: new THREE.Color(1.7, 1.7, 1.7) });
@@ -134,7 +134,7 @@ export function createTrack(stage: Stage): Track {
 
   // --- distance boards (post + face) ------------------------------------------------------------
   const BOARD_Z = -6.3;
-  const postGeo = geo(new THREE.CylinderGeometry(0.035, 0.035, 1.4, 8));
+  const postGeo = geo(new THREE.CylinderGeometry(0.035, 0.035, 1.4, stage.tier === 'base' ? 6 : 8));
   const faceGeo = geo(new THREE.PlaneGeometry(0.8, 1.0));
   const postMat = stage.materials.get('darkSteel', 'board');
   const boards = BOARD_DISTANCES.map((d) => {
@@ -160,6 +160,15 @@ export function createTrack(stage: Stage): Track {
   stage.castShadows(group, true);
   asphalt.castShadow = false;
   startLine.castShadow = endLine.castShadow = false;
+  // base tier: post + back of each board share one material → one mesh (the group still moves
+  // and toggles as a whole; the textured face stays on its own). The shared source geometries
+  // stay registered and are released with the track.
+  if (stage.tier === 'base') {
+    for (const b of boards) {
+      const face = b.g.children[2];
+      mergeStatic(b.g, { kit: stage.materials, track: geo, keep: face ? [face] : [] });
+    }
+  }
 
   // --- speed streaks (alta / bilanciata) ---------------------------------------------------------
   const SPAN = 70;
@@ -215,13 +224,10 @@ export function createTrack(stage: Stage): Track {
   buildStreaks();
 
   // --- fog (fades the strip into the studio) ---------------------------------------------------
+  // teardown studio (charcoal in both themes): the strip melts into the backdrop
   const applyFog = (): void => {
-    const dark = stage.theme === 'dark';
-    const col = stage.settings.pbr ? (dark ? 0x10141a : 0xdfe4e9) : studioBackgroundColor(dark);
-    stage.scene.fog = new THREE.Fog(col, 22, 62);
-    (streakMat.uniforms['uColor'] as { value: THREE.Color }).value.setHex(
-      dark ? 0xc9d6e6 : 0x4a5868,
-    );
+    stage.scene.fog = new THREE.Fog(TEARDOWN_STUDIO.flat, 14, 46);
+    (streakMat.uniforms['uColor'] as { value: THREE.Color }).value.setHex(0xc9d6e6);
   };
   applyFog();
   const rebuildAsphalt = (): void => {

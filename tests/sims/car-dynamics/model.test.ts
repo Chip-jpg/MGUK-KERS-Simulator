@@ -89,6 +89,8 @@ describe('car-dynamics parameters', () => {
   it('presets reuse the sourced kers-braking values (120 / 350 kW)', () => {
     expect(PRESETS.map((p) => p.Pmax)).toEqual([120, 350]);
     expect(PRESETS.map((p) => p.Pmax)).toEqual(KERS_PRESETS.map((p) => p.values.Pmax));
+    expect(PRESETS.map((p) => p.eta)).toEqual([0.95, 0.97]);
+    expect(PRESETS.map((p) => p.eta)).toEqual(KERS_PRESETS.map((p) => p.values.eta));
     for (const p of PRESETS) {
       expect(p.sources.length).toBeGreaterThan(0);
       for (const s of p.sources) expect(s.url).toMatch(/^https:\/\//);
@@ -119,7 +121,9 @@ describe('car-dynamics summary', () => {
     expect(roundTo(z.tBrake, 2)).toBe(1.83);
     expect(roundTo(z.distance, 0)).toBe(93);
     expect(roundTo(z.eStored / 1e6, 2)).toBe(0.22);
-    expect(roundTo(z.eBrakes / 1e6, 2)).toBe(1.99);
+    // E_MGU-K = 120 kW × 1.828991 s / 0.95 = 0.231030 MJ;
+    // E_discs = 2.469136 − 0.231030 − 0.231213 = 2.006892 MJ.
+    expect(roundTo(z.eBrakes / 1e6, 2)).toBe(2.01);
     expect(roundTo(z.eAero / 1e6, 2)).toBe(0.23);
     // comparison: kersBrakingEvent with the same v₁, v₂, t
     const c = s.compare;
@@ -129,7 +133,7 @@ describe('car-dynamics summary', () => {
       v1: kmhToMs(300),
       v2: kmhToMs(100),
       Pmax: 120e3,
-      eta: 0.9,
+      eta: s.si.eta,
       tBrake: z.tBrake,
     });
     expect(c?.result.recovered).toBeCloseTo(k.recovered, 6);
@@ -141,8 +145,9 @@ describe('car-dynamics summary', () => {
   });
 
   it('2026 preset: rear-axle limit makes the dynamic model recover less', () => {
-    const s = summarize({ ...defaultParams(), Pmax: 350 }, true);
-    expect(roundTo(s.zone.eStored / 1e6, 2)).toBe(0.55);
+    const s = summarize({ ...defaultParams(), ...PRESETS[1] }, true);
+    // ∫min(350 kW / 0.97, F_rear·v)dt = 0.581742 MJ; × 0.97 = 0.564290 MJ.
+    expect(roundTo(s.zone.eStored / 1e6, 2)).toBe(0.56);
     expect(roundTo(s.compare?.result.recovered ?? 0, -4) / 1e6).toBeCloseTo(0.64, 2);
     expect(s.zone.eStored).toBeLessThan(s.compare?.result.recovered ?? 0);
   });

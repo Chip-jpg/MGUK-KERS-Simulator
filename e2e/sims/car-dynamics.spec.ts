@@ -91,16 +91,22 @@ test('loads without errors; displayed energies add up and match the physics', as
   expect(await out(page, 'dEk')).toBe(2.47);
   expect(await out(page, 'time')).toBe(1.83);
   expect(await out(page, 'distance')).toBeCloseTo(d.distance, 1);
+  // 2025, η = 0.95: both models stay power-limited; 120 kW × 1.828991 s = 0.219479 MJ.
   expect(await out(page, 'stored')).toBe(0.22);
   expect(await out(page, 'cStored')).toBe(0.22);
   const parts = await Promise.all(
     ['stored', 'loss', 'brakesFront', 'brakesRear', 'aero'].map((k) => out(page, k)),
   );
+  // η changes the energy split, not its sum: ½·800·[(300/3.6)² − (100/3.6)²] = 2.469136 MJ.
   expect(Math.abs(parts.reduce((a, b) => a + b, 0) - 2.47)).toBeLessThanOrEqual(0.03);
 
   // 2026 preset: rear-axle limit ⇒ less than the constant-deceleration model
   await page.locator('button[data-preset="2026"]').click();
-  await expect(page.locator('[data-out="stored"]')).toHaveText('0,55 MJ');
+  // ∫min(350 kW / 0.97, F_rear·v)dt = 0.581742 MJ; × 0.97 = 0.564290 MJ → 0.56 MJ.
+  await expect(page.locator('[data-out="stored"]')).toHaveText('0,56 MJ');
+  // Total braking force is independent of Pmax/η, so t_brake remains 1.828991 s.
+  // Constant deceleration: P_end = 800·[(300−100)/3.6]/1.828991·(100/3.6) ≈ 675 kW
+  // exceeds 350/0.97 ≈ 361 kW throughout; stored = 350 kW × 1.828991 s = 0.640147 MJ.
   await expect(page.locator('[data-out="cStored"]')).toHaveText('0,64 MJ');
   const d26 = await debug(page);
   expect(d26.params.Pmax).toBe(350);

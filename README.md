@@ -192,6 +192,12 @@ GitHub Release partono dalla v0.7.0: le versioni precedenti sono documentate sol
    **Actions → Deploy to GitHub Pages → Run workflow** sul branch `main`
    (`workflow_dispatch`).
 
+   Un unico artefatto Pages contiene due versioni: l’URL radice serve la versione
+   stabile, fissata da `STABLE_REF` nel workflow (predefinito: `v0.7.4`); `/3d/` serve
+   la versione del tag o branch che ha avviato il deploy.
+   Per cambiare il tag stabile, modifica `STABLE_REF` in `pages.yml` oppure specifica
+   `stable_ref` in **Run workflow**: se compilato, l’input prevale su `STABLE_REF`.
+
 4. Crea la **GitHub Release** dal tag (`Releases → Draft a new release`, oppure
    `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file note.md`), copiando come note
    il testo della sezione corrispondente di `CHANGELOG.md`.

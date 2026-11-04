@@ -35,12 +35,14 @@ $$\tfrac12 m (v_1^2 - v_2^2) = E_{\text{MGU-K}} + E_{\text{freni}} + E_{\text{ae
 
 ## Esempio numerico
 
-Vettura illustrativa: $m = 800$ kg, $C_x A = 1{,}2$ m², $C_z A = 3{,}5$ m², $\mu = 1{,}6$, $\eta = 0{,}9$, frenata da 300 a 100 km/h ($\Delta E_k \approx 2{,}47$ MJ). Risultato: circa 1,83 s e 93 m (senza aerodinamica circa 3,56 s e 198 m).
+Vettura illustrativa: $m = 800$ kg, $C_x A = 1{,}2$ m², $C_z A = 3{,}5$ m², $\mu = 1{,}6$, $\eta = 0{,}95$, frenata da 300 a 100 km/h ($\Delta E_k \approx 2{,}47$ MJ). Risultato: circa 1,83 s e 93 m (senza aerodinamica circa 3,56 s e 198 m).
 
-Con $P_{\max} = 120$ kW in batteria vanno $120\ \text{kW} \cdot 1{,}83\ \text{s} \approx 0{,}22$ MJ (circa 9 %); circa 1,99 MJ ai freni, 0,23 MJ all’aria e 0,02 MJ di perdite MGU-K.
+Con $P_{\max} = 120$ kW in batteria vanno $120\ \text{kW} \cdot 1{,}83\ \text{s} \approx 0{,}22$ MJ (circa 9 %); circa 2,01 MJ ai freni, 0,23 MJ all’aria e 0,01 MJ di perdite MGU-K.
 
-Con $P_{\max} = 350$ kW in batteria circa 0,55 MJ: meno degli 0,64 MJ del modello a decelerazione costante con lo stesso tempo, perché sotto circa 167 km/h l’MGU-K è limitata dall’asse posteriore.
+Con $P_{\max} = 350$ kW con lo stesso η in batteria circa 0,56 MJ: meno degli 0,64 MJ del modello a decelerazione costante con lo stesso tempo, perché sotto circa 162,5 km/h l’MGU-K è limitata dall’asse posteriore.
+
+η = 0,95 è la correzione fissa FIA usata come stima del rendimento, non un rendimento misurato (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2); il preset 2026 usa η = 0,97 (FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.21).
 
 ## Collegamento con KERS / MGU-K
 
-I valori 120 kW (fino al 2025) e circa 350 kW (dal 2026) sono quelli della sezione [KERS e MGU-K](10-kers-mguk.md). Fonte: [FIA, Power Unit Regulations 2014](https://www.fia.com/sites/default/files/publication/file/FIA%20F1%20Power%20Unit%20leaflet.pdf); [Formula 1, regolamento motori 2026](https://www.formula1.com/en/latest/article/more-efficient-less-fuel-and-carbon-net-zero-7-things-you-need-to-know-about.ZhtzvU3cPCv8QO7jtFxQR). Gli altri parametri sono illustrativi, non dati di una vettura reale.
+I valori 120 kW (fino al 2025) e 350 kW di potenza elettrica DC assoluta dell’ERS-K (dal 2026) sono quelli della sezione [KERS e MGU-K](10-kers-mguk.md). Fonti: [FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3](https://www.fia.com/sites/default/files/documents/fia_2025_formula_1_technical_regulations_-_issue_03_-_2025-04-07.pdf); [FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.7](https://www.fia.com/system/files/documents/fia_2026_f1_regulations_-_section_c_technical_-_iss_21_-_2026-10-19.pdf). Gli altri parametri della vettura sono illustrativi, non dati di una vettura reale.

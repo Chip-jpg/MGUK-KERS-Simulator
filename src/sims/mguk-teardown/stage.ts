@@ -1,0 +1,392 @@
+/**
+ * Stage of the MGU-K teardown: render-foundation studio (light, one accent colour), camera
+ * framing, labels, and `update(state)` that maps one `BrakingState` (model.ts) onto the parts.
+ * Nothing here recomputes physics: every number shown comes from the state; the only
+ * constants are geometric (gear tooth counts, wheel radius) and one visual time scale.
+ */
+import * as THREE from 'three';
+import type { AppContext } from '../../core/types';
+import {
+  createEnergyRibbon,
+  createLabelLayer,
+  createStage,
+  type EnergyRibbon,
+  type Label,
+  type LabelLayer,
+  type Stage,
+  type StageInfo,
+} from '../../render';
+import { ROTOR_SPEED_PER_VEHICLE_SPEED, type BrakingState } from './model';
+import { CAR_DIMS } from '../shared/car/dims';
+import { CRANK_GEAR_TEETH, PINION_TEETH, SCENE_SCALE } from './dims';
+import { createTeardown, type HousingMode, type Teardown } from './geometry';
+
+/**
+ * Visual time scale of the rotor angle: θ += ω·dt·VISUAL_TIME_SCALE. At 50 000 rpm
+ * (834 rev/s) a 60 fps frame would alias the rotor (14 rev per frame), so the rotation is
+ * shown 1/100 slower (≤ 8,3 rev/s). The rotor, pinion, crank gear and wheel all use the same
+ * θ through their fixed ratios, so their relative motion is exact.
+ */
+export const VISUAL_TIME_SCALE = 0.01;
+
+/** Rear tyre radius [m] (shared car, 720 mm tyre). */
+const WHEEL_R = CAR_DIMS.tyreRadius;
+/** Wheel angle per rotor angle: 1 / (rotor rad per metre of travel · wheel radius). */
+export const WHEEL_PER_ROTOR = 1 / (ROTOR_SPEED_PER_VEHICLE_SPEED * WHEEL_R);
+/** Crankshaft turns per wheel turn through the (unseen) transmission: derived from the model. */
+export const CRANK_PER_WHEEL = PINION_TEETH / CRANK_GEAR_TEETH / WHEEL_PER_ROTOR;
+
+/** Ribbon radius [scene units] at P = Pmax. */
+const RIBBON_R_AT_PMAX = 0.016;
+
+const FOV = 36;
+const DEFAULT_ASPECT = 2.1;
+type Vec3 = [number, number, number];
+interface FrameSpec {
+  target: Vec3;
+  /** Half extents [scene units] of what must fit, and the fraction of the canvas it should fill. */
+  halfW: number;
+  halfH: number;
+  fill: number;
+  /** Camera elevation / azimuth [deg] around the target. */
+  elevation: number;
+  azimuth: number;
+}
+/**
+ * "Insieme": MGU-K → inverter → ES framed tight, 3/4 from above; the wheel is allowed to
+ * crop at the left edge so the machine, not the tyre, carries the view.
+ */
+const HOME_FRAME: FrameSpec = {
+  target: [0.55, 1.6, -0.95],
+  halfW: 2.9,
+  halfH: 2.1,
+  fill: 0.84,
+  elevation: 32,
+  azimuth: 34,
+};
+/** "MGU-K": the opened machine (Ø 0.52 units at 2:1) with its gear pair, 3/4 into the cut. */
+const MGUK_FRAME: FrameSpec = {
+  target: [-0.05, 0.3 * SCENE_SCALE, 0],
+  halfW: 0.62,
+  halfH: 0.42,
+  fill: 0.68,
+  elevation: 30,
+  azimuth: 62,
+};
+
+/** Camera position/target that fits `f` into a canvas of the given aspect ratio. */
+export function frameView(f: FrameSpec, aspect: number): { position: Vec3; target: Vec3 } {
+  const tanV = Math.tan((FOV * Math.PI) / 360);
+  const tanH = tanV * (Number.isFinite(aspect) && aspect > 0.2 ? aspect : DEFAULT_ASPECT);
+  const d = Math.max(f.halfW / (f.fill * tanH), f.halfH / (f.fill * tanV));
+  const el = (f.elevation * Math.PI) / 180;
+  const az = (f.azimuth * Math.PI) / 180;
+  const [tx, ty, tz] = f.target;
+  return {
+    position: [
+      tx + d * Math.cos(el) * Math.sin(az),
+      ty + d * Math.sin(el),
+      tz + d * Math.cos(el) * Math.cos(az),
+    ],
+    target: f.target,
+  };
+}
+export const HOME_VIEW = frameView(HOME_FRAME, DEFAULT_ASPECT);
+export const MGUK_VIEW = frameView(MGUK_FRAME, DEFAULT_ASPECT);
+
+export type PartId = 'wheel' | 'gears' | 'stator' | 'rotor' | 'inverter' | 'battery';
+
+export interface TeardownStage {
+  readonly stage: Stage;
+  readonly parts: Teardown;
+  /** Map a braking state onto the parts; `dt` [s] is real time since the last call (0 = scrubbing). */
+  update(state: BrakingState, dt?: number): void;
+  /** Draw one frame. */
+  render(): void;
+  setPMax(w: number): void;
+  setHousing(m: HousingMode): void;
+  setView(v: 'home' | 'mguk'): void;
+  /** Fly to a part and outline it (other labels dim); `null` returns to the home view. */
+  focusPart(part: PartId | null): void;
+  focused(): PartId | null;
+  /** Rotor angle θ [rad] (debug / tests). */
+  angle(): number;
+  info(): StageInfo & { labels: ReturnType<LabelLayer['stats']> };
+  dispose(): void;
+}
+
+export interface TeardownStageOptions {
+  /** Electrical power cap [W] that scales the energy ribbon (Pmax of the event). */
+  pMax: number;
+}
+
+export function createTeardownStage(
+  container: HTMLElement,
+  overlay: HTMLElement,
+  ctx: AppContext,
+  opts: TeardownStageOptions,
+): TeardownStage {
+  let probe: Teardown | null = null;
+  const stage = createStage(container, ctx, {
+    ariaLabel:
+      'Scena 3D: spaccato dell’MGU-K in frenata con statore, avvolgimenti in rame, rotore a magneti permanenti, ingranaggi verso albero motore e ruota, inverter e batteria con livello di carica; il nastro viola mostra il flusso di energia ruota, MGU-K, inverter, batteria.',
+    camera: { ...HOME_VIEW, fov: FOV, far: 120 },
+    controls: { minDistance: 0.9, maxDistance: 26, maxPolarAngle: (88 * Math.PI) / 180 },
+    floorY: -0.002,
+    floor: { radius: 40 },
+    shadowRadius: 8,
+    look: 'teardown',
+  });
+  let ribbon: EnergyRibbon | null = null;
+  let labels: LabelLayer | null = null;
+  try {
+    probe = createTeardown(stage);
+    ribbon = createEnergyRibbon(stage, {
+      path: probe.flowPath,
+      widthPerWatt: RIBBON_R_AT_PMAX / Math.max(1, opts.pMax),
+      minRadius: 0.008,
+      maxRadius: RIBBON_R_AT_PMAX * 1.15,
+      pRef: Math.max(1, opts.pMax),
+      speed: 1.4,
+      quantity: 'energy',
+    });
+    labels = createLabelLayer(stage, overlay);
+  } catch (e) {
+    labels?.dispose();
+    ribbon?.dispose();
+    probe?.dispose();
+    stage.dispose();
+    throw e;
+  }
+  const parts = probe;
+  const home0 = frameView(HOME_FRAME, stage.camera.aspect);
+  stage.setView(home0.position, home0.target, false);
+  const flow = ribbon;
+  let activePMax = opts.pMax;
+  const labelLayer = labels;
+  const a = parts.anchors;
+  const v3 = (x: number, y: number, z: number): THREE.Vector3 => new THREE.Vector3(x, y, z);
+  const hub = a.wheel.clone().setY(a.wheel.y * 0.5);
+  // Callout spots (world offsets from each part's anchor), joined to the part by a short leader.
+  // 18-tooth pinion of the 18:60 pair (axis x=0, y=MGUK_Y·4, z≈-0.65, rear of the rotor): lead to its toothed rim
+  const gearRim = v3(0.1, 1.17, -0.63);
+  const spot = {
+    mguk: a.mguk.clone().add(v3(-0.75, 0.55, 0.35)),
+    gears: gearRim.clone().add(v3(0.2, -0.8, -0.2)),
+    wheel: hub.clone().add(v3(-0.6, 0.5, 0.2)),
+    inverter: a.inverter.clone().add(v3(-0.9, 1.0, -0.3)),
+    battery: a.battery.clone().add(v3(0.2, -0.35, 0.9)),
+  };
+  // the gear pair sits behind the rotor from the front: lead to its toothed rim on the near side
+  const from = {
+    mguk: a.mguk,
+    gears: gearRim,
+    wheel: hub,
+    inverter: a.inverter,
+    battery: a.battery,
+  };
+  const spotKeys = Object.keys(spot) as (keyof typeof spot)[];
+  const leaderPos = new Float32Array(spotKeys.length * 6);
+  spotKeys.forEach((k, i) => {
+    const p = from[k];
+    const q = spot[k];
+    leaderPos.set([p.x, p.y, p.z, q.x, q.y, q.z], 6 * i);
+  });
+  const leaderGeo = new THREE.BufferGeometry();
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = new THREE.LineBasicMaterial({
+    color: 0x9da7b3,
+    transparent: true,
+    opacity: 0.85,
+    depthTest: false,
+  });
+  const leaders = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaders.frustumCulled = false;
+  stage.scene.add(leaders);
+  const L: Record<'mguk' | 'gears' | 'wheel' | 'inverter' | 'battery', Label> = {
+    mguk: labels.add({
+      text: 'MGU-K',
+      anchor: spot.mguk,
+      quantity: 'energy',
+      priority: 9,
+      occlude: false,
+      sensorWidth: '17ch',
+      sensorHeight: '2.9rem',
+    }),
+    gears: labels.add({
+      text: `Riduzione semplificata (1 coppia) ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
+      anchor: spot.gears,
+      priority: 6,
+      occlude: false,
+      size: 'sm',
+    }),
+    wheel: labels.add({
+      text: 'Ruota posteriore',
+      anchor: spot.wheel,
+      priority: 6,
+      occlude: false,
+      size: 'sm',
+      sensorWidth: '19ch',
+      sensorHeight: '2.6rem',
+    }),
+    inverter: labels.add({
+      text: 'Inverter',
+      anchor: spot.inverter,
+      priority: 6,
+      occlude: false,
+      size: 'sm',
+      sensorWidth: '17ch',
+      sensorHeight: '1.6rem',
+    }),
+    battery: labels.add({
+      text: 'Batteria',
+      anchor: spot.battery,
+      quantity: 'energy',
+      priority: 9,
+      occlude: false,
+      sensorWidth: '13ch',
+      sensorHeight: '2.9rem',
+    }),
+  };
+  // Part focus: camera frame + one accent outline box (a single line draw call, only while focused).
+  const mc = parts.mgukCentre;
+  const frame = (
+    t: THREE.Vector3,
+    halfW: number,
+    halfH: number,
+    elevation: number,
+    azimuth: number,
+  ): FrameSpec => ({ target: t.toArray(), halfW, halfH, fill: 0.8, elevation, azimuth });
+  const gearsC = gearRim.clone().add(v3(-0.3, 0, 0));
+  const part: Record<PartId, { c: THREE.Vector3; half: Vec3; frame: FrameSpec; label: Label }> = {
+    wheel: {
+      c: hub,
+      half: [hub.y, hub.y, 0.42],
+      frame: frame(hub, 1.9, 1.5, 18, 40),
+      label: L.wheel,
+    },
+    gears: {
+      c: gearsC,
+      half: [0.85, 0.55, 0.2],
+      frame: frame(gearsC, 1.0, 0.65, 20, 140),
+      label: L.gears,
+    },
+    stator: {
+      c: mc,
+      half: [0.46, 0.46, 0.32],
+      frame: frame(mc, 0.78, 0.6, 28, 55),
+      label: L.mguk,
+    },
+    rotor: {
+      c: mc,
+      half: [0.27, 0.27, 0.4],
+      frame: frame(mc, 0.5, 0.4, 22, 68),
+      label: L.mguk,
+    },
+    inverter: {
+      c: a.inverter,
+      half: [0.55, 0.3, 0.45],
+      frame: frame(a.inverter, 0.85, 0.6, 35, 34),
+      label: L.inverter,
+    },
+    battery: {
+      c: a.battery,
+      half: [0.9, 0.35, 0.6],
+      frame: frame(a.battery, 1.3, 0.9, 32, 34),
+      label: L.battery,
+    },
+  };
+  const outlineGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2, 2, 2));
+  const outlineMat = new THREE.LineBasicMaterial({
+    color: 0x8b5cf6,
+    transparent: true,
+    opacity: 0.95,
+    depthTest: false,
+  });
+  const outline = new THREE.LineSegments(outlineGeo, outlineMat);
+  outline.visible = false;
+  outline.frustumCulled = false;
+  outline.renderOrder = 10;
+  stage.scene.add(outline);
+  let focus: PartId | null = null;
+  const dimLabels = (active: Label | null): void => {
+    for (const k of spotKeys) {
+      const lab = L[k];
+      lab.element.style.opacity = !active || lab === active ? '' : '0.3';
+    }
+    leaderMat.opacity = active ? 0.3 : 0.85;
+  };
+  const applyFocus = (id: PartId | null): void => {
+    focus = id;
+    outline.visible = id !== null;
+    if (!id) return dimLabels(null);
+    const p = part[id];
+    outline.position.copy(p.c);
+    outline.scale.set(...p.half);
+    outlineMat.color.set(stage.theme === 'dark' ? 0xb68cff : 0x8b5cf6);
+    dimLabels(p.label);
+    const w = frameView(p.frame, stage.camera.aspect);
+    stage.setView(w.position, w.target);
+  };
+  let theta = 0;
+  let disposed = false;
+  const fmt = ctx.formatIT;
+
+  return {
+    stage,
+    parts,
+    update(s, dt = 0) {
+      if (disposed) return;
+      theta = (theta + s.omega * Math.max(0, dt) * VISUAL_TIME_SCALE) % (2 * Math.PI);
+      parts.setAngles(theta, WHEEL_PER_ROTOR);
+      const flowing = s.pKers > 0;
+      flow.setVisible(flowing);
+      // Keep the original ribbon calibration while normalizing to the active era.
+      flow.setPower(flowing ? (s.pKers * opts.pMax) / Math.max(1, activePMax) : 0);
+      parts.setSoc(s.soc);
+      parts.setBrakeHeat(s.brakeHeat);
+      L.mguk.setText(`MGU-K · ${fmt(s.pKers / 1e3, 0, 'kW')} · ${fmt(s.rpm, 0, 'giri/min')}`);
+      L.battery.setText(`SoC ${fmt(s.soc * 100, 1, '%')} · ${fmt(s.recovered / 1e6, 3, 'MJ')}`);
+      L.inverter.setText(`Inverter · ${fmt(s.current, 0, 'A')}`);
+      L.wheel.setText(`Ruota posteriore · ${fmt(s.v * 3.6, 0, 'km/h')}`);
+    },
+    render() {
+      if (!disposed) stage.render();
+    },
+    setPMax(w) {
+      activePMax = w;
+    },
+    setHousing: (m) => parts.setHousingMode(m),
+    focusPart(id) {
+      if (disposed) return;
+      if (id) return applyFocus(id);
+      applyFocus(null);
+      const w = frameView(HOME_FRAME, stage.camera.aspect);
+      stage.setView(w.position, w.target);
+    },
+    focused: () => focus,
+    setView(v) {
+      applyFocus(null);
+      const w = frameView(v === 'mguk' ? MGUK_FRAME : HOME_FRAME, stage.camera.aspect);
+      stage.setView(w.position, w.target);
+    },
+    angle: () => theta,
+    info: () => ({ ...stage.info(), labels: labelLayer.stats() }),
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      labelLayer.dispose();
+      stage.scene.remove(leaders);
+      stage.scene.remove(outline);
+      outlineGeo.dispose();
+      outlineMat.dispose();
+      leaderGeo.dispose();
+      leaderMat.dispose();
+      flow.dispose();
+      parts.dispose();
+      stage.dispose();
+    },
+  };
+}
+
+export type { HousingMode } from './geometry';

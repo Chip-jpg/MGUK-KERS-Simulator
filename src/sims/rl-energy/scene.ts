@@ -1,7 +1,10 @@
 /**
- * Three.js scene of `rl-energy`, built on the render foundation (D14): a lab
- * bench with a battery of cells, a knife switch with an animated blade, a
- * wire-wound resistor and a large solenoid, wired in series.
+ * Three.js scene of `rl-energy` (teardown look, `look: 'teardown'`): a school RL bench
+ * (`./parts`, reference and real dimensions there) — a tray of 1,5 V D cells, a knife switch
+ * with an animated blade, a wire-wound rheostat and a long air-core field coil on two stands,
+ * wired in series with red/black 4 mm leads. The field coil is the hero: its front-top
+ * quadrant is cut away (two clipping planes, flat section caps on the tube, flanges and on
+ * every cut turn) so the computed interior field and the stored energy can be seen inside.
  *
  * What is physics and what is illustration (scales in ./visual.ts, stated in the
  * legend and the model note):
@@ -10,9 +13,9 @@
  *  - B field: lines COMPUTED for a finite solenoid (`solenoidField`, sum of
  *    coaxial loops), seeded by flux on the mid-plane; the number drawn ∝ i/I_ref
  *    and the flow ∝ i — the field visibly builds up with the time constant τ;
- *  - stored energy ½·L·i²: purple glow inside the winding ∝ U/U_ref (∝ i², it
+ *  - stored energy ½·L·i²: purple glow filling the bore ∝ U/U_ref (∝ i², it
  *    lags the lines);
- *  - self-induced emf −L·di/dt: amber arrow along the solenoid against the
+ *  - self-induced emf −L·di/dt: amber arrow along the coil against the
  *    current, length ∝ |emf|/E (= E at t = 0⁺, then decaying as e^(−t/τ));
  *  - energy ribbons: generator E·i splitting into Joule R·i² (to the resistor)
  *    and L·i·di/dt (into the field), radius ∝ power;
@@ -23,12 +26,12 @@ import * as THREE from 'three';
 import type { AppContext } from '../../core/types';
 import {
   applyHeatGlow,
-  chamferBox,
   createCurrentFlow,
   createEnergyRibbon,
   createFieldLines,
   createLabelLayer,
   createStage,
+  mergeStatic,
   ironbow,
   seedByFlux,
   seedDisc,
@@ -45,6 +48,8 @@ import {
   type TraceJob,
 } from '../../render';
 import { quantityColorHex } from '../../ui/colors';
+import { BAT, BENCH_TOP, FLOOR_Y, RES, SOL, SW, applyTints, buildApparatus, latheY } from './parts';
+import type { PartsSink } from './parts';
 import {
   MAX_CELLS,
   PARTICLE_SPEED_PER_AMP,
@@ -111,16 +116,29 @@ export interface RlScene {
   dispose(): void;
 }
 
-// --- layout -------------------------------------------------------------------------------------
-const BENCH_TOP = 0;
-const BAT = { x: -3.85, z: 0.95 };
-const SW = { x: -1.55, z: 1.25, hinge: -1.95, jaw: -1.15, y: 0.2 };
-const RES = { x: 1.15, z: 1.35, y: 0.55, len: 1.7, r: 0.17 };
-const SOL = { x: 0.65, y: 1.4, z: -1.0, len: 3.3, r: 0.74 };
+// --- layout / framing ---------------------------------------------------------------------------
 const OPEN_ANGLE = (62 * Math.PI) / 180;
+/** Drawn wire radius (illustrative: thicker than the real ~1,5 mm so the turns read). */
+const WIRE_R = 0.032;
+const TUBE_OUT = SOL.r - WIRE_R - 0.004;
+const TUBE_IN = TUBE_OUT - 0.045;
+const FLANGE_R = SOL.r + 0.1;
+const FLANGE_X = SOL.tube / 2 - 0.12;
+const FLANGE_T = 0.1;
+const CORE_R = TUBE_IN - 0.06;
+/** Default framing: whole bench, 3/4 from the front, slightly above. */
+const FOV = 34;
+const VIEW_TARGET: [number, number, number] = [-0.05, 0.85, 0.1];
+const VIEW_DIST = 12.4;
+const VIEW_EL = (25 * Math.PI) / 180;
+const VIEW_AZ = (-4 * Math.PI) / 180;
 const HOME = {
-  position: [1.5, 4.7, 9.9] as [number, number, number],
-  target: [-0.2, 1.2, -0.2] as [number, number, number],
+  position: [
+    VIEW_TARGET[0] + VIEW_DIST * Math.cos(VIEW_EL) * Math.sin(VIEW_AZ),
+    VIEW_TARGET[1] + VIEW_DIST * Math.sin(VIEW_EL),
+    VIEW_TARGET[2] + VIEW_DIST * Math.cos(VIEW_EL) * Math.cos(VIEW_AZ),
+  ] as [number, number, number],
+  target: VIEW_TARGET,
 };
 
 const ENERGY_VS = /* glsl */ `
@@ -139,11 +157,25 @@ varying vec3 vN;
 varying vec3 vView;
 void main() {
   float rim = clamp(1.0 - abs(dot(vN, vView)), 0.0, 1.0); // pow(<0) is NaN → bloom blow-up
-  float a = uAmount * (0.16 + 0.6 * pow(rim, 1.6));
-  gl_FragColor = vec4(uColor * (0.5 + 0.9 * uAmount), a);
+  float a = uAmount * (0.2 + 0.6 * pow(rim, 1.6));
+  gl_FragColor = vec4(uColor * (0.45 + 0.5 * uAmount), a);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
+
+/** Closed (r, x) section revolved about the x axis (tube, flanges, core). */
+function ringX(rIn: number, rOut: number, x0: number, x1: number, seg: number) {
+  return latheY(
+    [
+      [rIn, x0],
+      [rOut, x0],
+      [rOut, x1],
+      [rIn, x1],
+      [rIn, x0],
+    ],
+    seg,
+  ).rotateZ(-Math.PI / 2);
+}
 
 export function createRlScene(
   container: HTMLElement,
@@ -152,16 +184,18 @@ export function createRlScene(
 ): RlScene {
   const stage = createStage(container, ctx, {
     ariaLabel:
-      'Scena 3D del circuito RL sul banco: batteria di pile, interruttore a coltello, resistore a filo avvolto e un grande solenoide con le linee del campo B calcolate, che si infittiscono mentre la corrente cresce.',
-    camera: { ...HOME, fov: 36 },
-    controls: { minDistance: 4, maxDistance: 22, maxPolarAngle: (84 * Math.PI) / 180 },
-    floorY: BENCH_TOP - 0.26,
-    shadowRadius: 6.5,
+      'Scena 3D del circuito RL sul banco: vaschetta di pile da 1,5 V, interruttore a coltello, reostato a filo avvolto e una lunga bobina di campo aperta in sezione, collegati in serie con cavi rosso e nero; dentro la bobina le linee del campo B calcolate e l’energia ½·L·i², che crescono con la corrente.',
+    camera: { ...HOME, fov: FOV },
+    controls: { minDistance: 4, maxDistance: 26, maxPolarAngle: (84 * Math.PI) / 180 },
+    floorY: FLOOR_Y,
+    shadowRadius: 8,
+    look: 'teardown',
   });
   stage.canvas.setAttribute('aria-hidden', 'true');
   const { scene } = stage;
   const kit = stage.materials;
 
+  // --- resource tracking (non-kit) ---------------------------------------------------------
   const geometries = new Set<THREE.BufferGeometry>();
   const materials: THREE.Material[] = [];
   const geo = <G extends THREE.BufferGeometry>(g: G): G => {
@@ -185,185 +219,237 @@ export function createRlScene(
     kit.assign(m, kind, key);
     return m;
   };
+  const sink: PartsSink = {
+    geo,
+    mat,
+    mesh,
+    tex: (t) => t, // no textures in this scene
+  };
   const v = (x = 0, y = 0, z = 0): THREE.Vector3 => new THREE.Vector3(x, y, z);
-  const tess = (n: number): number => Math.max(6, Math.round(n * stage.settings.tessellation));
-  const tube = (pts: THREE.Vector3[], r: number, segs = 48): THREE.TubeGeometry =>
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), segs, r, 8);
 
-  const rig = new THREE.Group();
-  scene.add(rig);
-
-  // --- bench ---------------------------------------------------------------------------------
-  const bench = mesh(geo(chamferBox(10.6, 0.26, 4.9, 0.05)), 'plastic', 'bench');
-  bench.position.set(-0.6, BENCH_TOP - 0.13, 0.1);
-  rig.add(bench);
-
-  // --- battery: holder + cells (∝ E) + terminals ---------------------------------------------------
-  const holder = mesh(geo(chamferBox(2.3, 0.12, 0.78, 0.03)), 'darkSteel', 'holder');
-  holder.position.set(BAT.x, 0.06, BAT.z);
-  rig.add(holder);
-  const cellGeo = geo(new THREE.CylinderGeometry(0.105, 0.105, 0.52, tess(24)));
-  const capGeo = geo(new THREE.CylinderGeometry(0.045, 0.045, 0.06, tess(12)));
-  const cells = new THREE.InstancedMesh(cellGeo, undefined, MAX_CELLS);
-  kit.assign(cells, 'glowEnergy', 'cell');
-  const caps = new THREE.InstancedMesh(capGeo, undefined, MAX_CELLS);
-  kit.assign(caps, 'brass', 'cap');
-  {
-    const m4 = new THREE.Matrix4();
-    for (let k = 0; k < MAX_CELLS; k++) {
-      const x = BAT.x - 0.875 + (k % 8) * 0.25;
-      const z = BAT.z + (k < 8 ? 0.15 : -0.15);
-      cells.setMatrixAt(k, m4.makeTranslation(x, 0.38, z));
-      caps.setMatrixAt(k, m4.makeTranslation(x, 0.67, z));
-    }
-  }
-  cells.count = caps.count = 8;
-  rig.add(cells, caps);
-  const postGeo = geo(new THREE.CylinderGeometry(0.06, 0.07, 0.4, 16));
-  const batPlus = v(BAT.x + 1.25, 0.42, BAT.z);
-  const batMinus = v(BAT.x - 1.25, 0.42, BAT.z);
-  for (const p of [batPlus, batMinus]) {
-    const post = mesh(postGeo, 'brass', 'post');
-    post.position.set(p.x, 0.2, p.z);
-    rig.add(post);
-  }
-  const signGeo = geo(chamferBox(0.16, 0.03, 0.16, 0.01));
-  const plusSign = mesh(signGeo, 'glowI', 'plus');
-  plusSign.position.set(batPlus.x, 0.43, batPlus.z);
-  rig.add(plusSign);
-
-  // --- knife switch -----------------------------------------------------------------------------
-  const swBase = mesh(geo(chamferBox(1.2, 0.08, 0.55, 0.02)), 'magnet', 'switch');
-  swBase.position.set(SW.x, 0.04, SW.z);
-  rig.add(swBase);
-  const clipGeo = geo(chamferBox(0.08, 0.26, 0.2, 0.01));
-  for (const x of [SW.hinge, SW.jaw]) {
-    for (const dz of [-0.06, 0.06]) {
-      const c = mesh(clipGeo, 'copper', 'clip');
-      c.position.set(x, 0.2, SW.z + dz);
-      rig.add(c);
-    }
-  }
-  const blade = new THREE.Group();
-  blade.position.set(SW.hinge, 0.24, SW.z);
-  const bladeBar = mesh(
-    geo(chamferBox(0.86, 0.035, 0.07, 0.01).translate(0.43, 0, 0)),
-    'copper',
-    'blade',
-  );
-  const handle = mesh(
-    geo(new THREE.CylinderGeometry(0.06, 0.07, 0.32, 16).translate(0, 0.16, 0)),
-    'plastic',
-    'handle',
-  );
-  handle.position.set(0.9, 0, 0);
-  blade.add(bladeBar, handle);
-  rig.add(blade);
+  // --- static apparatus ---------------------------------------------------------------------
+  const app = buildApparatus(sink, MAX_CELLS);
+  scene.add(app.root);
+  kit.assign(app.cells, 'plastic', 'cell');
+  kit.assign(app.caps, 'steel', 'nickel');
+  kit.assign(app.straps, 'steel', 'nickel');
+  app.cells.count = app.caps.count = 8;
+  app.straps.count = 7;
+  const blade = app.blade;
   let bladeAngle = OPEN_ANGLE;
   let bladeTarget = OPEN_ANGLE;
 
-  // --- resistor: ceramic tube on brackets, helical resistance wire -----------------------------------
-  // matte vitreous-enamel tube (a glossy white kit ceramic would bloom under the key light)
-  const resTube = new THREE.Mesh(
-    geo(new THREE.CylinderGeometry(RES.r, RES.r, RES.len, tess(28)).rotateZ(Math.PI / 2)),
-    mat(new THREE.MeshStandardMaterial({ color: 0x8f846f, roughness: 0.78, metalness: 0 })),
+  // --- field coil: acrylic tube, flanges, single-layer winding, opened front-top quadrant ---
+  stage.renderer.localClippingEnabled = true;
+  // removes y > SOL.y AND z > SOL.z (clipIntersection): the quarter facing the camera, above the axis
+  const cut = [new THREE.Plane(v(0, -1, 0), SOL.y), new THREE.Plane(v(0, 0, -1), SOL.z)];
+  const clipped = (p: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial =>
+    mat(
+      new THREE.MeshStandardMaterial({
+        ...p,
+        clippingPlanes: cut,
+        clipIntersection: true,
+        clipShadows: true,
+        side: THREE.DoubleSide,
+      }),
+    );
+  const wireMat = clipped({
+    color: 0xd07a45,
+    metalness: 0.55,
+    roughness: 0.36,
+    envMapIntensity: 1.0,
+    emissive: 0x2a1206,
+  });
+  const tubeMat = clipped({
+    color: 0xb9d3dc,
+    metalness: 0,
+    roughness: 0.12,
+    transparent: true,
+    opacity: 0.22,
+    depthWrite: false,
+  });
+  const flangeMat = clipped({ color: 0x3a4048, metalness: 0.1, roughness: 0.5 });
+  const coreMat = clipped({ color: 0x6a6f77, metalness: 0.65, roughness: 0.42 });
+  const capOpts = {
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+    side: THREE.DoubleSide,
+  } as const;
+  // red section colour of cut parts, as on exhibition cutaways; bright copper on cut turns
+  const flatCapMat = mat(
+    new THREE.MeshStandardMaterial({ color: 0x8a3a2c, roughness: 0.85, ...capOpts }),
   );
-  resTube.position.set(RES.x, RES.y, RES.z);
-  rig.add(resTube);
-  const bracketGeo = geo(chamferBox(0.08, RES.y + 0.08, 0.36, 0.02));
-  for (const s of [-1, 1]) {
-    const b = mesh(bracketGeo, 'darkSteel', 'bracket');
-    b.position.set(RES.x + s * (RES.len / 2 + 0.06), (RES.y + 0.08) / 2, RES.z);
-    rig.add(b);
-  }
-  const resHelix: THREE.Vector3[] = [];
-  {
-    const turns = 15;
-    const per = 18;
-    const n = turns * per;
-    for (let k = 0; k <= n; k++) {
-      const a = (k / per) * 2 * Math.PI;
-      const x = RES.x - RES.len / 2 + 0.12 + ((RES.len - 0.24) * k) / n;
-      resHelix.push(
-        v(x, RES.y + (RES.r + 0.02) * Math.cos(a), RES.z + (RES.r + 0.02) * Math.sin(a)),
-      );
-    }
-  }
-  const resWireGeo = geo(tube(resHelix, 0.022, resHelix.length * 2));
-  const resWire = mesh(resWireGeo, 'steel', 'resWire');
-  const resThermal = mesh(resWireGeo, 'plastic', 'resThermal');
-  resThermal.visible = false;
-  rig.add(resWire, resThermal);
+  const ironCapMat = mat(
+    new THREE.MeshStandardMaterial({ color: 0x8d939b, metalness: 0.5, roughness: 0.5, ...capOpts }),
+  );
+  const turnCapMat = mat(
+    new THREE.MeshStandardMaterial({
+      color: 0xf0a878,
+      metalness: 0.4,
+      roughness: 0.4,
+      emissive: 0x3a1808,
+      ...capOpts,
+    }),
+  );
 
-  // --- solenoid: former, end flanges, saddles, optional iron core, winding ----------------------
-  const sol = new THREE.Group();
-  sol.position.set(SOL.x, SOL.y, SOL.z);
-  rig.add(sol);
-  const former = mesh(
-    geo(
-      new THREE.CylinderGeometry(SOL.r - 0.05, SOL.r - 0.05, SOL.len, tess(40), 1, true).rotateZ(
-        Math.PI / 2,
+  const coil = new THREE.Group();
+  coil.name = 'coil';
+  coil.position.set(SOL.x, SOL.y, SOL.z);
+  scene.add(coil);
+  const seg = stage.tier === 'base' ? 40 : 72;
+  const tube = new THREE.Mesh(
+    geo(ringX(TUBE_IN, TUBE_OUT, -SOL.tube / 2, SOL.tube / 2, seg)),
+    tubeMat,
+  );
+  tube.renderOrder = 3;
+  coil.add(tube);
+  for (const s of [-1, 1]) {
+    coil.add(
+      new THREE.Mesh(
+        geo(
+          ringX(TUBE_IN, FLANGE_R, s * FLANGE_X - FLANGE_T / 2, s * FLANGE_X + FLANGE_T / 2, seg),
+        ),
+        flangeMat,
       ),
+    );
+  }
+  /** Rectangle x0..x1 × r0..r1 on the cut plane z = 0 (y > 0) and on y = 0 (z > 0). */
+  const capPair = (
+    parent: THREE.Object3D,
+    x0: number,
+    x1: number,
+    r0: number,
+    r1: number,
+    m: THREE.Material,
+  ): void => {
+    const w = x1 - x0;
+    const h = r1 - r0;
+    const a1 = new THREE.Mesh(geo(new THREE.PlaneGeometry(w, h)), m);
+    a1.position.set((x0 + x1) / 2, (r0 + r1) / 2, 0);
+    const a2 = new THREE.Mesh(geo(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2)), m);
+    a2.position.set((x0 + x1) / 2, 0, (r0 + r1) / 2);
+    parent.add(a1, a2);
+  };
+  capPair(coil, -SOL.tube / 2, SOL.tube / 2, TUBE_IN, TUBE_OUT, flatCapMat);
+  for (const s of [-1, 1])
+    capPair(
+      coil,
+      s * FLANGE_X - FLANGE_T / 2,
+      s * FLANGE_X + FLANGE_T / 2,
+      TUBE_OUT,
+      FLANGE_R,
+      flatCapMat,
+    );
+
+  // optional iron core (μᵣ > 1): solid rod with its own section
+  const core = new THREE.Group();
+  core.add(
+    new THREE.Mesh(
+      geo(
+        ringX(
+          0.001,
+          CORE_R,
+          -SOL.tube / 2 - 0.25,
+          SOL.tube / 2 + 0.25,
+          stage.tier === 'base' ? 28 : 48,
+        ),
+      ),
+      coreMat,
     ),
-    'glass',
-    'former',
   );
-  sol.add(former);
-  const flangeGeo = geo(
-    new THREE.TorusGeometry(SOL.r + 0.02, 0.07, 10, tess(40)).rotateY(Math.PI / 2),
-  );
-  for (const s of [-1, 1]) {
-    const f = mesh(flangeGeo, 'plastic', 'flange');
-    f.position.x = s * (SOL.len / 2 + 0.04);
-    sol.add(f);
-  }
-  const saddleGeo = geo(chamferBox(0.3, SOL.y - SOL.r + 0.08, 1.0, 0.03));
-  for (const s of [-1, 1]) {
-    const sd = mesh(saddleGeo, 'darkSteel', 'saddle');
-    sd.position.set(SOL.x + s * (SOL.len / 2 - 0.35), (SOL.y - SOL.r + 0.08) / 2, SOL.z);
-    rig.add(sd);
-  }
-  const coreRod = mesh(
-    geo(new THREE.CylinderGeometry(0.42, 0.42, SOL.len + 0.5, tess(32)).rotateZ(Math.PI / 2)),
-    'iron',
-    'core',
-  );
-  coreRod.visible = false;
-  sol.add(coreRod);
-  // winding (world points; rebuilt per tier)
-  let winding: THREE.Mesh | null = null;
-  let windingPts: THREE.Vector3[] = [];
+  capPair(core, -SOL.tube / 2 - 0.25, SOL.tube / 2 + 0.25, 0, CORE_R, ironCapMat);
+  core.visible = false;
+  coil.add(core);
+
+  // winding (rebuilt per tier) + the cut-turn discs + the tails down to the stand sockets
+  const windParts = new THREE.Group();
+  coil.add(windParts);
+  let windingPts: THREE.Vector3[] = []; // world, right end → left end
+  let tailR: THREE.Vector3[] = [];
+  let tailL: THREE.Vector3[] = [];
   const buildWinding = (): void => {
-    if (winding) {
-      sol.remove(winding);
-      dropGeo(winding.geometry);
+    for (const c of windParts.children.slice()) {
+      windParts.remove(c);
+      if (c instanceof THREE.Mesh) dropGeo(c.geometry);
     }
     const turns = SOLENOID_TURNS[stage.tier];
-    const per = Math.max(12, Math.round(22 * stage.settings.tessellation));
+    const per = Math.max(14, Math.round(26 * stage.settings.tessellation));
     const n = turns * per;
+    const xa = SOL.len / 2;
     const local: THREE.Vector3[] = [];
-    // from the right end (current enters from the resistor) to the left end
+    // from the right end (current enters from the rheostat) to the left end, starting at the bottom
+    const a0 = Math.PI;
+    const xAt = (a: number): number => xa - (SOL.len * (a - a0)) / (2 * Math.PI * turns);
     for (let k = 0; k <= n; k++) {
-      const a = (k / per) * 2 * Math.PI;
-      const x = SOL.len / 2 - 0.1 - ((SOL.len - 0.2) * k) / n;
-      local.push(v(x, SOL.r * Math.cos(a), SOL.r * Math.sin(a)));
+      const a = a0 + (k / per) * 2 * Math.PI;
+      local.push(v(xAt(a), SOL.r * Math.cos(a), SOL.r * Math.sin(a)));
     }
-    winding = mesh(geo(tube(local, 0.042, Math.min(1400, n * 2))), 'enamel', 'winding');
-    winding.castShadow = stage.tier !== 'base';
-    sol.add(winding);
-    windingPts = local.map((p) => p.clone().add(sol.position));
+    const wind = new THREE.Mesh(
+      geo(
+        new THREE.TubeGeometry(
+          new THREE.CatmullRomCurve3(local, false, 'centripetal'),
+          Math.min(1600, n * 2),
+          WIRE_R,
+          stage.tier === 'base' ? 5 : 8,
+        ),
+      ),
+      wireMat,
+    );
+    windParts.add(wind);
+    // section discs where each turn crosses the cut planes (a = 0 → plane z = 0, a = π/2 → y = 0)
+    const disc = geo(new THREE.CircleGeometry(WIRE_R * 1.05, 12));
+    const discY = geo(new THREE.CircleGeometry(WIRE_R * 1.05, 12).rotateX(-Math.PI / 2));
+    const dz = new THREE.InstancedMesh(disc, turnCapMat, turns);
+    const dy = new THREE.InstancedMesh(discY, turnCapMat, turns);
+    const m4 = new THREE.Matrix4();
+    for (let t = 0; t < turns; t++) {
+      const az = a0 + Math.PI + 2 * Math.PI * t; // cos = 1 → y = r
+      const ay = a0 - Math.PI / 2 + 2 * Math.PI * (t + 1); // sin = 1 → z = r
+      dz.setMatrixAt(t, m4.makeTranslation(xAt(az), SOL.r, 0));
+      dy.setMatrixAt(t, m4.makeTranslation(xAt(ay), 0, SOL.r));
+    }
+    windParts.add(dz, dy);
+    // tails: bottom of each end turn down to the 4 mm socket on its stand
+    const toLocal = (p: THREE.Vector3): THREE.Vector3 => p.clone().sub(coil.position);
+    const sR = toLocal(app.solRight);
+    const sL = toLocal(app.solLeft);
+    const pR = local[0] as THREE.Vector3;
+    const pL = local[local.length - 1] as THREE.Vector3;
+    const tail = (p: THREE.Vector3, s: THREE.Vector3): THREE.Vector3[] => [
+      p.clone(),
+      v(p.x, p.y - 0.15, 0.12),
+      v((p.x + s.x) / 2, (p.y + s.y) / 2, s.z * 0.7),
+      v(s.x, s.y + 0.2, s.z),
+      s.clone(),
+    ];
+    const tR = tail(pR, sR);
+    const tL = tail(pL, sL);
+    for (const tp of [tR, tL]) {
+      const m = new THREE.Mesh(
+        geo(
+          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tp, false, 'centripetal'), 32, 0.02, 6),
+        ),
+        wireMat,
+      );
+      windParts.add(m);
+    }
+    const w = (p: THREE.Vector3): THREE.Vector3 => p.clone().add(coil.position);
+    windingPts = local.map(w);
+    tailR = tR.map(w);
+    tailL = tL.map(w);
+    stage.castShadows(windParts);
+    dz.castShadow = dy.castShadow = false;
   };
   buildWinding();
-  stage.occluders.push(resTube, holder);
 
-  // --- stored-energy glow inside the winding ---------------------------------------------------------
+  // --- stored-energy glow filling the bore ----------------------------------------------------
   const energyMat = mat(
     new THREE.ShaderMaterial({
       vertexShader: ENERGY_VS,
       fragmentShader: ENERGY_FS,
       transparent: true,
       depthWrite: false,
-      // additive glows on the dark studio; on the light backdrop it would vanish → normal blending
       blending: stage.theme === 'dark' ? THREE.AdditiveBlending : THREE.NormalBlending,
       uniforms: {
         uColor: { value: new THREE.Color(quantityColorHex('energy', stage.theme)) },
@@ -373,103 +459,161 @@ export function createRlScene(
   );
   const energyGlow = new THREE.Mesh(
     geo(
-      new THREE.CylinderGeometry(
-        SOL.r + 0.16,
-        SOL.r + 0.16,
-        SOL.len + 0.02,
-        tess(40),
-        1,
-        true,
-      ).rotateZ(Math.PI / 2),
+      new THREE.CylinderGeometry(TUBE_IN - 0.02, TUBE_IN - 0.02, SOL.len, 48, 1, true).rotateZ(
+        Math.PI / 2,
+      ),
     ),
     energyMat,
   );
   energyGlow.renderOrder = 4;
-  sol.add(energyGlow);
+  coil.add(energyGlow);
 
-  // --- self-induced emf arrow (amber) above the solenoid ---------------------------------------------
+  // --- self-induced emf arrow (amber) above the coil ------------------------------------------
   const emfArrow = new THREE.Group();
-  const shaftGeo = geo(
-    new THREE.CylinderGeometry(0.05, 0.05, 1, 12).rotateZ(-Math.PI / 2).translate(0.5, 0, 0),
+  const emfShaft = mesh(
+    geo(new THREE.CylinderGeometry(0.05, 0.05, 1, 12).rotateZ(-Math.PI / 2).translate(0.5, 0, 0)),
+    'glowEmf',
+    'arrow',
   );
-  const headGeo = geo(new THREE.ConeGeometry(0.14, 0.32, 16).rotateZ(-Math.PI / 2));
-  const emfShaft = mesh(shaftGeo, 'glowEmf', 'arrow');
-  const emfHead = mesh(headGeo, 'glowEmf', 'arrow');
+  const emfHead = mesh(
+    geo(new THREE.ConeGeometry(0.14, 0.32, 16).rotateZ(-Math.PI / 2)),
+    'glowEmf',
+    'arrow',
+  );
   emfArrow.add(emfShaft, emfHead);
-  emfArrow.position.set(SOL.x - 1.4, SOL.y + SOL.r + 0.45, SOL.z + 0.2);
-  rig.add(emfArrow);
+  emfArrow.position.set(SOL.x - 1.4, SOL.y + FLANGE_R + 0.32, SOL.z - 0.1);
+  scene.add(emfArrow);
 
-  // --- wires ------------------------------------------------------------------------------------------
-  const wireA = [
-    batPlus.clone().setY(0.42),
-    v(BAT.x + 1.5, 0.5, BAT.z + 0.1),
-    v(SW.hinge - 0.15, 0.32, SW.z),
-    v(SW.hinge, 0.24, SW.z),
+  // --- leads: red / black 4 mm cables lying on the bench -----------------------------------------
+  const lead = (
+    a: THREE.Vector3,
+    b: THREE.Vector3,
+    via: Array<[number, number]>,
+  ): THREE.Vector3[] => [
+    a.clone(),
+    v(a.x, a.y + 0.2, a.z + 0.04),
+    ...via.map(([x, z]) => v(x, BENCH_TOP + 0.035, z)),
+    v(b.x, b.y + 0.2, b.z + 0.04),
+    b.clone(),
   ];
-  const wireB = [
-    v(SW.jaw, 0.24, SW.z),
-    v(SW.jaw + 0.25, 0.3, SW.z),
-    v(RES.x - RES.len / 2 - 0.3, RES.y + 0.05, RES.z),
-    resHelix[0] as THREE.Vector3,
+  const cA = lead(app.batPlus, app.swHingePost, [
+    [app.batPlus.x + 0.35, app.batPlus.z + 0.55],
+    [SW.hinge - 0.6, SW.z + 0.55],
+  ]);
+  const cB = lead(app.swJawPost, app.resLeftPost, [
+    [SW.jaw + 0.7, SW.z + 0.45],
+    [RES.x - RES.len / 2 - 0.55, RES.z + 0.55],
+  ]);
+  const cC = lead(app.resRightPost, app.solRight, [
+    [RES.x + RES.len / 2 + 0.5, RES.z - 0.2],
+    [app.solRight.x + 0.45, app.solRight.z + 0.45],
+  ]);
+  const cD = lead(app.solLeft, app.batMinus, [
+    [app.solLeft.x - 0.3, app.solLeft.z + 0.35],
+    [app.batMinus.x + 0.55, app.batMinus.z - 0.45],
+  ]);
+  const cables: Array<[THREE.Vector3[], string]> = [
+    [cA, 'socketRed'],
+    [cB, 'socketRed'],
+    [cC, 'socketRed'],
+    [cD, 'socketBlack'],
   ];
-  const wireC = () => [
-    resHelix[resHelix.length - 1] as THREE.Vector3,
-    v(RES.x + RES.len / 2 + 0.35, RES.y + 0.1, RES.z - 0.1),
-    v(SOL.x + SOL.len / 2 + 0.4, 1.3, SOL.z + 0.9),
-    windingPts[0] as THREE.Vector3,
+  const curvePts = (pts: THREE.Vector3[], n: number): THREE.Vector3[] =>
+    new THREE.CatmullRomCurve3(pts, false, 'centripetal').getPoints(n);
+  for (const [pts, key] of cables) {
+    const m = mesh(
+      geo(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, false, 'centripetal'), 80, 0.03, 10),
+      ),
+      'plastic',
+      key,
+    );
+    scene.add(m);
+  }
+  // nickel straps: rheostat posts → wire ends
+  const h0 = app.resHelix[0] as THREE.Vector3;
+  const h1 = app.resHelix[app.resHelix.length - 1] as THREE.Vector3;
+  const strapL = [
+    app.resLeftPost.clone(),
+    v(app.resLeftPost.x + 0.05, RES.y - 0.15, RES.z + 0.1),
+    h0.clone(),
   ];
-  const wireD = () => [
-    windingPts[windingPts.length - 1] as THREE.Vector3,
-    v(SOL.x - SOL.len / 2 - 0.45, 1.1, SOL.z + 0.6),
-    v(BAT.x - 0.4, 0.45, BAT.z - 0.95),
-    v(BAT.x - 1.55, 0.45, BAT.z - 0.2),
-    batMinus.clone(),
+  const strapR = [
+    h1.clone(),
+    v(app.resRightPost.x - 0.05, RES.y - 0.15, RES.z + 0.1),
+    app.resRightPost.clone(),
   ];
-  let wireMeshes: THREE.Mesh[] = [];
-  const buildWires = (): void => {
-    for (const w of wireMeshes) {
-      rig.remove(w);
-      dropGeo(w.geometry);
-    }
-    wireMeshes = [wireA, wireB, wireC(), wireD()].map((pts) => {
-      const w = mesh(geo(tube(pts, 0.035)), 'copper', 'wire');
-      rig.add(w);
-      return w;
+  for (const pts of [strapL, strapR])
+    scene.add(
+      mesh(
+        geo(
+          new THREE.TubeGeometry(
+            new THREE.CatmullRomCurve3(pts, false, 'centripetal'),
+            16,
+            0.014,
+            6,
+          ),
+        ),
+        'steel',
+        'nickel',
+      ),
+    );
+
+  stage.castShadows(app.root);
+  stage.castShadows(coil);
+  for (const m of [energyGlow, tube]) m.castShadow = false;
+  stage.occluders.push(...app.occluders);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  if (stage.tier === 'base') {
+    const opts = { kit, track: geo, drop: dropGeo };
+    mergeStatic(app.root, {
+      ...opts,
+      keep: [app.blade, app.resWire, app.resThermal, ...app.occluders],
     });
-  };
-  buildWires();
+    mergeStatic(coil, { ...opts, keep: [tube, core, windParts, energyGlow] });
+  }
 
-  // --- current particles ------------------------------------------------------------------------------
+  // --- current particles: − → cells → + → switch → rheostat → coil → − --------------------------
   const flow: CurrentFlow = createCurrentFlow(stage, {
     path: [v(), v(1, 0, 0)],
     closed: true,
     count: 700,
-    radius: 0.045,
+    radius: 0.04,
     speedPerAmp: PARTICLE_SPEED_PER_AMP,
     vMax: PARTICLE_VMAX,
     smooth: false,
   });
-  const bladeTip = v();
-  const setFlowPath = (): void => {
-    // battery − → + inside the cells, then the external circuit back to −
-    const inside = [batMinus.clone().setY(0.62), batPlus.clone().setY(0.62)];
+  let pathCells = -1;
+  const setFlowPath = (n: number): void => {
+    pathCells = n;
+    const top = BAT.y0 + BAT.h + 0.09;
+    const inside = [
+      app.batMinus.clone(),
+      ...app.cellPos.slice(0, n).map((p) => v(p.x, top, p.z)),
+      app.batPlus.clone(),
+    ];
     flow.setPath(
       [
         ...inside,
-        ...wireA,
-        bladeTip.set(SW.jaw, 0.26, SW.z).clone(),
-        ...wireB,
-        ...resHelix.slice(1),
-        ...wireC().slice(1),
+        ...curvePts(cA, 40).slice(1),
+        v(SW.hinge, SW.y + 0.06, SW.z),
+        v(SW.jaw, SW.y + 0.06, SW.z),
+        ...curvePts(cB, 40),
+        ...strapL.slice(1),
+        ...app.resHelix.slice(1),
+        ...strapR.slice(1),
+        ...curvePts(cC, 40).slice(1),
+        ...tailR.slice().reverse().slice(1),
         ...windingPts.slice(1),
-        ...wireD().slice(1),
+        ...tailL.slice(1),
+        ...curvePts(cD, 40).slice(1),
       ],
       true,
     );
   };
-  setFlowPath();
+  setFlowPath(8);
 
-  // --- field lines (computed once per tier; shown ∝ i) -------------------------------------------------
+  // --- field lines (computed once per tier; shown ∝ i) -------------------------------------------
   const field: FieldLines = createFieldLines(stage, { linewidth: 2.0, spacing: 0.7, speed: 1.0 });
   const traceJob = (): TraceJob => {
     const spec: FieldSpec = {
@@ -492,8 +636,8 @@ export function createRlScene(
       seeds: order.map((k) => flux[k] as [number, number, number]),
       options: {
         bounds: {
-          min: [SOL.x - SOL.len / 2 - 3.6, BENCH_TOP + 0.03, SOL.z - 3.2],
-          max: [SOL.x + SOL.len / 2 + 3.6, SOL.y + 2.5, SOL.z + 3.0],
+          min: [SOL.x - SOL.len / 2 - 2.4, BENCH_TOP + 0.03, SOL.z - 2.2],
+          max: [SOL.x + SOL.len / 2 + 2.4, SOL.y + 2.2, SOL.z + 2.0],
         },
         direction: 0,
         maxAngle: 0.06,
@@ -503,53 +647,96 @@ export function createRlScene(
   };
   void field.setJob(traceJob());
 
-  // --- energy ribbons -------------------------------------------------------------------------------------
-  const ribbonOpts = { widthPerWatt: 0.16, minRadius: 0.008, maxRadius: 0.16, pRef: 1, speed: 0.9 };
-  const J = v(-2.05, 2.25, 0.35);
+  // --- energy ribbons -------------------------------------------------------------------------------
+  const ribbonOpts = { widthPerWatt: 0.16, minRadius: 0.008, maxRadius: 0.15, pRef: 1, speed: 0.9 };
+  const J = v(-2.3, 2.35, 0.2);
   const ribGen: EnergyRibbon = createEnergyRibbon(stage, {
     ...ribbonOpts,
-    path: [v(BAT.x + 0.3, 0.85, BAT.z), v(BAT.x + 0.6, 1.8, BAT.z - 0.2), v(-2.5, 2.3, 0.5), J],
+    path: [
+      v(BAT.x + 0.4, 0.95, BAT.z - 0.1),
+      v(BAT.x + 0.8, 1.9, BAT.z - 0.3),
+      v(-2.8, 2.35, 0.35),
+      J,
+    ],
   });
   const ribJoule: EnergyRibbon = createEnergyRibbon(stage, {
     ...ribbonOpts,
     dim: 0.55, // energy that leaves as heat
-    path: [J, v(-1.0, 2.2, 1.0), v(0.5, 1.6, 1.4), v(RES.x - 0.2, RES.y + 0.38, RES.z)],
+    path: [J, v(-0.9, 2.55, 1.0), v(1.6, 1.9, 1.5), v(RES.x - 0.2, RES.y + RES.r + 0.08, RES.z)],
   });
   const ribField: EnergyRibbon = createEnergyRibbon(stage, {
     ...ribbonOpts,
-    path: [J, v(-1.5, 2.75, -0.2), v(-0.6, 2.6, -0.8), v(SOL.x - 0.6, SOL.y + 0.25, SOL.z + 0.1)],
+    path: [J, v(-1.9, 2.4, -0.3), v(-1.5, SOL.y + 0.2, SOL.z), v(SOL.x - 1.2, SOL.y, SOL.z)],
   });
 
-  // --- labels -----------------------------------------------------------------------------------------------
+  // --- labels: fixed callout spots off the coil, leader lines to the parts ---------------------------
   const labels = createLabelLayer(stage, overlay, { occlude: false });
-  const A = {
-    battery: v(BAT.x, 0.9, BAT.z + 0.45),
-    switch: v(SW.x, 0.75, SW.z + 0.3),
-    current: v(SW.x + 1.0, 0.25, SW.z + 0.45),
-    resistor: v(RES.x + 0.2, RES.y - 0.35, RES.z + 0.4),
-    solenoid: v(SOL.x + SOL.len / 2 + 0.3, SOL.y - 0.45, SOL.z + 0.85),
-    emf: v(SOL.x, SOL.y + SOL.r + 0.95, SOL.z + 0.2),
-    energy: v(SOL.x - 0.5, SOL.y - 0.1, SOL.z + SOL.r + 0.2),
+  type Key = keyof RlSceneTexts;
+  const parts: Record<Key, THREE.Vector3> = {
+    battery: v(BAT.x - 0.9, BAT.y0 + BAT.h + 0.05, BAT.z - 0.2),
+    switch: v(SW.x - 0.2, 0.12, SW.z + 0.3),
+    current: (curvePts(cB, 10)[5] as THREE.Vector3).clone(),
+    resistor: v(RES.x + 0.4, RES.y - RES.r, RES.z + 0.2),
+    solenoid: v(SOL.x + SOL.len / 2 - 0.2, SOL.y - SOL.r * 0.7, SOL.z + SOL.r * 0.7),
+    emf: v(SOL.x - 0.2, SOL.y + FLANGE_R + 0.35, SOL.z - 0.1),
+    energy: v(SOL.x - 1.6, SOL.y + 0.15, SOL.z + 0.15),
   };
-  const L: Record<keyof RlSceneTexts, Label> = {
-    battery: labels.add({ text: 'E', anchor: A.battery, quantity: 'emf', priority: 7 }),
-    switch: labels.add({ text: 'interruttore', anchor: A.switch, priority: 5, size: 'sm' }),
-    current: labels.add({ text: 'i', anchor: A.current, quantity: 'i', priority: 9 }),
-    resistor: labels.add({ text: 'R', anchor: A.resistor, priority: 6, offset: [30, 26] }),
-    solenoid: labels.add({ text: 'L', anchor: A.solenoid, quantity: 'b', priority: 6 }),
-    emf: labels.add({ text: 'f.e.m.', anchor: A.emf, quantity: 'emf', priority: 8 }),
-    energy: labels.add({ text: 'U', anchor: A.energy, quantity: 'energy', priority: 7 }),
+  const ends: Record<Key, THREE.Vector3> = {
+    battery: v(BAT.x - 1.2, 1.85, BAT.z - 0.3),
+    switch: v(SW.x - 1.7, BENCH_TOP + 0.04, SW.z + 1.6),
+    current: v(SW.x + 1.4, BENCH_TOP + 0.04, SW.z + 1.35),
+    resistor: v(RES.x + 1.2, BENCH_TOP + 0.04, RES.z + 1.7),
+    solenoid: v(SOL.x + SOL.len / 2 + 1.7, SOL.y + 0.2, SOL.z + 0.2),
+    emf: v(SOL.x + 0.6, SOL.y + 2.35, SOL.z - 0.1),
+    energy: v(SOL.x - 3.9, SOL.y + 2.0, SOL.z - 0.3),
   };
-
-  stage.castShadows(rig);
-  bench.castShadow = false;
-  for (const m of [energyGlow, former]) m.castShadow = false;
+  const KEYS = Object.keys(parts) as Key[];
+  const leaderPos = new Float32Array(KEYS.length * 6);
+  const leaderGeo = geo(new THREE.BufferGeometry());
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = mat(
+    new THREE.LineBasicMaterial({ color: 0x9da7b3, transparent: true, opacity: 0.75 }),
+  );
+  const leaders = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaders.frustumCulled = false;
+  scene.add(leaders);
+  const tag = (
+    k: Key,
+    o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
+  ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  /** Reserved readout box hugging a one-line text. */
+  const fit = (w: string) => ({ sensorWidth: w, sensorHeight: '1.7rem' });
+  const L: Record<Key, Label> = {
+    current: tag('current', { text: 'i', quantity: 'i', priority: 9, ...fit('26ch') }),
+    emf: tag('emf', { text: 'f.e.m.', quantity: 'emf', priority: 8, ...fit('34ch') }),
+    battery: tag('battery', { text: 'E', quantity: 'emf', priority: 7, ...fit('31ch') }),
+    energy: tag('energy', { text: 'U', quantity: 'energy', priority: 7, ...fit('16ch') }),
+    resistor: tag('resistor', { text: 'R', priority: 6, ...fit('32ch') }),
+    solenoid: tag('solenoid', { text: 'L', quantity: 'b', priority: 6, ...fit('19ch') }),
+    switch: tag('switch', { text: 'interruttore', priority: 5, size: 'sm' }),
+  };
+  const shown: Record<Key, boolean> = {
+    battery: true,
+    switch: true,
+    current: true,
+    resistor: true,
+    solenoid: true,
+    emf: true,
+    energy: true,
+  };
+  const updateLeaders = (): void => {
+    KEYS.forEach((k, i) => {
+      const a = parts[k];
+      const b = shown[k] ? ends[k] : a;
+      leaderPos.set([a.x, a.y, a.z, b.x, b.y, b.z], 6 * i);
+    });
+    (leaderGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+  };
 
   // --- tier / theme -------------------------------------------------------------------------------------
   const offTier = stage.onTierChange(() => {
     buildWinding();
-    buildWires();
-    setFlowPath();
+    setFlowPath(pathCells);
     void field.setJob(traceJob());
   });
   const offTheme = stage.onThemeChange((t) => {
@@ -577,6 +764,7 @@ export function createRlScene(
   let frames = 0;
   let cellsShown = 8;
   const update = (s: RlSceneView): void => {
+    applyTints(stage);
     bladeTarget = s.closed ? 0 : OPEN_ANGLE;
     if (reduced || s.snap) {
       bladeAngle = bladeTarget;
@@ -584,10 +772,11 @@ export function createRlScene(
     }
     const n = cellCount(s.E);
     if (n !== cellsShown) {
-      cells.count = caps.count = n;
+      app.cells.count = app.caps.count = n;
+      app.straps.count = n - 1;
       cellsShown = n;
     }
-    kit.get('glowEnergy', 'cell').emissiveIntensity = 0.12;
+    if (n !== pathCells) setFlowPath(n);
     flow.setCurrent(s.i);
     const f = lineFraction(s.i, s.Iref);
     field.setFraction(f);
@@ -600,15 +789,15 @@ export function createRlScene(
     const len = 2.6 * e;
     emfShaft.scale.set(Math.max(0.001, len), 1, 1);
     emfHead.position.set(len + 0.14, 0, 0);
-    kit.get('glowEmf', 'arrow').emissiveIntensity = 0.6 + 1.6 * e;
+    kit.get('glowEmf', 'arrow').emissiveIntensity = 0.5 + 0.4 * e;
     // ribbons: radius ∝ P / P_ref; the branches add up to the trunk
     const pr = s.pRef > 0 ? s.pRef : 1;
     ribGen.setPower(s.pGen / pr);
     ribJoule.setPower(s.pJoule / pr);
     ribField.setPower(s.pField / pr);
     // resistor wire: black-body glow (> 700 K) or false colour
-    resWire.visible = !s.thermal;
-    resThermal.visible = s.thermal;
+    app.resWire.visible = !s.thermal;
+    app.resThermal.visible = s.thermal;
     applyHeatGlow(kit.get('steel', 'resWire'), s.T);
     if (s.thermal) {
       ironbow((s.T - 273.15 - RES_T_SCALE_C[0]) / (RES_T_SCALE_C[1] - RES_T_SCALE_C[0]), rgb);
@@ -617,7 +806,10 @@ export function createRlScene(
       m.emissive.setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
       m.emissiveIntensity = 0.6;
     }
-    coreRod.visible = s.core;
+    core.visible = s.core;
+    // the emf sensor stays reserved while idle: keep its leader, anchored at the arrow tail
+    parts.emf.set(SOL.x - 1.4 + len / 2, emfArrow.position.y + 0.1, emfArrow.position.z);
+    updateLeaders();
     const t = s.texts;
     L.battery.setText(t.battery);
     L.switch.setText(t.switch);
@@ -625,7 +817,6 @@ export function createRlScene(
     L.resistor.setText(t.resistor);
     L.solenoid.setText(t.solenoid);
     L.emf.setText(t.emf);
-    L.emf.setVisible(emfArrow.visible);
     L.energy.setText(t.energy);
   };
 

@@ -120,8 +120,9 @@ Assumptions (stated in the simulator's "Modello semplificato" note):
 2. Total braking power $P_b(t) = m\,a\,v(t)$ with $v(t) = v_1 - a t$ — linear in time,
    from $P_0 = m a v_1$ to $P_1 = m a v_2$; $\int_0^{t_{brake}} P_b\,dt = \Delta E_k$.
 3. **`Pmax` is the electrical power cap of the MGU-K** (power delivered to the energy
-   store — the quantity limited by the regulations), **η** is its mechanical → electrical
-   efficiency. So the MGU-K can take at most $P_{cap} = P_{max}/\eta$ of mechanical power.
+   store in this model), **η** is its mechanical → electrical efficiency proxy.
+   For 2025, the electrical-cap interpretation is the D8 convention, not an exact
+   claim about FIA measurement before/after the correction. So the MGU-K can take at most $P_{cap} = P_{max}/\eta$ of mechanical power.
 4. The MGU-K takes $P_{mguk}(t) = \min(P_b(t), P_{max}/\eta)$; the discs take the rest.
 
 Outputs:
@@ -159,20 +160,31 @@ stacked plot pKers + pBrakes is the total braking power, $\int p_{Kers}\,dt$ =
 match the totals within 0.5 % on 60 random parameter sets, and an `rk4Step` integration
 of pKers reproduces `recovered`.
 
-Worked example — the same numbers as theory 10 and the `kers-braking` defaults
-(800 kg, 300 → 100 km/h, t_brake = 3 s, P_max = 120 kW, η = 0.9), output of
-`kersBrakingEvent` / `kersDissipationSplit`:
+The default η = 0.95 (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2) and
+2026 η = 0.97 (FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.21) are
+the FIA's fixed policing correction used as an efficiency proxy, not a measured efficiency.
 
-- ΔE_k = 2.469 MJ; braking power falls linearly from P₀ ≈ 1.235 MW to P₁ ≈ 0.412 MW,
-  always above P_max/η ≈ 133 kW, so the MGU-K is saturated for the whole event;
-- recoverable (mechanical, absorbed by the MGU-K) = 133.3 kW × 3 s = **0.40 MJ**;
-- recovered (stored) = 120 kW × 3 s = **0.36 MJ** (≈ 14.6 % of ΔE_k);
-- dissipated = 2.109 MJ = 2.069 MJ disc brakes + 0.040 MJ MGU-K / converter losses;
-- timeToRecoverAtPmax = 0.9 × 2.469 MJ / 120 kW ≈ **18.5 s** (time to absorb the whole
-  ΔE_k at the maximum power).
+Worked example — theory 10 and the default preset: 800 kg (minimum under
+FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 4.1, plus Heat Hazard Mass Increase),
+300 → 100 km/h in a hypothetical 3 s, Pmax = 120 kW (same document, Art. 5.3.3).
+Hand calculation: ΔEk = 800/2 × ((300/3.6)² − (100/3.6)²) = 2.469136 MJ.
 
-With P_max = 350 kW (2026): recoverable 1.167 MJ, recovered 1.05 MJ (≈ 42.5 %), discs
-1.302 MJ, MGU-K losses 0.117 MJ, timeToRecoverAtPmax ≈ 6.3 s.
+- Pmax/η = 126.316 kW, below the final braking power 411.523 kW;
+- mechanical recovery = 120 kW / 0.95 × 3 s = 0.378947 MJ;
+- stored = 120 kW × 3 s = 0.360 MJ (14.58%);
+- MGU-K losses = 0.378947 − 0.360 = 0.018947 MJ;
+- discs = 2.469136 − 0.378947 = 2.090188 MJ; total dissipated = 2.109136 MJ;
+- time = 0.95 × 2.469136 MJ / 120 kW = 19.5473 s.
+
+For a power/η comparison at the **same 800 kg**, Pmax = 350 kW and η = 0.97
+(FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.7, C5.2.21): mechanical recovery
+= 1.05/0.97 = 1.082474 MJ, stored = 1.050 MJ (42.53%), losses = 0.032474 MJ,
+discs = 1.386661 MJ, time = 6.84303 s. The actual 2026 preset also changes mass
+to 724 kg + Nominal Tyre Mass (FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C4.1, C4.7);
+with the unverified secondary tyre estimate of 46 kg it uses 770 kg.
+The presets carry power, rpm, crank torque, lap recharge and battery terminal
+limits together. The analytical event does not enforce a per-lap budget or
+crank torque limit. Manual drive retains the power-only comparison specified by D18.
 
 ## 5. Slide-10 check (I = 62.5 mA)
 
@@ -260,11 +272,11 @@ MGU-K can take at most the rear-axle force, so at low speed and high $P_{max}$ i
 than the constant-deceleration model.
 
 **Example** (simulator defaults: 800 kg, 300 → 100 km/h, $C_dA = 1{,}2$ m², $C_lA = 3{,}5$ m²,
-ρ = 1,225 kg/m³, μ = 1,6, β = 0,58, h = 0,30 m, L = 3,6 m, η = 0,9, B = 12, C = 1,9, E = 0,5 ⇒
+ρ = 1,225 kg/m³, μ = 1,6, β = 0,58, h = 0,30 m, L = 3,6 m, η = 0,95, B = 12, C = 1,9, E = 0,5 ⇒
 κ* ≈ 0,106): $t_{brake} \approx 1{,}83$ s, distance ≈ 93 m, deceleration from ≈ 5,3 g to ≈ 2,0 g;
-ΔE_k = 2,469 MJ = 0,24 MJ into the MGU-K (0,22 MJ stored with 120 kW, ≈ 8,9 %: power-limited
-for the whole zone) + 1,99 MJ friction brakes + 0,23 MJ drag. With 350 kW: 0,55 MJ stored
-(≈ 22,3 %), and below ≈ 167 km/h the MGU-K is limited by the rear-axle force instead of by
+ΔE_k = 2,469 MJ = 0,23 MJ into the MGU-K (0,22 MJ stored with 120 kW, ≈ 8,9 %: power-limited
+for the whole zone) + 2,01 MJ friction brakes + 0,23 MJ drag. With 350 kW at the same η = 0,95: 0,56 MJ stored
+(≈ 22,7 %), and below ≈ 162,5 km/h the MGU-K is limited by the rear-axle force instead of by
 $P_{max}$. Without aero the same zone takes ≈ 3,56 s and ≈ 198 m.
 
 **Validity limits.** Educational model: no transient of the ABS, no tyre load sensitivity
@@ -574,8 +586,12 @@ Positive terminal power P means discharge. With I=P/V:
 I²R), clamps energy to [0,Ecap], and latches motor cutoff until 5 % by default.
 The R>0 charge branch is restricted to the monotone useful charging domain.
 `createBattery` validates and initializes a store. The constant-voltage model
-does not represent battery electrochemistry. 4 MJ in the drive is illustrative;
-it must not be confused with the historical 4 MJ deployment-per-lap figure.
+does not represent battery electrochemistry. The 4 MJ capacity represents the regulated
+usable SoC window, not total cell capacity (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025),
+Art. 5.3.2 diagram; FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.9).
+It is distinct from the deployment-per-lap budget. Battery efficiencies remain
+assumptions; Mercedes publishes 96% ES efficiency without specifying its direction
+([manufacturer](https://www.mercedesamgf1.com/news/eq-power-in-f1-a-decade-of-hybrid-success)).
 
 `batteryMachineStep` wraps the existing rotor RK4 equations. It locates the
 available-energy/power duty interval by bisection, opens the motor circuit for
@@ -605,11 +621,14 @@ Work/heat integrals use the same RK4 stages as speed, enabling the gate:
 
 Illustrative defaults: m=800 kg, ρ=1.225 kg/m³, CdA=0.8 m², Crr=0.012,
 engine force=10 kN / power=500 kW, motor force=5 kN, disc force=16 kN,
-ηmachine=0.9, ηbattery=0.95, capacity=4 MJ. These are educational choices,
+ηmachine=0.95 (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2,
+fixed correction used as an efficiency proxy, not measured efficiency),
+ηbattery=0.95, capacity=4 MJ. The vehicle parameters are educational choices,
 not specifications of an actual F1 car. The displayed 120 kW default matches
 the historical verified preset in OPEN_FACTS; arbitrary slider values are
-user-selected examples, not regulation claims. Existing 2025/2026 presets
-remain in the constant-deceleration comparison.
+user-selected examples, not regulation claims. The drive presets also switch η to 0.95 / 0.97 using the sourced
+2025/2026 corrections (2026: FIA 2026 F1 Regulations Section C,
+Issue 21 (19 Oct 2026), C5.2.21), alongside the electrical limits.
 
 The guided scenario detects 300 and 100 km/h crossings within the fixed step;
 800 kg gives ΔEk=2,469135802 MJ. Its duration follows the force model, rather
@@ -634,3 +653,22 @@ every value. R and P views also use `lineLoss`; no clipped loss percentage is
 presented as valid. The shared operating voltage is obtained from the existing
 `transformerSecondary`. Historical teaching-chain references 380 V / 220 V
 are explicitly labelled below the left endpoint of the 1 kV plot domain.
+
+## MGU-K teardown assumptions (`src/sims/mguk-teardown/model.ts`)
+
+The speed ceilings are 50,000 rpm (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.3)
+and 60,000 rpm relative between any two parts (FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.18.5).
+The crank-referenced torque caps are 200 Nm (TR25 Art. 5.3.3, same issue) and
+500 Nm (C26 C5.2.11, same issue). Displayed torque = Pmech/ω is **rotor-side**;
+without the unpublished reduction ratio it cannot determine crank torque or an
+honest `torqueCapActive` flag. An engine-rpm/gear model is deferred.
+
+The linear rotor/vehicle speed link is a didactic single-gear simplification:
+in reality the fixed ratio is to the crankshaft (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025),
+Art. 5.3.3; FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.18.2).
+Downshifts are omitted. K_E = assumed DC bus voltage / era maximum angular speed;
+the assumed 800 V is below the 1000 V ceiling (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025),
+Art. 5.13.5; FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.17.6), not public machine data.
+The default exports preserve the 2025 coupling and K_E; the optional era argument
+selects the corresponding speed and K_E together. η remains an input supplied by
+the caller's preset. The virtual energy ledger omits additional battery losses.

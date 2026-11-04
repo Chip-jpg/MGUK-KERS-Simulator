@@ -34,7 +34,7 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-test('loads with canvas, shows ΔE_k = 2,47 MJ and a consistent energy balance', async ({
+test('loads with canvas, shows preset-specific ΔE_k and a consistent energy balance', async ({
   page,
 }) => {
   const errors = collectErrors(page);
@@ -42,13 +42,18 @@ test('loads with canvas, shows ΔE_k = 2,47 MJ and a consistent energy balance',
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   await expect(page.locator('[data-out="dEk"]')).toHaveText('2,47\u00A0MJ');
 
-  for (const id of ['2025', '2026']) {
+  // ΔE_k = ½m[(300/3.6)² − (100/3.6)²]: 800 kg → 2.469136 MJ; 770 kg → 2.376543 MJ.
+  for (const [id, expectedDEk] of [
+    ['2025', '2,47'],
+    ['2026', '2,38'],
+  ]) {
     await page.locator(`[data-preset="${id}"]`).click();
-    await expect(page.locator('[data-out="dEk"]')).toHaveText('2,47\u00A0MJ');
+    await expect(page.locator('[data-out="dEk"]')).toHaveText(`${expectedDEk}\u00A0MJ`);
     const dEk = parseMJ(await out(page, 'dEk'));
     const rec = parseMJ(await out(page, 'recovered'));
     const diss = parseMJ(await out(page, 'dissipated'));
     expect(Math.abs(rec + diss - dEk)).toBeLessThanOrEqual(0.0100001);
+    // Electrical caps bind throughout: 120 kW × 3 s = 0.36 MJ; 350 kW × 3 s = 1.05 MJ.
     if (id === '2025') expect(rec).toBeCloseTo(0.36, 2);
     else expect(rec).toBeGreaterThan(0.36);
   }
@@ -158,8 +163,9 @@ test('GATE: disc temperature rises by ≈ E/C (lumped model), start temperature 
   await seek(page, 3);
   const d = (await snap(page)).discs;
   expect(d.startC).toBe(300);
-  // 2025 preset: 2,069 MJ of disc heat, 60 % front, 2 discs, C = 1,2 kg · 1400 J/(kg·K)
-  const rise = (2.069e6 * 0.6) / 2 / (1.2 * 1400);
+  // 2025 preset: 2.4691358 MJ − (0.120 MW / 0.95) × 3 s ≈ 2.0901884 MJ disc heat;
+  // 60 % front, 2 discs, C = 1.2 kg · 1400 J/(kg·K)
+  const rise = (2.0901884e6 * 0.6) / 2 / (1.2 * 1400);
   const dT = d.tFront - (300 + 273.15);
   expect(dT).toBeLessThan(rise);
   expect(dT / rise).toBeGreaterThan(0.93); // convective + radiative losses over 3 s

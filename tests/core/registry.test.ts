@@ -18,7 +18,7 @@ const fake = (id: string): SimModule => ({
 });
 
 describe('registry', () => {
-  it('lists the six phase-1 simulator ids, then car-dynamics (the only Phase 4 module kept)', () => {
+  it('lists the six phase-1 simulator ids, then car-dynamics, drive-sim and mguk-teardown (Phase 4 modules)', () => {
     expect(SIM_IDS).toEqual([
       'faraday',
       'lenz',
@@ -28,6 +28,7 @@ describe('registry', () => {
       'rl-energy',
       'car-dynamics',
       'drive-sim',
+      'mguk-teardown',
     ]);
   });
 

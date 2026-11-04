@@ -1,35 +1,37 @@
 /**
- * Three.js scene of `joule-transformer`, built on the render foundation (D14):
- * the whole transport chain as a technical-museum diorama —
- * power-station hall with the generator → step-up transformer (laminated core,
- * primary and secondary windings, optional oil-tank cut-away) → HV line on
- * lattice pylons → step-down transformer → a small town whose lit windows follow
- * the delivered power.
+ * Three.js scene of `joule-transformer` (teardown look, `look: 'teardown'`): the whole
+ * transport chain as a technical-museum diorama on one board — power-station hall with the
+ * turbine-generator → step-up transformer (laminated E/I core, LV and HV windings concentric
+ * on the centre limb, oil tank opened at the front, front-right quarter of the windings cut
+ * away with section caps) → HV line (triple bundles) on lattice pylons → step-down
+ * transformer → a small town whose lit windows follow the delivered power. Static parts and
+ * the reference used are in ./parts.ts.
  *
- * What is physics and what is illustration (scales in ./visual.ts, stated in the
- * legend and the model note):
- *  - winding turns: N₁ : N₂ drawn in proportion (≤ 24 rings); wire radius ∝ √I
- *    (equal current density): the low-voltage winding is visibly thicker;
- *  - core flux: closed loops in the core, how many ∝ Φ̂ = √2·V/(2π f N), pulses
- *    reverse with Φ(t) = Φ̂·cos ωt (50 Hz played 200× slower, ideal core);
+ * What is physics and what is illustration (scales in ./visual.ts, stated in the legend and
+ * the model note):
+ *  - winding turns: N₁ : N₂ drawn in proportion (≤ 24 rings); wire radius ∝ √I (equal
+ *    current density): the low-voltage winding is visibly thicker;
+ *  - core flux: closed loops in the front lamination, around both windows of the E/I core
+ *    (up the centre limb, back through the outer limbs), how many ∝ Φ̂ = √2·V/(2π f N),
+ *    pulses reverse with Φ(t) = Φ̂·cos ωt (50 Hz played 200× slower, ideal core);
  *  - current: particles in each section (generator, line, town), velocity ∝ the
- *    instantaneous current √2·I·sin ωt of THAT section (same scale everywhere), so
- *    the HV line visibly carries ~N₁/N₂ of the generator current;
- *  - line conductors: catenary computed for the conductor temperature (lumped
- *    thermal model fed by R'·I² per metre, ./visual.ts): a hot line sags more; a
- *    labelled false-colour overlay shows the temperature (no fake incandescence:
- *    an overhead line never glows); in `alta` a faint heat haze ∝ R'·I²;
+ *    instantaneous current √2·I·sin ωt of THAT section (same scale everywhere), so the HV
+ *    line visibly carries ~N₁/N₂ of the generator current;
+ *  - line conductors: catenary computed for the conductor temperature (lumped thermal model
+ *    fed by R'·I² per metre, ./visual.ts): a hot line sags more; a labelled false-colour
+ *    overlay shows the temperature (an overhead line never glows); in `alta` a faint heat
+ *    haze ∝ R'·I²;
  *  - town: one lit window per 0,5 MW delivered (P − R·I²).
  */
 import * as THREE from 'three';
 import type { AppContext } from '../../core/types';
 import {
-  chamferBox,
   createCurrentFlow,
   createFieldLines,
   createLabelLayer,
   createStage,
   ironbow,
+  mergeStatic,
   type CurrentFlow,
   type FieldLines,
   type Label,
@@ -39,6 +41,33 @@ import {
   type TracedLine,
 } from '../../render';
 import { visualTurns } from './model';
+import {
+  ATTACH_Y,
+  BASE_T,
+  BLOCKS,
+  BUSH_X,
+  BUSH_Z,
+  COIL_H,
+  COIL_Y,
+  CORE,
+  DOWN_X,
+  FORMER_R,
+  GROUND,
+  LID_TOP,
+  PEAK_Z,
+  PHASE_Z,
+  PYLONS,
+  PYLON_H,
+  UP_X,
+  applyTints,
+  bushingTop,
+  buildBase,
+  buildPlant,
+  buildPylons,
+  buildTown,
+  buildTransformer,
+  type PartsSink,
+} from './parts';
 import {
   AC_VISUAL_HZ,
   FLUX_LOOPS,
@@ -107,62 +136,54 @@ export interface TransformerScene {
   dispose(): void;
 }
 
-// --- layout (scene units; not to scale) ---------------------------------------------------
-const GROUND = 0;
-const UP_X = -7.4;
-const DOWN_X = 7.4;
-const PYLONS = [-4.7, -1.55, 1.55, 4.7] as const;
-const PLANT_X = -11.5;
-const TOWN_DX = -1.4; // town blocks shift
-const PYLON_H = 4.7;
-const ARM_Y = 4.25;
-const ATTACH_Y = 3.88; // conductor clamp under the insulator string
-const PHASE_Z = 0.72;
-const CORE = { w: 1.9, h: 2.1, t: 0.36, d: 0.62, y: 1.52 };
-const LIMB_X = CORE.w / 2 - CORE.t / 2;
-const COIL_H = 1.25;
-const BUSHING_TOP = 3.55;
 const HOME = {
-  position: [-7.6, 6.0, 18.6] as [number, number, number],
-  target: [-0.4, 2.1, -0.4] as [number, number, number],
+  position: [-8.5, 7.2, 17.0] as [number, number, number],
+  target: [-0.4, 2.0, -0.8] as [number, number, number],
 };
 /** Aspect ratio for which {@link HOME} frames the whole chain (1920×1080 scene box). */
-const HOME_ASPECT = 2.33;
+const HOME_ASPECT = 2.0;
 
 /**
- * Home view for a scene box of aspect w/h (QA-043): same viewing direction, target moved
- * slightly left (the power-station hall is the widest end) and the camera pulled back so
- * the whole chain, generator hall to town, fits the width of narrower boxes (1280×720).
+ * Home view for a scene box of aspect w/h (QA-043): same viewing direction, the camera
+ * pulled back so the whole diorama, generator hall to town, fits narrower boxes (1280×720).
  */
 export function homeView(aspect: number): {
   position: [number, number, number];
   target: [number, number, number];
 } {
-  const target: [number, number, number] = [-1.3, 2.0, -0.4];
+  const target = HOME.target;
   const a = Number.isFinite(aspect) && aspect > 0 ? aspect : HOME_ASPECT;
-  const dx = HOME.position[0] - HOME.target[0];
-  const dy = HOME.position[1] - HOME.target[1];
-  const dz = HOME.position[2] - HOME.target[2];
+  const dx = HOME.position[0] - target[0];
+  const dy = HOME.position[1] - target[1];
+  const dz = HOME.position[2] - target[2];
   // pull back for narrow boxes; stay inside the orbit limit (maxDistance 46)
-  // (exponent 0.7: the oblique view and perspective make the chain shrink faster than 1/d)
-  const k = Math.min(1.1 * Math.max(1, HOME_ASPECT / a) ** 0.7, 44 / Math.hypot(dx, dy, dz));
+  const k = Math.min(Math.max(1, HOME_ASPECT / a) ** 0.7, 44 / Math.hypot(dx, dy, dz));
   return {
     position: [target[0] + dx * k, target[1] + dy * k, target[2] + dz * k],
-    target,
+    target: [...target],
   };
 }
 
-/** A transformer group: core, windings (rebuilt), flux loops, tank. */
+/** One transformer: static parts, clipped windings (rebuilt), section caps, flux loops. */
 interface Xfmr {
+  gx: number;
+  /** Side of the HV bushings (+1: +x). */
+  hv: 1 | -1;
   group: THREE.Group;
   tank: THREE.Group;
   flux: FieldLines;
-  /** Winding helix points (world), left and right limb, top → bottom. */
-  left: THREE.Vector3[];
-  right: THREE.Vector3[];
+  windings: THREE.Group;
+  /** Current paths (world), bushing A top → lead → helix → lead → bushing B top. */
+  lvPath: THREE.Vector3[];
+  hvPath: THREE.Vector3[];
   key: string;
-  windings: THREE.Mesh[];
+  lvMat: THREE.MeshStandardMaterial;
+  hvMat: THREE.MeshStandardMaterial;
+  boardMat: THREE.MeshStandardMaterial;
+  caps: THREE.InstancedMesh;
 }
+
+const MAX_CAPS = 2 * 64;
 
 export function createTransformerScene(
   container: HTMLElement,
@@ -171,16 +192,17 @@ export function createTransformerScene(
 ): TransformerScene {
   const stage = createStage(container, ctx, {
     ariaLabel:
-      'Scena 3D della catena di trasporto: centrale con generatore, trasformatore elevatore con nucleo laminato e avvolgimenti, linea ad alta tensione su tralicci con conduttori a catenaria, trasformatore abbassatore e quartiere con finestre illuminate in proporzione alla potenza consegnata.',
+      'Scena 3D a diorama della catena di trasporto: centrale con turbogeneratore, trasformatore elevatore con cassa aperta, nucleo laminato a E e I e avvolgimenti di bassa e alta tensione sezionati, linea ad alta tensione a fasci trinati su tralicci a traliccio con catenaria calcolata, trasformatore abbassatore e quartiere con finestre illuminate in proporzione alla potenza consegnata.',
     camera: {
       ...homeView(container.clientWidth / Math.max(1, container.clientHeight)),
       fov: 36,
       far: 200,
     },
-    controls: { minDistance: 6, maxDistance: 46, maxPolarAngle: (82 * Math.PI) / 180 },
-    floorY: GROUND,
-    floor: { radius: 30 },
-    shadowRadius: 16,
+    controls: { minDistance: 4, maxDistance: 46, maxPolarAngle: (82 * Math.PI) / 180 },
+    floorY: GROUND - BASE_T - 0.2,
+    floor: { radius: 34 },
+    shadowRadius: 18,
+    look: 'teardown',
   });
   stage.canvas.setAttribute('aria-hidden', 'true');
   const { scene } = stage;
@@ -209,363 +231,282 @@ export function createTransformerScene(
     kit.assign(m, kind, key);
     return m;
   };
+  const sink: PartsSink = {
+    geo,
+    mat,
+    mesh,
+    assign: (m, kind, key) => void kit.assign(m, kind, key),
+  };
   const v = (x = 0, y = 0, z = 0): THREE.Vector3 => new THREE.Vector3(x, y, z);
   const tess = (n: number): number => Math.max(6, Math.round(n * stage.settings.tessellation));
+  applyTints(stage);
 
-  // --- power station: hall + generator ----------------------------------------------------
-  const plant = new THREE.Group();
-  plant.position.set(PLANT_X, GROUND, -0.2);
-  scene.add(plant);
-  {
-    const hall = mesh(geo(chamferBox(3.0, 2.3, 2.4, 0.06)), 'magnet', 'hall');
-    hall.position.set(-0.3, 1.15, -0.9);
-    const roof = mesh(geo(chamferBox(3.2, 0.14, 2.6, 0.04)), 'darkSteel');
-    roof.position.set(-0.3, 2.37, -0.9);
-    const band = mesh(geo(chamferBox(2.6, 0.32, 0.02, 0.01)), 'glass', 'hall');
-    band.position.set(-0.3, 1.75, 0.31);
-    const stack = mesh(geo(new THREE.CylinderGeometry(0.16, 0.22, 2.0, tess(20))), 'darkSteel');
-    stack.position.set(-1.35, 3.35, -1.55);
-    const plinth = mesh(geo(chamferBox(2.6, 0.3, 1.2, 0.04)), 'darkSteel', 'plinth');
-    plinth.position.set(-0.2, 0.15, 0.85);
-    // generator stator with cooling ribs (lathe), turbine casing, shaft
-    const prof: THREE.Vector2[] = [new THREE.Vector2(0, -0.8)];
-    for (let k = 0; k <= 8; k++) {
-      const y = -0.72 + (k * 1.44) / 8;
-      prof.push(
-        new THREE.Vector2(0.5, y - 0.05),
-        new THREE.Vector2(0.56, y),
-        new THREE.Vector2(0.5, y + 0.05),
-      );
-    }
-    prof.push(new THREE.Vector2(0.44, 0.8), new THREE.Vector2(0, 0.8));
-    const gen = mesh(
-      geo(new THREE.LatheGeometry(prof, tess(40)).rotateZ(Math.PI / 2)),
-      'iron',
-      'gen',
-    );
-    gen.position.set(0.25, 0.92, 0.85);
-    const turb = mesh(
-      geo(
-        new THREE.LatheGeometry(
-          [v(0, -0.6), v(0.3, -0.6), v(0.48, 0.2), v(0.42, 0.6), v(0, 0.6)].map(
-            (p) => new THREE.Vector2(p.x, p.y),
-          ),
-          tess(32),
-        ).rotateZ(Math.PI / 2),
-      ),
-      'darkSteel',
-      'turbine',
-    );
-    turb.position.set(-1.05, 0.92, 0.85);
-    const shaft = mesh(
-      geo(new THREE.CylinderGeometry(0.07, 0.07, 2.8, 16).rotateZ(Math.PI / 2)),
-      'steel',
-    );
-    shaft.position.set(-0.2, 0.92, 0.85);
-    const tbox = mesh(geo(chamferBox(0.4, 0.26, 0.36, 0.03)), 'darkSteel');
-    tbox.position.set(0.55, 1.58, 0.85);
-    plant.add(hall, roof, band, stack, plinth, gen, turb, shaft, tbox);
-    stage.occluders.push(hall, gen);
+  // --- board, power station, pylons, town ---------------------------------------------------
+  const base = buildBase(sink);
+  scene.add(base);
+  const plant = buildPlant(sink, tess);
+  scene.add(plant.root);
+  const pylons = buildPylons(sink, tess);
+  scene.add(pylons);
+  const townParts = buildTown(sink);
+  const town = townParts.root;
+  scene.add(town);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  const bakeOpts = { kit, track: geo, drop: dropGeo };
+  if (stage.tier === 'base') {
+    mergeStatic(base, bakeOpts);
+    mergeStatic(plant.root, bakeOpts);
+    mergeStatic(pylons, bakeOpts);
+    mergeStatic(town, bakeOpts);
   }
-  const genTerm = [v(PLANT_X + 0.7, 1.72, 0.75), v(PLANT_X + 0.7, 1.72, 0.95)];
 
-  // --- transformers ------------------------------------------------------------------------------
-  const coreGeoV = geo(chamferBox(CORE.t, CORE.h, CORE.d, 0.025));
-  const coreGeoH = geo(chamferBox(CORE.w - 2 * CORE.t + 0.002, CORE.t, CORE.d, 0.025));
-  const plinthGeo = geo(chamferBox(3.1, 0.22, 2.0, 0.04));
-  const wallBack = geo(chamferBox(2.9, 2.85, 0.06, 0.02));
-  const wallSide = geo(chamferBox(0.06, 2.85, 1.5, 0.02));
-  const lidGeo = geo(chamferBox(2.9, 0.08, 1.5, 0.02));
-  const oilGeo = geo(new THREE.BoxGeometry(2.78, 2.55, 1.38));
-  const finGeo = geo(chamferBox(0.04, 2.1, 0.5, 0.01));
-  const bushingGeo = geo(
-    new THREE.LatheGeometry(
-      (() => {
-        const p: THREE.Vector2[] = [new THREE.Vector2(0, 0)];
-        for (let k = 0; k < 7; k++) {
-          const y = 0.06 + k * 0.1;
-          p.push(
-            new THREE.Vector2(0.07, y),
-            new THREE.Vector2(0.15, y + 0.03),
-            new THREE.Vector2(0.07, y + 0.07),
-          );
-        }
-        p.push(new THREE.Vector2(0.05, 0.82), new THREE.Vector2(0, 0.82));
-        return p;
-      })(),
-      tess(20),
-    ),
-  );
-  const oilMat = mat(
+  // --- transformers ---------------------------------------------------------------------------
+  stage.renderer.localClippingEnabled = true;
+  const capGeo = geo(new THREE.CircleGeometry(1, 18));
+  const capMat = mat(
     new THREE.MeshStandardMaterial({
-      color: 0xc8962e,
-      transparent: true,
-      opacity: 0.1,
-      depthWrite: false,
-      roughness: 0.2,
+      color: 0xe8a070,
+      metalness: 0.5,
+      roughness: 0.4,
+      emissive: 0x3a1a08,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+      side: THREE.DoubleSide,
     }),
   );
-
-  const makeXfmr = (x: number, mirror: boolean): Xfmr => {
-    const group = new THREE.Group();
-    group.position.set(x, GROUND, 0);
+  const makeXfmr = (gx: number, hv: 1 | -1): Xfmr => {
+    const parts = buildTransformer(sink, hv, tess);
+    const group = parts.root;
+    if (stage.tier === 'base') {
+      mergeStatic(group, { ...bakeOpts, keep: [parts.tank] });
+      mergeStatic(parts.tank, bakeOpts); // the tank group toggles as a whole; its contents don't
+    }
+    group.position.set(gx, GROUND, 0);
     scene.add(group);
-    const plinth = mesh(plinthGeo, 'darkSteel', 'plinth');
-    plinth.position.y = 0.11;
-    group.add(plinth);
-    for (const s of [-1, 1]) {
-      const limb = mesh(coreGeoV, 'iron', 'core');
-      limb.position.set(s * LIMB_X, CORE.y, 0);
-      const yoke = mesh(coreGeoH, 'iron', 'core');
-      yoke.position.set(0, CORE.y + s * (CORE.h / 2 - CORE.t / 2), 0);
-      group.add(limb, yoke);
-      stage.occluders.push(limb, yoke);
-    }
-    // oil tank, cut away at the front: back, sides, lid with bushings, radiator fins, oil
-    const tank = new THREE.Group();
-    const back = mesh(wallBack, 'plastic', 'tank');
-    back.position.set(0, 1.645, -0.72);
-    tank.add(back);
-    for (const s of [-1, 1]) {
-      const side = mesh(wallSide, 'plastic', 'tank');
-      side.position.set(s * 1.42, 1.645, 0);
-      tank.add(side);
-    }
-    const lid = mesh(lidGeo, 'plastic', 'tank');
-    lid.position.set(0, 3.11, 0);
-    tank.add(lid);
-    const oil = new THREE.Mesh(oilGeo, oilMat);
-    oil.position.set(0, 1.55, 0);
-    oil.renderOrder = 1;
-    tank.add(oil);
-    for (let k = 0; k < 6; k++) {
-      const fin = mesh(finGeo, 'plastic', 'tank');
-      fin.position.set((mirror ? -1 : 1) * 1.62, 1.6, -0.55 + k * 0.22);
-      tank.add(fin);
-    }
-    group.add(tank);
-    // bushings: HV side (line) and LV side
-    const hvSide = mirror ? -1 : 1;
-    for (const [sx, z] of [
-      [hvSide * 0.75, 0.3],
-      [hvSide * 0.75, -0.3],
-      [-hvSide * 0.75, 0.3],
-      [-hvSide * 0.75, -0.3],
-    ] as const) {
-      const b = mesh(bushingGeo, 'ceramic', 'bushing');
-      b.position.set(sx, 3.15, z);
-      const s = Math.abs(sx) > 0 && Math.sign(sx) === hvSide ? 1 : 0.7;
-      b.scale.set(s, s, s);
-      group.add(b);
-    }
+    // cutaway of the windings: removes x > gx AND z > 0 (front-right quarter)
+    const cut = [new THREE.Plane(v(-1, 0, 0), gx), new THREE.Plane(v(0, 0, -1), 0)];
+    const clipped = (p: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial =>
+      mat(
+        new THREE.MeshStandardMaterial({
+          ...p,
+          clippingPlanes: cut,
+          clipIntersection: true,
+          clipShadows: true,
+          side: THREE.DoubleSide,
+        }),
+      );
+    const lvMat = clipped({
+      color: 0xd88a52,
+      metalness: 0.55,
+      roughness: 0.36,
+      envMapIntensity: 1.0,
+      emissive: 0x2a1206,
+    });
+    const hvMat = clipped({
+      color: 0xb8622c,
+      metalness: 0.5,
+      roughness: 0.42,
+      envMapIntensity: 1.0,
+      emissive: 0x241005,
+    });
+    const boardMat = clipped({ color: 0xb39668, metalness: 0, roughness: 0.8 });
+    const windings = new THREE.Group();
+    windings.name = 'windings';
+    group.add(windings);
+    const caps = new THREE.InstancedMesh(capGeo, capMat, MAX_CAPS);
+    caps.count = 0;
+    caps.frustumCulled = false;
+    group.add(caps);
     const flux = createFieldLines(stage, {
-      linewidth: 2.2,
+      linewidth: 2.4,
       spacing: 0.5,
       speed: 1.1,
       base: 0.5,
       gain: 2.0,
     });
     group.add(flux.object);
-    // flux loops on the front lamination: nested rounded rectangles inside the core frame
+    // flux loops on the front lamination, around both windows; spread order: any prefix
+    // is even (alternating windows, insets spread)
     const loops: TracedLine[] = [];
-    const order = [5, 2, 8, 0, 10, 3, 7, 1, 11, 4, 9, 6]; // spread: any prefix is even
-    for (const k of order.slice(0, FLUX_LOOPS)) {
-      const inset = 0.035 + ((CORE.t - 0.07) * (k + 0.5)) / FLUX_LOOPS;
-      const hw = CORE.w / 2 - inset;
-      const hh = CORE.h / 2 - inset;
-      const rc = Math.max(0.03, CORE.t - inset);
+    const insets = [2, 5, 0, 3, 1, 4];
+    const nPer = FLUX_LOOPS / 2;
+    const zf = CORE.d / 2 + 0.012;
+    for (let i = 0; i < FLUX_LOOPS; i++) {
+      const side = i % 2 ? -1 : 1;
+      const f = ((insets[Math.floor(i / 2) % nPer] as number) + 0.5) / nPer;
+      const xi = CORE.cx * (1 - f) + 0.01; // centre-limb side (|x|)
+      const xo = CORE.wx + f * (CORE.hw - CORE.wx) - 0.01;
+      const yb = CORE.wy0 - f * (CORE.wy0 - CORE.y0) + 0.01;
+      const yt = CORE.wy1 + f * (CORE.y1 - CORE.wy1) - 0.01;
+      const rc = 0.04 + f * 0.22;
       const pts: THREE.Vector3[] = [];
-      const corner = (cx: number, cy: number, a0: number): void => {
+      const corner = (cxp: number, cyp: number, a0: number): void => {
         for (let j = 0; j <= 6; j++) {
-          const a = a0 + (j / 6) * (Math.PI / 2);
-          pts.push(v(cx + rc * Math.cos(a), CORE.y + cy + rc * Math.sin(a), CORE.d / 2 + 0.012));
+          const a = a0 - (j / 6) * (Math.PI / 2);
+          pts.push(v(side * (cxp + rc * Math.cos(a)), cyp + rc * Math.sin(a), zf));
         }
       };
-      // counter-clockwise seen from +z: up the right limb
-      corner(hw - rc, hh - rc, 0);
-      corner(-hw + rc, hh - rc, Math.PI / 2);
-      corner(-hw + rc, -hh + rc, Math.PI);
-      corner(hw - rc, -hh + rc, (3 * Math.PI) / 2);
-      pts.push(pts[0]!.clone());
+      // up the centre limb, across the top yoke, down the outer limb, back along the I
+      corner(xi + rc, yt - rc, Math.PI);
+      corner(xo - rc, yt - rc, Math.PI / 2);
+      corner(xo - rc, yb + rc, 0);
+      corner(xi + rc, yb + rc, -Math.PI / 2);
+      pts.push((pts[0] as THREE.Vector3).clone());
       const n = pts.length;
       const points = new Float32Array(3 * n);
       const mags = new Float32Array(n).fill(1);
       const arc = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
-        const p = pts[i] as THREE.Vector3;
-        points.set([p.x, p.y, p.z], 3 * i);
-        if (i > 0) arc[i] = (arc[i - 1] as number) + p.distanceTo(pts[i - 1] as THREE.Vector3);
+      for (let j = 0; j < n; j++) {
+        const p = pts[j] as THREE.Vector3;
+        points.set([p.x, p.y, p.z], 3 * j);
+        if (j > 0) arc[j] = (arc[j - 1] as number) + p.distanceTo(pts[j - 1] as THREE.Vector3);
       }
       loops.push({ points, mags, arc, count: n, closed: true, reason: 'closed' });
     }
     flux.setLines(loops);
-    return { group, tank, flux, left: [], right: [], key: '', windings: [] };
+    return {
+      gx,
+      hv,
+      group,
+      tank: parts.tank,
+      flux,
+      windings,
+      lvPath: [],
+      hvPath: [],
+      key: '',
+      lvMat,
+      hvMat,
+      boardMat,
+      caps,
+    };
   };
-  const up = makeXfmr(UP_X, false);
-  const down = makeXfmr(DOWN_X, true);
+  const up = makeXfmr(UP_X, 1);
+  const down = makeXfmr(DOWN_X, -1);
 
-  /** Helix around a limb (axis y), top → bottom, `turns` rings, in world coordinates. */
-  const helix = (x: number, limbX: number, turns: number, r: number): THREE.Vector3[] => {
+  /** Helix around the centre limb (axis y), top → bottom, starting/ending at the back. */
+  const helix = (gx: number, turns: number, R: number): THREE.Vector3[] => {
     const pts: THREE.Vector3[] = [];
-    const per = Math.max(10, Math.round(16 * stage.settings.tessellation));
+    const per = Math.max(12, Math.round(18 * stage.settings.tessellation));
     const n = turns * per;
-    const y0 = CORE.y + COIL_H / 2;
+    const y0 = COIL_Y + COIL_H / 2;
     for (let k = 0; k <= n; k++) {
-      const a = (k / per) * 2 * Math.PI;
-      pts.push(v(x + limbX + r * Math.sin(a), y0 - (k / n) * COIL_H, r * Math.cos(a)));
+      const a = Math.PI + (k / per) * 2 * Math.PI;
+      pts.push(v(gx + R * Math.sin(a), y0 - (k / n) * COIL_H, R * Math.cos(a)));
     }
     return pts;
   };
-  const buildWindings = (
-    x: Xfmr,
-    nLeft: number,
-    nRight: number,
-    rLeft: number,
-    rRight: number,
-  ): boolean => {
-    const key = `${nLeft}|${nRight}|${rLeft.toFixed(3)}|${rRight.toFixed(3)}|${stage.tier}`;
+  const RUN_Y = 3.08; // lead run between the top yoke and the lid
+  /** Leads from the helix ends to the bushings on side s (polylines, world). */
+  const leads = (x: Xfmr, s: number, isHV: boolean, R: number) => {
+    const g = x.gx;
+    const yTop = COIL_Y + COIL_H / 2;
+    const yBot = COIL_Y - COIL_H / 2 - 0.1;
+    const bx = g + s * BUSH_X;
+    const zA = BUSH_Z[0];
+    const zB = BUSH_Z[1];
+    const xr = g + s * (isHV ? 0.42 : 0.24);
+    const zr = isHV ? -0.9 : -0.86;
+    const top = [
+      bushingTop(g, s, zA, isHV),
+      v(bx, LID_TOP, zA),
+      v(bx, RUN_Y, zA),
+      v(g, RUN_Y, -R),
+      v(g, yTop, -R),
+    ];
+    const bottom = [
+      v(g, yBot + 0.1, -R),
+      v(g, yBot, -R),
+      v(xr, yBot, zr),
+      v(xr, RUN_Y - (isHV ? 0.0 : 0.06), zr),
+      v(bx, RUN_Y - (isHV ? 0.0 : 0.06), zB),
+      v(bx, LID_TOP, zB),
+      bushingTop(g, s, zB, isHV),
+    ];
+    return { top, bottom };
+  };
+  const polyTube = (pts: THREE.Vector3[], r: number): THREE.TubeGeometry => {
+    const path = new THREE.CurvePath<THREE.Vector3>();
+    for (let i = 1; i < pts.length; i++)
+      path.add(new THREE.LineCurve3(pts[i - 1] as THREE.Vector3, pts[i] as THREE.Vector3));
+    return new THREE.TubeGeometry(path, (pts.length - 1) * 4, r, 8, false);
+  };
+  const capM = new THREE.Matrix4();
+  const capQ = new THREE.Quaternion();
+  const capQx = new THREE.Quaternion().setFromAxisAngle(v(0, 1, 0), Math.PI / 2);
+  const capS = v();
+  const capP = v();
+  const buildWindings = (x: Xfmr, nLV: number, nHV: number, rLV: number, rHV: number): boolean => {
+    const key = `${nLV}|${nHV}|${rLV.toFixed(3)}|${rHV.toFixed(3)}|${stage.tier}`;
     if (key === x.key) return false;
     x.key = key;
-    for (const w of x.windings) {
-      x.group.remove(w);
-      dropGeo(w.geometry);
+    for (const m of [...x.windings.children] as THREE.Mesh[]) {
+      x.windings.remove(m);
+      dropGeo(m.geometry);
     }
-    x.windings.length = 0;
-    const R = CORE.t * 0.72 + 0.05;
-    const gx = x.group.position.x;
-    x.left = helix(gx, -LIMB_X, nLeft, R + rLeft);
-    x.right = helix(gx, LIMB_X, nRight, R + rRight);
-    for (const [pts, r, kind] of [
-      [x.left, rLeft, 'enamel'],
-      [x.right, rRight, 'enamel'],
+    const RLV = FORMER_R + rLV + 0.006;
+    const RHV = FORMER_R + 2 * 0.055 + 0.07 + rHV;
+    const radial = stage.tier === 'base' ? 6 : 10;
+    const local = (pts: THREE.Vector3[]): THREE.Vector3[] =>
+      pts.map((p) => p.clone().sub(x.group.position));
+    let ci = 0;
+    for (const [n, r, R, m, isHV] of [
+      [nLV, rLV, RLV, x.lvMat, false],
+      [nHV, rHV, RHV, x.hvMat, true],
     ] as const) {
-      const local = pts.map((p) => p.clone().sub(x.group.position));
-      const curve = new THREE.CatmullRomCurve3(local);
-      const g = geo(
+      const hx = helix(x.gx, n, R);
+      const tube = geo(
         new THREE.TubeGeometry(
-          curve,
-          Math.min(900, pts.length * 2),
+          new THREE.CatmullRomCurve3(local(hx)),
+          Math.min(1400, hx.length * 2),
           r,
-          stage.tier === 'base' ? 5 : 8,
+          radial,
         ),
       );
-      const m = mesh(g, kind, 'winding');
-      m.castShadow = stage.tier !== 'base';
-      x.group.add(m);
-      x.windings.push(m);
+      const w = new THREE.Mesh(tube, m);
+      w.castShadow = stage.tier !== 'base';
+      x.windings.add(w);
+      const s = isHV ? x.hv : -x.hv;
+      const L = leads(x, s, isHV, R);
+      for (const pl of [L.top, L.bottom]) {
+        const lg = mesh(geo(polyTube(local(pl.slice(1)), 0.024)), 'copper', 'lead');
+        x.windings.add(lg);
+      }
+      const path = [...L.top, ...hx.slice(1, -1), ...L.bottom];
+      if (isHV) x.hvPath = path;
+      else x.lvPath = path;
+      // section caps where each turn crosses the cut planes (x = gx front, z = 0 right)
+      for (let j = 0; j < n && ci < MAX_CAPS - 1; j++) {
+        const y0 = COIL_Y + COIL_H / 2;
+        capS.set(r, r, r);
+        capP.set(0, y0 - ((j + 0.5) / n) * COIL_H, R);
+        x.caps.setMatrixAt(ci++, capM.compose(capP, capQx, capS));
+        capP.set(R, y0 - ((j + 0.75) / n) * COIL_H, 0);
+        x.caps.setMatrixAt(ci++, capM.compose(capP, capQ, capS));
+      }
+    }
+    x.caps.count = ci;
+    x.caps.instanceMatrix.needsUpdate = true;
+    // pressboard tubes: around the limb and between LV and HV
+    for (const R of [FORMER_R - 0.012, FORMER_R + 0.055 * 2 + 0.035]) {
+      const t = new THREE.Mesh(
+        geo(new THREE.CylinderGeometry(R, R, COIL_H + 0.12, tess(48), 1, true)),
+        x.boardMat,
+      );
+      t.position.y = COIL_Y;
+      x.windings.add(t);
     }
     return true;
   };
 
-  // --- pylons (instanced lattice members) ---------------------------------------------------------
-  const members: Array<[THREE.Vector3, THREE.Vector3, number]> = [];
-  const legAt = (y: number): number => 0.62 - (0.44 * y) / PYLON_H; // half-width of the tower
-  for (const px of PYLONS) {
-    const levels = [0, 0.9, 1.75, 2.5, 3.2, 3.85, PYLON_H];
-    const c = (sx: number, sz: number, y: number): THREE.Vector3 =>
-      v(px + sx * legAt(y), GROUND + y, sz * legAt(y));
-    const corners: Array<[number, number]> = [
-      [-1, -1],
-      [1, -1],
-      [1, 1],
-      [-1, 1],
-    ];
-    for (let l = 0; l < levels.length - 1; l++) {
-      const y0 = levels[l] as number;
-      const y1 = levels[l + 1] as number;
-      for (let k = 0; k < 4; k++) {
-        const [ax, az] = corners[k] as [number, number];
-        const [bx, bz] = corners[(k + 1) % 4] as [number, number];
-        members.push([c(ax, az, y0), c(ax, az, y1), 0.045]); // leg
-        members.push([c(ax, az, y1), c(bx, bz, y1), 0.022]); // horizontal
-        members.push([c(ax, az, y0), c(bx, bz, y1), 0.016]); // diagonals (X)
-        members.push([c(bx, bz, y0), c(ax, az, y1), 0.016]);
-      }
-    }
-    // cross-arm (along z) with bracing, and the earth-wire peak
-    for (const sx of [-1, 1]) {
-      members.push([v(px + sx * 0.16, ARM_Y, -1.0), v(px + sx * 0.16, ARM_Y, 1.0), 0.03]);
-      for (const sz of [-1, 1]) {
-        members.push([
-          v(px + sx * 0.16, ARM_Y, sz * 1.0),
-          v(px + sx * 0.2, ARM_Y - 0.5, sz * 0.25),
-          0.018,
-        ]);
-        members.push([
-          v(px + sx * 0.16, ARM_Y, sz * 1.0),
-          v(px + sx * 0.16, ARM_Y + 0.25, sz * 0.2),
-          0.018,
-        ]);
-      }
-    }
-    members.push([v(px, PYLON_H, 0), v(px, PYLON_H + 0.45, 0), 0.03]);
-  }
-  const memberGeo = geo(new THREE.BoxGeometry(1, 1, 1));
-  const lattice = new THREE.InstancedMesh(memberGeo, undefined, members.length);
-  kit.assign(lattice, 'steel', 'pylon');
-  {
-    const m4 = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const yAxis = v(0, 1, 0);
-    const d = v();
-    const mid = v();
-    const s = v();
-    members.forEach(([a, b, w], i) => {
-      d.subVectors(b, a);
-      const len = d.length();
-      q.setFromUnitVectors(yAxis, d.normalize());
-      mid.addVectors(a, b).multiplyScalar(0.5);
-      s.set(w, len, w);
-      lattice.setMatrixAt(i, m4.compose(mid, q, s));
-    });
-    lattice.instanceMatrix.needsUpdate = true;
-    lattice.computeBoundingSphere();
-  }
-  scene.add(lattice);
-  // insulator strings (cap-and-pin discs) at the cross-arm ends
-  const insulatorGeo = geo(
-    new THREE.LatheGeometry(
-      (() => {
-        const p: THREE.Vector2[] = [new THREE.Vector2(0, 0)];
-        for (let k = 0; k < 5; k++) {
-          const y = -0.02 - k * 0.07;
-          p.push(
-            new THREE.Vector2(0.025, y),
-            new THREE.Vector2(0.09, y - 0.02),
-            new THREE.Vector2(0.025, y - 0.05),
-          );
-        }
-        p.push(new THREE.Vector2(0, -0.37));
-        return p;
-      })(),
-      tess(16),
-    ),
-  );
-  const insulators = new THREE.InstancedMesh(insulatorGeo, undefined, PYLONS.length * 2);
-  kit.assign(insulators, 'glass', 'insulator');
-  {
-    const m4 = new THREE.Matrix4();
-    let i = 0;
-    for (const px of PYLONS) {
-      for (const sz of [-1, 1])
-        insulators.setMatrixAt(i++, m4.makeTranslation(px, ARM_Y, sz * PHASE_Z));
-    }
-    insulators.instanceMatrix.needsUpdate = true;
-    insulators.computeBoundingSphere();
-  }
-  scene.add(insulators);
-
-  // --- line conductors (catenary, rebuilt when the drawn sag changes) ----------------------------
-  const bushingTop = (x: Xfmr, side: 1 | -1, z: number): THREE.Vector3 =>
-    v(x.group.position.x + side * 0.75, BUSHING_TOP + 0.3, z);
-  const upHV = (z: number): THREE.Vector3 => bushingTop(up, 1, z);
-  const downHV = (z: number): THREE.Vector3 => bushingTop(down, 1, z);
+  // --- line conductors (catenary, triple bundles, rebuilt when the drawn sag changes) --------
+  const upHV = (z: number): THREE.Vector3 => bushingTop(UP_X, 1, z, true);
+  const downHV = (z: number): THREE.Vector3 => bushingTop(DOWN_X, -1, z, true);
   const lineGroup = new THREE.Group();
   scene.add(lineGroup);
   const conductorMeshes: THREE.Mesh[] = [];
   const thermalMeshes: THREE.Mesh[] = [];
   let lineGeos: THREE.BufferGeometry[] = [];
-  /** Conductor polyline for phase z (from the step-up bushing to the step-down bushing). */
   let phasePts: Record<'go' | 'ret', THREE.Vector3[]> = { go: [], ret: [] };
   let sagDrawn = -1;
   const spanPoints = (
@@ -585,6 +526,30 @@ export function createTransformerScene(
     }
     return out;
   };
+  // triple bundle (380 kV practice): sub-conductors on a triangle around the phase centre
+  const BUNDLE: Array<[number, number]> = [
+    [0.06, 0],
+    [-0.03, 0.052],
+    [-0.03, -0.052],
+  ];
+  const addConductor = (pts: THREE.Vector3[], r: number): void => {
+    const g = geo(
+      new THREE.TubeGeometry(
+        new THREE.CatmullRomCurve3(pts, false, 'centripetal'),
+        pts.length * 2,
+        r,
+        stage.tier === 'base' ? 5 : 7,
+      ),
+    );
+    lineGeos.push(g);
+    const al = mesh(g, 'steel', 'conductor');
+    const th = mesh(g, 'plastic', 'thermal');
+    th.visible = false;
+    al.castShadow = th.castShadow = false;
+    lineGroup.add(al, th);
+    conductorMeshes.push(al);
+    thermalMeshes.push(th);
+  };
   const buildLine = (sagM: number): void => {
     const drawn = sagM * SAG_DRAW;
     if (Math.abs(drawn - sagDrawn) < 0.004) return;
@@ -595,47 +560,59 @@ export function createTransformerScene(
     for (const g of lineGeos) dropGeo(g);
     lineGeos = [];
     const segs = Math.round(24 * stage.settings.tessellation) + 8;
-    for (const [key, z] of [
-      ['go', PHASE_Z],
-      ['ret', -PHASE_Z],
+    for (const [key, z, bz] of [
+      ['go', PHASE_Z, BUSH_Z[0]],
+      ['ret', -PHASE_Z, BUSH_Z[1]],
     ] as const) {
-      const pts: THREE.Vector3[] = [];
-      const a0 = upHV(z * 0.42);
+      const a0 = upHV(bz);
       const p0 = v(PYLONS[0], ATTACH_Y, z);
-      pts.push(...spanPoints(a0, p0, 0.12, 8));
+      const pn = v(PYLONS[PYLONS.length - 1], ATTACH_Y, z);
+      const dropA = spanPoints(a0, p0, 0.15, 10);
+      const dropB = spanPoints(pn, downHV(bz), 0.15, 10);
+      const spans: THREE.Vector3[] = [p0.clone()];
       for (let k = 0; k < PYLONS.length - 1; k++) {
         const a = v(PYLONS[k], ATTACH_Y, z);
         const b = v(PYLONS[k + 1], ATTACH_Y, z);
-        pts.push(...spanPoints(a, b, drawn, segs).slice(1));
+        spans.push(...spanPoints(a, b, drawn, segs).slice(1));
       }
-      const pn = v(PYLONS[PYLONS.length - 1], ATTACH_Y, z);
-      pts.push(...spanPoints(pn, downHV(z * 0.42), 0.12, 8).slice(1));
-      phasePts[key] = pts;
-      const g = geo(
-        new THREE.TubeGeometry(
-          new THREE.CatmullRomCurve3(pts, false, 'centripetal'),
-          pts.length * 2,
-          0.036,
-          stage.tier === 'base' ? 5 : 8,
-        ),
-      );
-      lineGeos.push(g);
-      const al = mesh(g, 'steel', 'conductor');
-      const th = mesh(g, 'plastic', 'thermal');
-      th.visible = false;
-      al.castShadow = th.castShadow = false;
-      lineGroup.add(al, th);
-      conductorMeshes.push(al);
-      thermalMeshes.push(th);
+      phasePts[key] = [...dropA, ...spans.slice(1), ...dropB.slice(1)];
+      addConductor(dropA, 0.03);
+      addConductor(dropB, 0.03);
+      for (const [dz, dy] of BUNDLE)
+        addConductor(
+          spans.map((p) => v(p.x, p.y + dy, p.z + dz)),
+          0.017,
+        );
     }
     phasePts = { ...phasePts };
     lineFlow.setPath(
-      [...phasePts.go, ...[...downWinding()], ...[...phasePts.ret].reverse(), ...upWinding()],
+      [
+        ...phasePts.go,
+        ...down.hvPath.slice(1),
+        ...[...phasePts.ret].reverse().slice(1),
+        ...[...up.hvPath].reverse().slice(1, -1),
+      ],
       true,
     );
   };
+  // earth wires (static, light sag) on the peaks
+  for (const z of [-PEAK_Z, PEAK_Z]) {
+    const pts: THREE.Vector3[] = [v(PYLONS[0], PYLON_H + 0.25, z)];
+    for (let k = 0; k < PYLONS.length - 1; k++)
+      pts.push(
+        ...spanPoints(
+          v(PYLONS[k], PYLON_H + 0.25, z),
+          v(PYLONS[k + 1], PYLON_H + 0.25, z),
+          0.22,
+          16,
+        ).slice(1),
+      );
+    scene.add(
+      mesh(geo(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, 0.012, 5)), 'steel'),
+    );
+  }
 
-  // --- heat haze above the spans (alta only): faint wavy streaks ∝ R'·I² ----------------------
+  // --- heat haze above the spans (alta only): faint wavy streaks ∝ R'·I² --------------------
   const hazeMat = mat(
     new THREE.ShaderMaterial({
       transparent: true,
@@ -654,58 +631,19 @@ export function createTransformerScene(
         void main() {
           float w = sin(vUv.x * 60.0 + sin(vUv.y * 9.0 - uTime * 2.3) * 2.2 - uTime * 0.7);
           float s = smoothstep(0.9, 1.0, w) * (1.0 - vUv.y) * smoothstep(0.0, 0.15, vUv.y);
-          float edge = smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.92, vUv.x);
+          float edge = smoothstep(0.0, 0.08, vUv.x) * (1.0 - smoothstep(0.92, 1.0, vUv.x));
           gl_FragColor = vec4(uColor * s * edge * uAmount, 1.0);
         }`,
     }),
   );
   const hazeGeo = geo(new THREE.PlaneGeometry(PYLONS[3] - PYLONS[0], 0.7));
   const haze = new THREE.Mesh(hazeGeo, hazeMat);
-  haze.position.set(0, ATTACH_Y - 0.15, 0);
+  haze.position.set((PYLONS[0] + PYLONS[3]) / 2, ATTACH_Y - 0.15, 0);
   haze.renderOrder = 5;
   scene.add(haze);
 
-  // --- low-voltage feeder and town ------------------------------------------------------------------
-  const town = new THREE.Group();
-  scene.add(town);
-  const blocks: Array<[number, number, number, number, number]> = [
-    // x, z, w, d, h
-    [11.0 + TOWN_DX, -0.9, 1.0, 1.0, 2.9],
-    [12.4 + TOWN_DX, -1.0, 1.2, 0.9, 1.9],
-    [13.7 + TOWN_DX, -0.8, 0.9, 1.1, 3.4],
-    [11.3 + TOWN_DX, 1.0, 1.1, 0.9, 1.5],
-    [12.7 + TOWN_DX, 1.05, 1.0, 1.0, 2.4],
-    [14.0 + TOWN_DX, 1.1, 1.0, 0.9, 1.7],
-  ];
-  const blockGeo = geo(chamferBox(1, 1, 1, 0.03));
-  const windowsAt: THREE.Matrix4[] = [];
-  for (const [bx, bz, w, d, h] of blocks) {
-    const b = mesh(blockGeo, 'magnet', 'town');
-    b.scale.set(w, h, d);
-    b.position.set(bx, GROUND + h / 2, bz);
-    const roof = mesh(blockGeo, 'darkSteel', 'roof');
-    roof.scale.set(w + 0.06, 0.08, d + 0.06);
-    roof.position.set(bx, GROUND + h + 0.04, bz);
-    town.add(b, roof);
-    // windows on the front (+z) and the left (−x) face, facing the camera
-    const rows = Math.floor((h - 0.3) / 0.34);
-    const colsF = Math.floor((w - 0.16) / 0.22);
-    const colsS = Math.floor((d - 0.16) / 0.22);
-    for (let r = 0; r < rows; r++) {
-      const y = GROUND + 0.38 + r * 0.34;
-      for (let c = 0; c < colsF; c++) {
-        const x = bx - ((colsF - 1) * 0.22) / 2 + c * 0.22;
-        windowsAt.push(new THREE.Matrix4().makeTranslation(x, y, bz + d / 2 + 0.006));
-      }
-      for (let c = 0; c < colsS; c++) {
-        const z = bz - ((colsS - 1) * 0.22) / 2 + c * 0.22;
-        windowsAt.push(
-          new THREE.Matrix4().makeRotationY(-Math.PI / 2).setPosition(bx - w / 2 - 0.006, y, z),
-        );
-      }
-    }
-  }
-  // a deterministic shuffle: lighting n windows lights them across the whole town
+  // --- town windows ------------------------------------------------------------------------------
+  const windowsAt = townParts.slots;
   let seed = 7;
   const rnd = (): number => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let i = windowsAt.length - 1; i > 0; i--) {
@@ -722,67 +660,84 @@ export function createTransformerScene(
   const darkCol = new THREE.Color();
   let litShown = -1;
   const paintWindows = (lit: number): void => {
-    const dark = stage.theme === 'dark';
-    litCol.setHex(0xffcf7a).multiplyScalar(stage.settings.post ? 2.4 : 1.15);
-    darkCol.setHex(dark ? 0x1a222c : 0x56606c);
+    litCol.setHex(0xffcf7a).multiplyScalar(stage.settings.post ? 1.5 : 1.1);
+    darkCol.setHex(0x1c242e);
     for (let i = 0; i < nWindows; i++) windows.setColorAt(i, i < lit ? litCol : darkCol);
     if (windows.instanceColor) windows.instanceColor.needsUpdate = true;
     litShown = lit;
   };
   paintWindows(0);
   town.add(windows);
-  // feeder poles + low-voltage wires from the step-down LV bushings to the town
-  const poleGeo = geo(new THREE.CylinderGeometry(0.05, 0.07, 2.6, 10));
-  for (const z of [0.5, -0.5]) {
-    const p = mesh(poleGeo, 'darkSteel', 'pole');
-    p.position.set(DOWN_X + 1.6, GROUND + 1.3, z * 1.25);
-    town.add(p);
-  }
-  const lvPath = (z: number): THREE.Vector3[] => [
-    bushingTop(down, -1, z * 0.42),
-    v(DOWN_X - 0.75, BUSHING_TOP + 0.55, z * 0.42),
-    v(DOWN_X + 1.6, 2.62, z * 1.04),
-    v(DOWN_X + 2.2, 2.35, z * 0.62),
-    v(DOWN_X + 2.6, 2.2, z * 0.62),
-  ];
-  const lvGeo = (z: number): THREE.TubeGeometry =>
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lvPath(z)), 40, 0.022, 6);
-  for (const z of [0.6, -0.6]) town.add(mesh(geo(lvGeo(z)), 'copper', 'lv'));
 
-  // generator → step-up primary leads
-  const genLead = (z: number): THREE.Vector3[] => [
-    genTerm[z > 0 ? 1 : 0] as THREE.Vector3,
-    v(PLANT_X + 1.5, 2.25, z * 0.5),
-    v(UP_X - 1.9, 3.0, z * 0.42),
-    bushingTop(up, -1, z * 0.42),
+  // --- LV feeder (step-down → town) and generator leads (generator → step-up) -------------------
+  const poleGeo = geo(new THREE.CylinderGeometry(0.05, 0.07, 3.2, 10));
+  const armGeo = geo(new THREE.BoxGeometry(0.06, 0.06, 1.4));
+  const FEED_X = DOWN_X + 2.1;
+  const feedPole = mesh(poleGeo, 'darkSteel', 'clamp');
+  feedPole.position.set(FEED_X, GROUND + 1.6, -0.5);
+  const feedArm = mesh(armGeo, 'darkSteel', 'clamp');
+  feedArm.position.set(FEED_X, GROUND + 3.1, -0.5);
+  town.add(feedPole, feedArm);
+  // first town block: the feeder ends on its left wall
+  const wallX = (BLOCKS[0]?.[0] ?? 13) - (BLOCKS[0]?.[2] ?? 1) / 2;
+  const lvPath = (bz: number, k: number): THREE.Vector3[] => [
+    bushingTop(DOWN_X, 1, bz, false),
+    v(DOWN_X + 1.2, 3.55, bz + k * 0.1),
+    v(FEED_X, 3.15, -0.5 + k * 0.6),
+    v(wallX - 0.25, 2.55, -1.0 + k * 0.3),
+    v(wallX - 0.02, 2.3, -1.0 + k * 0.3),
   ];
-  for (const z of [0.6, -0.6]) {
-    const lead = mesh(
-      geo(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(genLead(z)), 40, 0.035, 8)),
-      'copper',
-      'lead',
+  for (const [bz, k] of [
+    [BUSH_Z[0], 1],
+    [BUSH_Z[1], -1],
+  ] as const)
+    town.add(
+      mesh(
+        geo(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lvPath(bz, k)), 48, 0.022, 6)),
+        'copper',
+        'lv',
+      ),
     );
-    scene.add(lead);
+  const [gA, gB] = plant.terminals;
+  const POST_X = UP_X - 2.9;
+  const genLead = (bz: number, term: THREE.Vector3): THREE.Vector3[] => [
+    term,
+    v(term.x, 2.35, term.z),
+    v(POST_X, 2.75, bz - 0.25),
+    v(UP_X - BUSH_X - 0.7, 3.95, bz),
+    bushingTop(UP_X, -1, bz, false),
+  ];
+  for (const [bz, term] of [
+    [BUSH_Z[0], gA],
+    [BUSH_Z[1], gB],
+  ] as const) {
+    scene.add(
+      mesh(
+        geo(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(genLead(bz, term)), 48, 0.035, 8)),
+        'copper',
+        'lead',
+      ),
+    );
+    const post = mesh(geo(new THREE.CylinderGeometry(0.04, 0.06, 2.65, 10)), 'darkSteel', 'clamp');
+    post.position.set(POST_X, GROUND + 1.32, bz - 0.25);
+    scene.add(post);
   }
 
-  // --- current flows (one per section, same velocity scale) --------------------------------------
+  // --- current flows (one per section, same velocity scale) ----------------------------------
   const pd = stage.settings.particleDensity;
-  // setCurrent() receives the particle speed directly (common scale per state, see update)
   const flowOpts = { speedPerAmp: 1, vMax: PARTICLE_V_FS * 1.01, smooth: false };
-  const upWinding = (): THREE.Vector3[] => up.right.slice().reverse();
-  const downWinding = (): THREE.Vector3[] => down.left;
   const lineFlow: CurrentFlow = createCurrentFlow(stage, {
     ...flowOpts,
     path: [v(), v(1, 0, 0)],
     closed: true,
-    count: Math.round(240 * Math.max(0.5, pd)),
+    count: Math.round(260 * Math.max(0.5, pd)),
     radius: 0.045,
   });
   const genFlow: CurrentFlow = createCurrentFlow(stage, {
     ...flowOpts,
     path: [v(), v(1, 0, 0)],
     closed: true,
-    count: Math.round(110 * Math.max(0.5, pd)),
+    count: Math.round(120 * Math.max(0.5, pd)),
     radius: 0.05,
   });
   const townFlow: CurrentFlow = createCurrentFlow(stage, {
@@ -793,40 +748,88 @@ export function createTransformerScene(
     radius: 0.05,
   });
   const setSectionPaths = (): void => {
-    // generator loop: lead (+) → primary winding (top → bottom) → lead (−) back
-    genFlow.setPath([...genLead(0.6), ...up.left, ...genLead(-0.6).reverse()], true);
-    // town loop: step-down LV winding → feeder → town and back
-    townFlow.setPath([...lvPath(0.6).reverse(), ...down.right, ...lvPath(-0.6)], true);
+    genFlow.setPath(
+      [
+        ...genLead(BUSH_Z[0], gA),
+        ...up.lvPath.slice(1),
+        ...genLead(BUSH_Z[1], gB).reverse().slice(1),
+      ],
+      true,
+    );
+    townFlow.setPath(
+      [
+        ...lvPath(BUSH_Z[1], -1).reverse(),
+        ...[...down.lvPath].reverse().slice(1),
+        ...lvPath(BUSH_Z[0], 1).slice(1),
+      ],
+      true,
+    );
   };
 
-  // --- labels ------------------------------------------------------------------------------------------
-  const labels = createLabelLayer(stage, overlay, { occlude: false });
-  const A = {
-    plant: v(PLANT_X, 3.0, 0.3),
-    stepUp: v(UP_X, 4.25, 0.4),
-    core: v(UP_X - 0.2, 0.55, 1.1),
-    line: v(-3.6, 3.3, 0.9),
-    loss: v(3.6, 3.15, 0.9),
-    sag: v(0, ATTACH_Y - 0.9, PHASE_Z),
-    stepDown: v(DOWN_X, 4.25, 0.4),
-    town: v(12.6 + TOWN_DX, 3.9, 0.2),
+  // --- labels: callout spots off the working parts, leader lines to the parts ------------------
+  const labels = createLabelLayer(stage, overlay);
+  type Key = keyof SceneTexts;
+  const parts: Record<Key, THREE.Vector3> = {
+    plant: v(gA.x - 0.35, 1.5, gA.z + 0.1),
+    stepUp: v(UP_X - BUSH_X, LID_TOP + 0.6, BUSH_Z[1]),
+    core: v(UP_X + 1.02, CORE.wy1 + 0.17, CORE.d / 2),
+    line: v((PYLONS[0] + PYLONS[1]) / 2, ATTACH_Y - 0.25, PHASE_Z),
+    loss: v((PYLONS[1] + PYLONS[2]) / 2, ATTACH_Y - 0.35, -PHASE_Z),
+    sag: v((PYLONS[2] + PYLONS[3]) / 2, ATTACH_Y - 0.5, PHASE_Z),
+    stepDown: v(DOWN_X, LID_TOP + 0.4, -0.5),
+    town: v(13.0, 2.4, 0.5),
   };
-  const L: Record<keyof SceneTexts, Label> = {
-    plant: labels.add({ text: 'Centrale', anchor: A.plant, quantity: 'emf', priority: 8 }),
-    stepUp: labels.add({ text: 'Elevatore', anchor: A.stepUp, priority: 7 }),
-    core: labels.add({ text: 'Φ', anchor: A.core, quantity: 'b', priority: 6, size: 'sm' }),
-    line: labels.add({ text: 'Linea', anchor: A.line, quantity: 'i', priority: 9 }),
-    loss: labels.add({ text: 'Joule', anchor: A.loss, quantity: 'energy', priority: 8 }),
-    sag: labels.add({ text: 'freccia', anchor: A.sag, priority: 3, size: 'sm', offset: [0, 22] }),
-    stepDown: labels.add({ text: 'Abbassatore', anchor: A.stepDown, priority: 7 }),
-    town: labels.add({ text: 'Utenze', anchor: A.town, quantity: 'energy', priority: 8 }),
+  const ends: Record<Key, THREE.Vector3> = {
+    plant: v(-11.2, 5.2, -2.8),
+    stepUp: v(UP_X - 1.4, 7.0, -1.0),
+    core: v(UP_X + 2.5, 0.1, 3.4),
+    line: v(-1.6, 7.6, 0),
+    loss: v(2.0, 7.7, -0.6),
+    sag: v(1.0, 2.2, 5.0),
+    stepDown: v(DOWN_X + 1.2, 0.0, 5.6),
+    town: v(14.6, 4.6, 0.5),
+  };
+  const KEYS = Object.keys(parts) as Key[];
+  const leaderPos = new Float32Array(KEYS.length * 6);
+  const leaderGeo = geo(new THREE.BufferGeometry());
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = mat(
+    new THREE.LineBasicMaterial({ color: 0x9da7b3, transparent: true, opacity: 0.75 }),
+  );
+  const leaders = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaders.frustumCulled = false;
+  scene.add(leaders);
+  const tag = (
+    k: Key,
+    o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
+  ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  const W = (sensorWidth: string): { sensorWidth: string; sensorHeight: string } => ({
+    sensorWidth,
+    sensorHeight: '1.5rem',
+  });
+  const L: Record<Key, Label> = {
+    plant: tag('plant', { text: 'Centrale', quantity: 'emf', priority: 8, ...W('30ch') }),
+    stepUp: tag('stepUp', { text: 'Elevatore', priority: 7, ...W('30ch') }),
+    core: tag('core', { text: 'Φ', quantity: 'b', priority: 6, ...W('15ch') }),
+    line: tag('line', { text: 'Linea', quantity: 'i', priority: 9, ...W('30ch') }),
+    loss: tag('loss', { text: 'Joule', quantity: 'energy', priority: 8, ...W('44ch') }),
+    sag: tag('sag', { text: 'freccia', priority: 3, size: 'sm', ...W('13ch') }),
+    stepDown: tag('stepDown', { text: 'Abbassatore', priority: 7, ...W('30ch') }),
+    town: tag('town', { text: 'Utenze', quantity: 'energy', priority: 8, ...W('17ch') }),
+  };
+  const updateLeaders = (): void => {
+    KEYS.forEach((k, i) => {
+      const a = parts[k];
+      const b = ends[k];
+      leaderPos.set([a.x, a.y, a.z, b.x, b.y, b.z], 6 * i);
+    });
+    (leaderGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
   };
 
-  stage.castShadows(plant);
+  stage.castShadows(plant.root);
   stage.castShadows(up.group);
   stage.castShadows(down.group);
   stage.castShadows(town);
-  lattice.castShadow = true;
 
   const offTier = stage.onTierChange(() => {
     up.key = down.key = '';
@@ -846,21 +849,22 @@ export function createTransformerScene(
     if (atHome) stage.setView(home.position, home.target, false);
   });
 
-  // --- per-frame ---------------------------------------------------------------------------------------
+  // --- per-frame ------------------------------------------------------------------------------
   const rgb: [number, number, number] = [0, 0, 0];
   let frames = 0;
   let lastLit = 0;
   let lastSag = Number.NaN;
   let wiresChanged = false;
   const update = (s: SceneView): void => {
-    // windings: turns ∝ N, wire radius ∝ √I (equal current density); reference: I₁ → 0,05
+    applyTints(stage);
+    // windings: turns ∝ N, wire radius ∝ √I (equal current density)
     const vt = visualTurns(s.N1, s.N2);
     const Iref = Math.max(s.I1, s.Iline, 1e-9);
     const r1 = wireRadius(s.I1, Iref, 0.055, 0.012, 0.055);
     const r2 = wireRadius(s.Iline, Iref, 0.055, 0.012, 0.055);
     wiresChanged = buildWindings(up, vt.n1, vt.n2, r1, r2) || wiresChanged;
     wiresChanged =
-      buildWindings(down, vt.n2, vt.n1, r2, wireRadius(s.Iout, Iref, 0.055, 0.012, 0.055)) ||
+      buildWindings(down, vt.n1, vt.n2, wireRadius(s.Iout, Iref, 0.055, 0.012, 0.055), r2) ||
       wiresChanged;
     if (wiresChanged || s.sag !== lastSag) {
       const before = sagDrawn;
@@ -873,7 +877,6 @@ export function createTransformerScene(
     // AC: instantaneous currents √2·I·sin ωt, flux Φ̂·cos ωt (same phase reference)
     const w = 2 * Math.PI * AC_VISUAL_HZ * s.t;
     const sn = Math.SQRT2 * Math.sin(w);
-    // one speed scale for all sections: speed ratios = current ratios (N₂/N₁), never capped
     const k = particleSpeedPerAmp(particleFullScale(s.I1, s.Iline, s.Iout));
     genFlow.setCurrent(s.I1 * sn * k);
     lineFlow.setCurrent(s.Iline * sn * k);
@@ -883,9 +886,7 @@ export function createTransformerScene(
     down.flux.setFraction(fluxFraction(s.phiDown));
     up.flux.setFlow(1.4 * c);
     down.flux.setFlow(1.4 * c);
-    // tank cut-away
     up.tank.visible = down.tank.visible = s.tank;
-    // conductor: aluminium or false colour (ironbow over 20 … 120 °C)
     for (const m of conductorMeshes) m.visible = !s.thermal;
     for (const m of thermalMeshes) m.visible = s.thermal;
     if (s.thermal) {
@@ -896,26 +897,18 @@ export function createTransformerScene(
       m.emissive.setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
       m.emissiveIntensity = 0.55;
     }
-    // heat haze (alta): amount ∝ R'·I² / reference
     haze.visible = stage.tier === 'alta' && s.heatPerMetre > 0.5;
     const u = hazeMat.uniforms as Record<string, { value: number }>;
     (u['uTime'] as { value: number }).value = s.t;
     (u['uAmount'] as { value: number }).value =
       Math.min(1, s.heatPerMetre / HAZE_REF_W_PER_M) * 0.28;
-    // town windows ∝ delivered power
     if (s.lit !== litShown) paintWindows(s.lit);
     lastLit = s.lit;
-    // labels
-    A.sag.set(0, ATTACH_Y - sagDrawn - 0.05, PHASE_Z);
+    // sag callout follows the lowest point of the third span
+    parts.sag.set((PYLONS[2] + PYLONS[3]) / 2, ATTACH_Y - sagDrawn - 0.06, PHASE_Z);
+    updateLeaders();
     const t = s.texts;
-    L.plant.setText(t.plant);
-    L.stepUp.setText(t.stepUp);
-    L.core.setText(t.core);
-    L.line.setText(t.line);
-    L.loss.setText(t.loss);
-    L.sag.setText(t.sag);
-    L.stepDown.setText(t.stepDown);
-    L.town.setText(t.town);
+    for (const key of KEYS) L[key].setText(t[key]);
   };
 
   const prewarm = (): void => {
@@ -970,6 +963,8 @@ export function createTransformerScene(
       for (const f of [lineFlow, genFlow, townFlow]) f.dispose();
       up.flux.dispose();
       down.flux.dispose();
+      up.caps.dispose();
+      down.caps.dispose();
       for (const g of [...geometries]) dropGeo(g);
       for (const m of materials.splice(0)) {
         m.dispose();

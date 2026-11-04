@@ -92,7 +92,7 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
     pixelRatioCap: 1.25,
     lineDensity: 0.45,
     fatLines: false,
-    particleDensity: 0.35,
+    particleDensity: 0.2,
     tessellation: 0.4,
     pbr: false,
   },

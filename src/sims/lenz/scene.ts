@@ -1,8 +1,10 @@
 /**
- * Three.js scene of the `lenz` simulator, built on the render foundation
- * (`src/render`, D14): a lab bench with a bar magnet on a sliding carriage, a
- * layer-wound coil of enamelled copper on a translucent former, and a
- * centre-zero galvanometer connected by two leads.
+ * Three.js scene of the `lenz` simulator (teardown look, `look: 'teardown'`): a school
+ * induction demonstration (`./parts`, reference and real dimensions there) — a painted bar
+ * magnet (N red, S green) on a rider of an aluminium bench rail, moving toward / away from a
+ * layer-wound enamelled-copper coil on a bakelite stand, wired with red/black 4 mm leads to a
+ * centre-zero demonstration galvanometer. The coil is opened (front-top quadrant cut away by
+ * two clipping planes, flat section caps) so the magnet's flux can be seen threading the bore.
  *
  * What is physics and what is illustration:
  *  - magnet field lines: COMPUTED (RK4 tracer) for a finite dipole — the bar is
@@ -20,8 +22,8 @@
  *    with an auto-ranging full scale; current particles: speed ∝ i/i_fs
  *    (full scale → {@link PARTICLE_SPEED_FS} scene units/s), direction = sign of i;
  *  - force arrow: the computed F on the magnet, length ∝ log₁₀|F| (1 nN … 1 N).
- * Sizes: 1 scene unit = 5 cm (SCALE = 20 /m); magnet and coil radius to scale,
- * drawn turns ∝ N up to a cap (the label shows the real N).
+ * Sizes: 1 scene unit = 5 cm (SCALE = 20 /m); magnet length and coil radius to scale,
+ * drawn turns ∝ N up to a cap (the label shows the real N); the rest is illustrative.
  */
 import * as THREE from 'three';
 import type { AppContext } from '../../core/types';
@@ -34,10 +36,12 @@ import {
   seedByFlux,
   seedDisc,
   fieldFromSpec,
+  mergeStatic,
   type CurrentFlow,
   type FieldLines,
   type FieldSpec,
   type Label,
+  type MaterialKind,
   type Stage,
   type StageInfo,
   type TraceJob,
@@ -50,29 +54,47 @@ import {
   windingLayout,
   type Pole,
 } from './model';
+import {
+  BENCH_TOP,
+  FLOOR_Y,
+  STAND_SOCKETS,
+  STAND_TOP,
+  applyTints,
+  buildBench,
+  buildCarriage,
+  buildGalvanometer,
+  dialCanvas,
+  wireSectionCanvas,
+  type PartsSink,
+} from './parts';
 
 /** Scene units per metre (1 unit = 5 cm). */
 export const SCALE = 20;
 /** Particle speed at full scale of the galvanometer [scene units / s]. */
 export const PARTICLE_SPEED_FS = 1.6;
 
-const BENCH_TOP = -2.15;
-const FLOOR_Y = BENCH_TOP - 0.25;
 const MAG_LEN = MAGNET_LENGTH * SCALE; // 1,6
-const MAG_SIDE = 0.6;
+const MAG_SIDE = 0.6; // illustrative cross-section (3 cm)
 const WIRE_R = 0.03;
 const PITCH = 2.1 * WIRE_R;
 const PER_LAYER_MAX = 12;
 const FORMER_HALF = 0.48;
-const RAIL_X0 = 0.95;
-const RAIL_X1 = 6.35;
-const GALVO_POS = new THREE.Vector3(-2.75, BENCH_TOP, 1.25);
-const GALVO_YAW = 0.28;
+const FLANGE_T = 0.06;
 /** Drawn turns: ∝ N up to this cap per tier. */
 const TURN_CAP = { alta: 48, bilanciata: 32, base: 16 } as const;
+/** Default framing: whole apparatus, slight 3/4 from the front, magnet side. */
+const FOV = 34;
+const VIEW_TARGET: [number, number, number] = [1.6, -0.4, 0.4];
+const VIEW_DIST = 14.2;
+const VIEW_EL = (26 * Math.PI) / 180;
+const VIEW_AZ = (-24 * Math.PI) / 180;
 const HOME = {
-  position: [0.1, 2.9, 11.0] as [number, number, number],
-  target: [1.05, -0.65, 0.3] as [number, number, number],
+  position: [
+    VIEW_TARGET[0] + VIEW_DIST * Math.cos(VIEW_EL) * Math.sin(VIEW_AZ),
+    VIEW_TARGET[1] + VIEW_DIST * Math.sin(VIEW_EL),
+    VIEW_TARGET[2] + VIEW_DIST * Math.cos(VIEW_EL) * Math.cos(VIEW_AZ),
+  ] as [number, number, number],
+  target: VIEW_TARGET,
 };
 
 /** Live counters of the sim's own GPU resources (non-kit; leak check). */
@@ -140,71 +162,22 @@ export interface LenzScene {
   dispose(): void;
 }
 
-/** Paper dial of the centre-zero galvanometer (procedural canvas). */
-function dialCanvas(): HTMLCanvasElement {
-  const W = 512;
-  const H = 320;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const g = c.getContext('2d');
-  if (!g) return c;
-  const grad = g.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#f6f2e8');
-  grad.addColorStop(1, '#e4ddcc');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, W, H);
-  const cx = W / 2;
-  const cy = 301;
-  const R = 226;
-  const toXY = (deg: number, r: number): [number, number] => {
-    const t = (deg * Math.PI) / 180;
-    return [cx + r * Math.sin(t), cy - r * Math.cos(t)];
-  };
-  // scale arc
-  g.strokeStyle = '#2b2f36';
-  g.lineWidth = 2.5;
-  g.beginPath();
-  g.arc(cx, cy, R, -Math.PI / 2 - (50 * Math.PI) / 180, -Math.PI / 2 + (50 * Math.PI) / 180);
-  g.stroke();
-  // ticks: 20 divisions over ±50° (full scale ±10)
-  for (let k = -10; k <= 10; k++) {
-    const deg = k * 5;
-    const major = k % 5 === 0;
-    const [x0, y0] = toXY(deg, R);
-    const [x1, y1] = toXY(deg, R - (major ? 26 : 14));
-    g.lineWidth = major ? 3.2 : 1.6;
-    g.beginPath();
-    g.moveTo(x0, y0);
-    g.lineTo(x1, y1);
-    g.stroke();
-    if (major) {
-      const [tx, ty] = toXY(deg, R - 46);
-      g.fillStyle = '#20242a';
-      g.font = '600 26px system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillText(String(Math.abs(k)), tx, ty);
-    }
-  }
-  g.font = '700 34px system-ui, sans-serif';
-  g.fillStyle = '#20242a';
-  const [mx, my] = toXY(-56, R + 6);
-  const [px, py] = toXY(56, R + 6);
-  g.fillText('−', mx, my);
-  g.fillText('+', px, py);
-  g.font = '600 20px system-ui, sans-serif';
-  g.fillStyle = '#4a515c';
-  g.fillText('i', cx, cy - 120);
-  g.font = '500 15px system-ui, sans-serif';
-  g.fillText('fondo scala = 10 divisioni', cx, cy - 92);
-  // mirror strip (anti-parallax) under the arc
-  g.strokeStyle = 'rgba(120,130,140,0.55)';
-  g.lineWidth = 6;
-  g.beginPath();
-  g.arc(cx, cy, R - 62, -Math.PI / 2 - 0.82, -Math.PI / 2 + 0.82);
-  g.stroke();
-  return c;
+/** Closed (r, x) section revolved about the x axis (former tube, flanges). */
+function ringX(
+  rIn: number,
+  rOut: number,
+  x0: number,
+  x1: number,
+  seg: number,
+): THREE.BufferGeometry {
+  const pts = [
+    [rIn, x0],
+    [rOut, x0],
+    [rOut, x1],
+    [rIn, x1],
+    [rIn, x0],
+  ].map(([r, x]) => new THREE.Vector2(r, x));
+  return new THREE.LatheGeometry(pts, seg).rotateZ(-Math.PI / 2);
 }
 
 export function createLenzScene(
@@ -214,11 +187,12 @@ export function createLenzScene(
 ): LenzScene {
   const stage = createStage(container, ctx, {
     ariaLabel:
-      'Scena 3D: banco con un magnete a barra su un carrello, una bobina avvolta a strati collegata a un galvanometro a zero centrale, linee del campo del magnete e del campo indotto calcolate.',
-    camera: { ...HOME, fov: 34 },
-    controls: { minDistance: 5, maxDistance: 24 },
+      'Scena 3D: banco con un magnete a barra (N rosso, S verde) su un cavaliere scorrevole, una bobina di rame avvolta a strati aperta in sezione su un supporto in bachelite, collegata con cavi rosso e nero a un galvanometro a zero centrale, linee del campo del magnete e del campo indotto calcolate.',
+    camera: { ...HOME, fov: FOV },
+    controls: { minDistance: 5, maxDistance: 28 },
     floorY: FLOOR_Y,
-    shadowRadius: 7,
+    shadowRadius: 8,
+    look: 'teardown',
   });
   const { scene } = stage;
   const kit = stage.materials;
@@ -243,88 +217,74 @@ export function createLenzScene(
     live.materials++;
     return m;
   };
-  const mesh = (
-    g: THREE.BufferGeometry,
-    kind: Parameters<typeof kit.assign>[1],
-    key?: string,
-  ): THREE.Mesh => {
+  const tex = <T extends THREE.Texture>(t: T): T => {
+    textures.push(t);
+    live.textures++;
+    return t;
+  };
+  const mesh = (g: THREE.BufferGeometry, kind: MaterialKind, key?: string): THREE.Mesh => {
     const m = new THREE.Mesh(g);
     kit.assign(m, kind, key);
     return m;
   };
+  const sink: PartsSink = { geo, mat, mesh, tex };
   const v = (x = 0, y = 0, z = 0): THREE.Vector3 => new THREE.Vector3(x, y, z);
 
-  // --- bench, rail, coil stand -----------------------------------------------------------
-  const bench = new THREE.Group();
-  scene.add(bench);
-  const top = mesh(geo(chamferBox(10.6, 0.25, 4.3, 0.06)), 'darkSteel');
-  top.position.set(1.25, BENCH_TOP - 0.125, 0.55);
-  const mat2 = mesh(geo(chamferBox(10.2, 0.02, 3.9, 0.01, 1)), 'plastic');
-  mat2.position.set(1.25, BENCH_TOP + 0.01, 0.55);
-  const rail = mesh(geo(chamferBox(RAIL_X1 - RAIL_X0, 0.12, 0.34, 0.03)), 'darkSteel', 'rail');
-  rail.position.set((RAIL_X0 + RAIL_X1) / 2, BENCH_TOP + 0.08, 0);
-  const stopGeo = geo(chamferBox(0.1, 0.24, 0.46, 0.03));
-  for (const x of [RAIL_X0 - 0.05, RAIL_X1 + 0.05]) {
-    const s = mesh(stopGeo, 'darkSteel');
-    s.position.set(x, BENCH_TOP + 0.12, 0);
-    bench.add(s);
-  }
-  bench.add(top, mat2, rail);
+  // --- static apparatus: board, rail, coil stand, galvanometer ---------------------------
+  const bench = buildBench(sink, stage);
+  scene.add(bench.root);
+  const pedestal = bench.standPost;
+  const dialTex = tex(new THREE.CanvasTexture(dialCanvas()));
+  dialTex.colorSpace = THREE.SRGBColorSpace;
+  dialTex.anisotropy = 4;
+  const galvo = buildGalvanometer(sink, dialTex);
+  scene.add(galvo.root);
+  const needlePivot = galvo.needlePivot;
+  const termW = galvo.terminals;
 
-  // ruler along the rail: cm ticks of the distance z (to scale)
-  const ruler = new THREE.Group();
-  const rulerBase = mesh(
-    geo(chamferBox(RAIL_X1 - RAIL_X0 + 0.3, 0.02, 0.28, 0.008, 1)),
-    'plastic',
-    'ruler',
+  // --- coil: bakelite former + flanges, layered winding, opened front-top quadrant -------
+  stage.renderer.localClippingEnabled = true;
+  // removes y > 0 AND z > 0 (clipIntersection): the quarter facing the camera, above the axis
+  const cut = [new THREE.Plane(v(0, -1, 0), 0), new THREE.Plane(v(0, 0, -1), 0)];
+  const clipped = (p: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial =>
+    mat(
+      new THREE.MeshStandardMaterial({
+        ...p,
+        clippingPlanes: cut,
+        clipIntersection: true,
+        clipShadows: true,
+        side: THREE.DoubleSide,
+      }),
+    );
+  const wireMat = clipped({
+    color: 0xd07a45,
+    metalness: 0.55,
+    roughness: 0.36,
+    envMapIntensity: 1.0,
+    emissive: 0x2a1206, // lifts the copper out of the dark studio, below bloom
+  });
+  const formerMat = clipped({ color: 0x2e3238, metalness: 0, roughness: 0.55 });
+  const capOpts = {
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+    side: THREE.DoubleSide,
+  } as const;
+  const capTex = tex(new THREE.CanvasTexture(wireSectionCanvas()));
+  capTex.colorSpace = THREE.SRGBColorSpace;
+  capTex.wrapS = capTex.wrapT = THREE.RepeatWrapping;
+  const windCapMat = mat(
+    new THREE.MeshStandardMaterial({ map: capTex, metalness: 0.4, roughness: 0.5, ...capOpts }),
   );
-  rulerBase.position.set((RAIL_X0 + RAIL_X1) / 2, BENCH_TOP + 0.03, 0.62);
-  ruler.add(rulerBase);
-  const tickGeo = geo(new THREE.BoxGeometry(0.014, 0.012, 1));
-  const nTicks = Math.round(((RAIL_X1 - RAIL_X0) / SCALE) * 100) + 1;
-  const ticks = new THREE.InstancedMesh(tickGeo, undefined, nTicks);
-  kit.assign(ticks, 'brass', 'ticks');
-  {
-    const m4 = new THREE.Matrix4();
-    const firstCm = Math.ceil((RAIL_X0 / SCALE) * 100);
-    for (let k = 0; k < nTicks; k++) {
-      const cm = firstCm + k;
-      const len = cm % 5 === 0 ? 0.16 : 0.08;
-      m4.makeScale(1, 1, len);
-      m4.setPosition((cm / 100) * SCALE, BENCH_TOP + 0.046, 0.52 + len / 2);
-      ticks.setMatrixAt(k, m4);
-    }
-    ticks.count = nTicks;
-  }
-  ruler.add(ticks);
-  bench.add(ruler);
-
-  const pedestal = mesh(geo(chamferBox(0.86, 1, 0.62, 0.05)), 'darkSteel');
-  bench.add(pedestal);
-
-  // --- coil: translucent former, flanges, layered winding ----------------------------------
+  // red section colour of cut bakelite, as on exhibition cutaways
+  const flatCapMat = mat(
+    new THREE.MeshStandardMaterial({ color: 0x8a3a2c, roughness: 0.85, ...capOpts }),
+  );
   const coil = new THREE.Group();
   coil.name = 'coil';
   scene.add(coil);
-  const formerGeo = geo(
-    new THREE.CylinderGeometry(1, 1, 2 * FORMER_HALF, 64, 1, true).rotateZ(Math.PI / 2),
-  );
-  const former = mesh(formerGeo, 'glass');
-  former.renderOrder = 4;
-  const flangeGeo = geo(new THREE.CylinderGeometry(1, 1, 0.05, 64).rotateZ(Math.PI / 2));
-  const flanges = [-1, 1].map((s) => {
-    const f = mesh(flangeGeo, 'glass');
-    f.position.x = s * (FORMER_HALF + 0.025);
-    f.renderOrder = 4;
-    return f;
-  });
-  const hubGeo = geo(new THREE.CylinderGeometry(1, 1, 0.06, 64, 1, true).rotateZ(Math.PI / 2));
-  const rims = [-1, 1].map((s) => {
-    const r = mesh(hubGeo, 'plastic');
-    r.position.x = s * (FORMER_HALF + 0.025);
-    return r;
-  });
-  coil.add(former, ...flanges, ...rims);
+  const coilParts = new THREE.Group(); // rebuilt with a / N / tier
+  coil.add(coilParts);
   let wire: THREE.Mesh | null = null;
   let coilKey = '';
   let rWire0 = 0.8; // radius of the first layer
@@ -332,89 +292,37 @@ export function createLenzScene(
   let rFlange = 1.0;
   const wireStart = v();
   const wireEnd = v();
+  const tails: THREE.Vector3[][] = [[], []];
 
-  // --- galvanometer -------------------------------------------------------------------------
-  const galvo = new THREE.Group();
-  galvo.position.copy(GALVO_POS);
-  galvo.rotation.y = GALVO_YAW;
-  galvo.scale.setScalar(1.25);
-  scene.add(galvo);
-  const caseMesh = mesh(geo(chamferBox(1.62, 1.28, 0.62, 0.09)), 'plastic');
-  caseMesh.position.y = 0.64;
-  const dialTex = new THREE.CanvasTexture(dialCanvas());
-  dialTex.colorSpace = THREE.SRGBColorSpace;
-  dialTex.anisotropy = 4;
-  textures.push(dialTex);
-  live.textures++;
-  const dialMat = mat(
-    new THREE.MeshStandardMaterial({
-      map: dialTex,
-      emissiveMap: dialTex,
-      emissive: 0xffffff,
-      emissiveIntensity: 0.3,
-      roughness: 0.75,
-      metalness: 0,
-    }),
-  );
-  const dial = new THREE.Mesh(geo(new THREE.PlaneGeometry(1.36, 0.86)), dialMat);
-  dial.position.set(0, 0.72, 0.312);
-  const bezel = mesh(geo(chamferBox(1.46, 0.96, 0.03, 0.012, 1)), 'darkSteel');
-  bezel.position.set(0, 0.72, 0.3);
-  const cover = mesh(geo(new THREE.PlaneGeometry(1.4, 0.9)), 'glass');
-  cover.position.set(0, 0.72, 0.345);
-  cover.renderOrder = 5;
-  const needlePivot = new THREE.Group();
-  needlePivot.position.set(0, 0.72 - 0.43 + 0.05, 0.33);
-  const needle = mesh(
-    geo(new THREE.BoxGeometry(0.016, 0.66, 0.008).translate(0, 0.33, 0)),
-    'glowI',
-    'needle',
-  );
-  const cap = mesh(
-    geo(new THREE.CylinderGeometry(0.045, 0.045, 0.03, 24).rotateX(Math.PI / 2)),
-    'darkSteel',
-  );
-  needlePivot.add(needle, cap);
-  // binding posts on the right-hand side of the case (toward the coil)
-  const postGeo = geo(new THREE.CylinderGeometry(0.07, 0.08, 0.2, 20).rotateZ(-Math.PI / 2));
-  const knobGeo = geo(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 20).rotateZ(-Math.PI / 2));
-  const terminals: THREE.Vector3[] = [];
-  for (const [k, y] of [0.42, 0.86].entries()) {
-    const p = mesh(postGeo, 'brass');
-    p.position.set(0.9, y, 0.05);
-    const knob = mesh(knobGeo, k === 0 ? 'rubber' : 'darkSteel', 'knob');
-    knob.position.set(0.98, y, 0.05);
-    galvo.add(p, knob);
-    terminals.push(v(1.04, y, 0.05));
-  }
-  galvo.add(caseMesh, bezel, dial, cover, needlePivot);
-  galvo.updateMatrixWorld(true);
-  const termW = terminals.map((t) => galvo.localToWorld(t.clone()));
-
-  // --- magnet on its carriage ---------------------------------------------------------------
+  // --- magnet (painted halves) on its rider ---------------------------------------------------
   const magnet = new THREE.Group();
   magnet.name = 'magnet';
   scene.add(magnet);
+  const paint = {
+    N: mat(new THREE.MeshStandardMaterial({ color: 0xb42f28, metalness: 0.15, roughness: 0.42 })),
+    S: mat(new THREE.MeshStandardMaterial({ color: 0x2f7a52, metalness: 0.15, roughness: 0.42 })),
+  };
   const halfGeo = geo(chamferBox(MAG_LEN / 2 - 0.012, MAG_SIDE, MAG_SIDE, 0.05));
-  const near = mesh(halfGeo, 'magnet');
+  const near = new THREE.Mesh(halfGeo, paint.N);
   near.position.x = -MAG_LEN / 4;
-  const far = mesh(halfGeo, 'magnet');
+  const far = new THREE.Mesh(halfGeo, paint.S);
   far.position.x = MAG_LEN / 4;
   const seam = mesh(geo(chamferBox(0.03, MAG_SIDE - 0.08, MAG_SIDE - 0.08, 0.01, 1)), 'darkSteel');
   magnet.add(near, far, seam);
   // engraved nameplates (front, top, end face) for both possible orientations
-  const plateGeo = geo(new THREE.PlaneGeometry(0.44, 0.44));
+  const plateGeo = geo(new THREE.PlaneGeometry(0.4, 0.4));
   const plates: Record<'N' | 'S', THREE.Mesh[]> = { N: [], S: [] };
   for (const half of [-1, 1] as const) {
     for (const letter of ['N', 'S'] as const) {
       const set: THREE.Mesh[] = [];
       const x = (half * MAG_LEN) / 4;
-      const front = mesh(plateGeo, letter === 'N' ? 'magnetN' : 'magnetS');
+      const kind = letter === 'N' ? 'magnetN' : 'magnetS';
+      const front = mesh(plateGeo, kind);
       front.position.set(x, 0, MAG_SIDE / 2 + 0.004);
-      const topP = mesh(plateGeo, letter === 'N' ? 'magnetN' : 'magnetS');
+      const topP = mesh(plateGeo, kind);
       topP.position.set(x, MAG_SIDE / 2 + 0.004, 0);
       topP.rotation.x = -Math.PI / 2;
-      const end = mesh(plateGeo, letter === 'N' ? 'magnetN' : 'magnetS');
+      const end = mesh(plateGeo, kind);
       end.position.set(half * (MAG_LEN / 2 + 0.004), 0, 0);
       end.rotation.y = half * (Math.PI / 2);
       set.push(front, topP, end);
@@ -425,16 +333,8 @@ export function createLenzScene(
       plates[letter].push(...set);
     }
   }
-  const carriage = new THREE.Group();
+  const carriage = buildCarriage(sink, MAG_SIDE);
   scene.add(carriage);
-  const sled = mesh(geo(chamferBox(0.72, 0.22, 0.52, 0.05)), 'darkSteel');
-  sled.position.y = BENCH_TOP + 0.25;
-  const rodLen = -MAG_SIDE / 2 - (BENCH_TOP + 0.36);
-  const rod = mesh(geo(new THREE.CylinderGeometry(0.05, 0.05, rodLen, 16)), 'steel');
-  rod.position.y = BENCH_TOP + 0.36 + rodLen / 2;
-  const saddle = mesh(geo(chamferBox(0.42, 0.06, 0.5, 0.02, 1)), 'darkSteel');
-  saddle.position.y = -MAG_SIDE / 2 - 0.03;
-  carriage.add(sled, rod, saddle);
 
   // --- force arrow --------------------------------------------------------------------------
   const arrow = new THREE.Group();
@@ -451,24 +351,71 @@ export function createLenzScene(
   );
   arrow.add(arrowShaft, arrowHead);
 
-  stage.castShadows(bench);
+  stage.castShadows(bench.root);
   stage.castShadows(coil);
-  stage.castShadows(galvo);
+  stage.castShadows(galvo.root);
   stage.castShadows(magnet);
   stage.castShadows(carriage);
   stage.castShadows(arrow, false);
-  former.castShadow = false;
-  for (const f of flanges) f.castShadow = false;
-  cover.castShadow = false;
-  stage.occluders.push(near, far, caseMesh, pedestal);
+  stage.occluders.push(near, far, galvo.caseMesh, ...bench.occluders);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  if (stage.tier === 'base') {
+    const opts = { kit, track: geo, drop: dropGeo };
+    mergeStatic(bench.root, { ...opts, keep: [pedestal, ...bench.occluders] });
+    mergeStatic(galvo.root, { ...opts, keep: [galvo.needlePivot, galvo.caseMesh] });
+    mergeStatic(carriage, opts);
+  }
 
-  // --- leads + current particles ---------------------------------------------------------------
-  let leadA: THREE.Mesh | null = null;
-  let leadB: THREE.Mesh | null = null;
+  // --- leads: red/black 4 mm cables from the coil stand to the galvanometer (static) -----------
+  const sA = bench.standPlugs[0] as THREE.Vector3;
+  const sB = bench.standPlugs[1] as THREE.Vector3;
+  const t0 = termW[0] as THREE.Vector3;
+  const t1 = termW[1] as THREE.Vector3;
+  // lead A: coil stand − (black) → galvanometer −; lead B: coil stand + (red) → galvanometer +
+  const ptsA = [
+    sA.clone(),
+    v(sA.x - 0.05, sA.y + 0.25, sA.z + 0.2),
+    v(sA.x - 0.4, BENCH_TOP + 0.05, sA.z + 1.05),
+    v(-1.6, BENCH_TOP + 0.04, 2.15),
+    v(t0.x + 0.15, t0.y + 0.15, t0.z + 0.55),
+    v(t0.x, t0.y + 0.18, t0.z + 0.05),
+    t0.clone(),
+  ];
+  const ptsB = [
+    sB.clone(),
+    v(sB.x + 0.05, sB.y + 0.3, sB.z + 0.2),
+    v(sB.x - 0.1, BENCH_TOP + 0.05, sB.z + 1.35),
+    v(-1.2, BENCH_TOP + 0.04, 2.5),
+    v(t1.x + 0.25, t1.y + 0.2, t1.z + 0.6),
+    v(t1.x, t1.y + 0.2, t1.z + 0.05),
+    t1.clone(),
+  ];
+  const cable = (pts: THREE.Vector3[], key: string): THREE.Mesh => {
+    const m = mesh(
+      geo(
+        new THREE.TubeGeometry(
+          new THREE.CatmullRomCurve3(pts, false, 'centripetal'),
+          stage.tier === 'base' ? 48 : 80,
+          0.032,
+          stage.tier === 'base' ? 5 : 10,
+        ),
+      ),
+      'plastic',
+      key,
+    );
+    scene.add(m);
+    stage.castShadows(m);
+    return m;
+  };
+  cable(ptsA, 'socketBlack');
+  cable(ptsB, 'socketRed');
+  const leadA = new THREE.CatmullRomCurve3(ptsA, false, 'centripetal');
+  const leadB = new THREE.CatmullRomCurve3(ptsB, false, 'centripetal');
+
   const flow: CurrentFlow = createCurrentFlow(stage, {
     path: [v(), v(1, 0, 0)],
     closed: true,
-    count: 120,
+    count: 130,
     radius: 0.036,
     speedPerAmp: PARTICLE_SPEED_FS,
     vMax: 2.2,
@@ -477,27 +424,22 @@ export function createLenzScene(
 
   // --- field lines -------------------------------------------------------------------------------
   const magLines: FieldLines = createFieldLines(stage, {
-    linewidth: 2.1,
+    linewidth: 1.8,
     spacing: 0.95,
     speed: 0.85,
+    opacity: 0.6,
   });
+  const indOpts = {
+    linewidth: 1.35,
+    spacing: 0.34,
+    speed: 0.7,
+    base: 0.1,
+    gain: 1.7,
+    opacity: 0.7,
+  };
   const indLines: Record<'pos' | 'neg', FieldLines> = {
-    pos: createFieldLines(stage, {
-      linewidth: 1.35,
-      spacing: 0.34,
-      speed: 0.7,
-      base: 0.1,
-      gain: 1.7,
-      opacity: 0.85,
-    }),
-    neg: createFieldLines(stage, {
-      linewidth: 1.35,
-      spacing: 0.34,
-      speed: 0.7,
-      base: 0.1,
-      gain: 1.7,
-      opacity: 0.85,
-    }),
+    pos: createFieldLines(stage, indOpts),
+    neg: createFieldLines(stage, indOpts),
   };
   indLines.pos.setVisible(false);
   indLines.neg.setVisible(false);
@@ -521,7 +463,7 @@ export function createLenzScene(
     const f = fieldFromSpec(field);
     const face = -MAG_LEN / 2 - 0.03;
     const cands = seedDisc([face, 0, 0], [0, 1, 0], [0, 0, 1], MAG_SIDE * 0.47, 500);
-    const n = Math.max(14, Math.round(28 * stage.settings.lineDensity));
+    const n = Math.max(10, Math.round(14 * stage.settings.lineDensity));
     const job: TraceJob = {
       field,
       seeds: seedByFlux(f, cands, [1, 0, 0], n),
@@ -546,7 +488,7 @@ export function createLenzScene(
     const key = `${r0.toFixed(3)}|${len.toFixed(3)}|${stage.tier}`;
     if (key === indKey) return;
     indKey = key;
-    const n = Math.max(8, Math.round(18 * stage.settings.lineDensity));
+    const n = Math.max(6, Math.round(9 * stage.settings.lineDensity));
     for (const sgn of [1, -1] as const) {
       const field: FieldSpec = {
         kind: 'solenoid',
@@ -575,6 +517,12 @@ export function createLenzScene(
   };
 
   // --- coil geometry (rebuilt on a / N / tier change) ------------------------------------------
+  const clearCoilParts = (): void => {
+    for (const c of coilParts.children.slice()) {
+      coilParts.remove(c);
+      if (c instanceof THREE.Mesh) dropGeo(c.geometry);
+    }
+  };
   const buildCoil = (a: number, N: number): void => {
     const turns = visualTurns(N, TURN_CAP[stage.tier]);
     const R0 = a * SCALE;
@@ -584,10 +532,44 @@ export function createLenzScene(
     const { layers, perLayer } = windingLayout(turns, PER_LAYER_MAX);
     rWire0 = R0;
     rOut = R0 + (layers - 1) * PITCH * 0.92 + WIRE_R;
-    rFlange = rOut + 0.14;
-    former.scale.set(1, R0 - WIRE_R - 0.012, R0 - WIRE_R - 0.012);
-    for (const f of flanges) f.scale.set(1, rFlange, rFlange);
-    for (const r of rims) r.scale.set(1, rFlange + 0.004, rFlange + 0.004);
+    rFlange = rOut + 0.16;
+    const rForm = R0 - WIRE_R - 0.008;
+    const rBore = rForm - 0.06;
+    const seg = stage.tier === 'base' ? 40 : 72;
+    const xF = FORMER_HALF + FLANGE_T / 2;
+
+    // former tube, flanges, and their section caps on both cut planes
+    clearCoilParts();
+    const add = (m: THREE.Mesh): void => {
+      coilParts.add(m);
+    };
+    add(
+      new THREE.Mesh(
+        geo(ringX(rBore, rForm, -xF - FLANGE_T / 2, xF + FLANGE_T / 2, seg)),
+        formerMat,
+      ),
+    );
+    for (const s of [-1, 1]) {
+      const g = geo(ringX(rBore, rFlange, s * xF - FLANGE_T / 2, s * xF + FLANGE_T / 2, seg));
+      add(new THREE.Mesh(g, formerMat));
+    }
+    /** Rectangle x0..x1 × r0..r1 on the cut plane z = 0 (y > 0) and on y = 0 (z > 0). */
+    const capPair = (x0: number, x1: number, r0: number, r1: number, m: THREE.Material): void => {
+      const w = x1 - x0;
+      const h = r1 - r0;
+      const a1 = new THREE.Mesh(geo(new THREE.PlaneGeometry(w, h)), m);
+      a1.position.set((x0 + x1) / 2, (r0 + r1) / 2, 0);
+      const a2 = new THREE.Mesh(geo(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2)), m);
+      a2.position.set((x0 + x1) / 2, 0, (r0 + r1) / 2);
+      a1.castShadow = a2.castShadow = false;
+      add(a1);
+      add(a2);
+    };
+    capPair(-xF - FLANGE_T / 2, xF + FLANGE_T / 2, rBore, rForm, flatCapMat);
+    for (const s of [-1, 1])
+      capPair(s * xF - FLANGE_T / 2, s * xF + FLANGE_T / 2, rForm, rFlange, flatCapMat);
+
+    // winding: layer-wound helix, back and forth
     const perTurn = Math.max(10, Math.round(26 * stage.settings.tessellation));
     const pts: THREE.Vector3[] = [];
     const halfLen = ((perLayer - 1) * PITCH) / 2;
@@ -613,6 +595,12 @@ export function createLenzScene(
     wireStart.copy(first);
     wireEnd.set(last.x, 0, Math.hypot(last.y, last.z));
     pts.push(wireEnd.clone());
+    // winding cross-section caps: one copper disc per wire (texture tile = pitch)
+    const wx0 = -halfLen - WIRE_R;
+    const wx1 = halfLen + WIRE_R;
+    const wr0 = R0 - WIRE_R;
+    capTex.repeat.set((wx1 - wx0) / PITCH, (rOut - wr0) / (PITCH * 0.92));
+    capPair(wx0, wx1, wr0, rOut, windCapMat);
     const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
     const g = geo(
       new THREE.TubeGeometry(curve, pts.length, WIRE_R, stage.tier === 'base' ? 5 : 7, false),
@@ -621,73 +609,60 @@ export function createLenzScene(
       dropGeo(wire.geometry);
       wire.geometry = g;
     } else {
-      wire = mesh(g, 'enamel', 'coil');
+      wire = new THREE.Mesh(g, wireMat);
       coil.add(wire);
-      stage.castShadows(wire);
     }
-    // pedestal under the flanges
-    const pTop = -rFlange + 0.02;
-    pedestal.scale.y = Math.max(0.05, pTop - BENCH_TOP);
-    pedestal.position.set(0, (pTop + BENCH_TOP) / 2, 0);
-    buildLeads();
+    // winding tails: from the winding ends down into the stand (grommets behind the sockets)
+    const tailPts = (p: THREE.Vector3, sx: number): THREE.Vector3[] => {
+      const gx = sx * 0.55;
+      const gz = 0.78;
+      return [
+        p.clone(),
+        v(p.x, -0.3, Math.hypot(p.y, p.z) + 0.1),
+        v((p.x + gx) / 2, (-0.3 + STAND_TOP) / 2, Math.max(rOut + 0.12, gz + 0.05)),
+        v(gx, STAND_TOP + 0.25, gz),
+        v(gx, STAND_TOP, gz),
+      ];
+    };
+    tails[0] = tailPts(wireStart, (STAND_SOCKETS[0] as [number, number])[0]);
+    tails[1] = tailPts(wireEnd, (STAND_SOCKETS[1] as [number, number])[0]);
+    for (const tp of tails)
+      add(
+        new THREE.Mesh(
+          geo(
+            new THREE.TubeGeometry(
+              new THREE.CatmullRomCurve3(tp, false, 'centripetal'),
+              stage.tier === 'base' ? 24 : 40,
+              0.022,
+              stage.tier === 'base' ? 4 : 6,
+            ),
+          ),
+          wireMat,
+        ),
+      );
+    stage.castShadows(coil);
+    for (const c of coilParts.children)
+      if (c instanceof THREE.Mesh && c.geometry instanceof THREE.PlaneGeometry)
+        c.castShadow = false;
+    // cradle post under the flanges
+    const pTop = -rFlange + 0.03;
+    pedestal.scale.y = Math.max(0.05, pTop - STAND_TOP);
+    pedestal.position.set(0, (pTop + STAND_TOP) / 2, 0);
+    buildFlowPath();
     traceInduced(R0 + ((layers - 1) * PITCH * 0.92) / 2, 2 * halfLen + PITCH);
   };
 
-  /** Leads from the winding ends (front of the coil) to the galvanometer posts, and the particle loop. */
-  const buildLeads = (): void => {
-    const zf = rOut + 0.05;
-    // lead A: winding start → lower post − (black); lead B: winding end → upper post +
-    const ptsA = [
-      wireStart.clone(),
-      v(wireStart.x, -0.1, zf + 0.25),
-      v(wireStart.x - 0.3, BENCH_TOP + 0.08, zf + 0.75),
-      v(-1.4, BENCH_TOP + 0.06, 1.85),
-      v(
-        (termW[0] as THREE.Vector3).x + 0.25,
-        BENCH_TOP + 0.6,
-        (termW[0] as THREE.Vector3).z + 0.45,
-      ),
-      (termW[0] as THREE.Vector3).clone(),
-    ];
-    const ptsB = [
-      wireEnd.clone(),
-      v(wireEnd.x, -0.15, zf + 0.35),
-      v(wireEnd.x - 0.1, BENCH_TOP + 0.08, zf + 0.95),
-      v(-0.9, BENCH_TOP + 0.06, 1.95),
-      v(
-        (termW[1] as THREE.Vector3).x + 0.4,
-        BENCH_TOP + 0.75,
-        (termW[1] as THREE.Vector3).z + 0.05,
-      ),
-      (termW[1] as THREE.Vector3).clone(),
-    ];
-    const tube = (pts: THREE.Vector3[]): THREE.BufferGeometry =>
-      geo(
-        new THREE.TubeGeometry(
-          new THREE.CatmullRomCurve3(pts, false, 'centripetal'),
-          64,
-          0.034,
-          8,
-          false,
-        ),
-      );
-    if (leadA) dropGeo(leadA.geometry);
-    if (leadB) dropGeo(leadB.geometry);
-    if (!leadA) {
-      leadA = mesh(tube(ptsA), 'rubber');
-      leadB = mesh(tube(ptsB), 'rubber');
-      scene.add(leadA, leadB);
-      stage.castShadows(leadA);
-      stage.castShadows(leadB);
-    } else {
-      leadA.geometry = tube(ptsA);
-      (leadB as THREE.Mesh).geometry = tube(ptsB);
-    }
-    // Particle loop: positive i circulates counter-clockwise about +x, i.e. from the winding START to its END.
-    // Loop: post − → lead A → start → helix outside the winding → end → lead B → post + (current enters +: needle to the right) → inside the meter → post −.
+  /**
+   * Particle loop. Positive i circulates counter-clockwise about +x, i.e. from the winding
+   * START to its END: galvanometer − → lead A → stand socket − → tail → start → helix outside
+   * the winding → end → tail → socket + → lead B → galvanometer + (needle to the right) → inside.
+   */
+  const buildFlowPath = (): void => {
     const loop: THREE.Vector3[] = [];
-    const curveA = new THREE.CatmullRomCurve3(ptsA.slice().reverse(), false, 'centripetal');
-    for (let k = 0; k <= 24; k++) loop.push(curveA.getPoint(k / 24));
+    for (let k = 24; k >= 0; k--) loop.push(leadA.getPoint(k / 24));
+    const tailA = new THREE.CatmullRomCurve3((tails[0] as THREE.Vector3[]).slice().reverse());
+    loop.push(v(sA.x, STAND_TOP + 0.03, sA.z));
+    for (let k = 0; k <= 12; k++) loop.push(tailA.getPoint(k / 12));
     const rh = rOut + 0.075;
     const turnsP = 3;
     const steps = turnsP * 28;
@@ -697,64 +672,59 @@ export function createLenzScene(
       const th = Math.PI / 2 + (2 * Math.PI * turnsP * k) / steps;
       loop.push(v(x0 + ((x1 - x0) * k) / steps, rh * Math.cos(th), rh * Math.sin(th)));
     }
-    const curveB = new THREE.CatmullRomCurve3(ptsB, false, 'centripetal');
-    for (let k = 0; k <= 24; k++) loop.push(curveB.getPoint(k / 24));
-    // inside the meter: from post + down to the movement and back up to post −
-    const inner = [v(0.6, 0.86, 0.0), v(0, 0.5, 0.0), v(0.6, 0.42, 0.0)].map((p) =>
-      galvo.localToWorld(p),
-    );
-    loop.push(...inner);
+    const tailB = new THREE.CatmullRomCurve3(tails[1] as THREE.Vector3[]);
+    for (let k = 0; k <= 12; k++) loop.push(tailB.getPoint(k / 12));
+    loop.push(v(sB.x, STAND_TOP + 0.03, sB.z));
+    for (let k = 0; k <= 24; k++) loop.push(leadB.getPoint(k / 24));
+    loop.push(...galvo.inner);
     flow.setPath(loop, true);
   };
 
-  // --- labels ---------------------------------------------------------------------------------------
+  // --- labels: fixed callout spots off the working part, leader lines to the parts -------------
   const labels = createLabelLayer(stage, overlay);
-  const anchors = {
+  type Key = 'face' | 'current' | 'force';
+  const parts: Record<Key, THREE.Vector3> = {
     face: v(),
-    coil: v(),
-    bMag: v(),
-    bInd: v(),
-    current: galvo.localToWorld(v(0, 1.75, 0)),
+    current: galvo.root.localToWorld(v(0, 1.42, 0.2)),
     force: v(),
   };
-  const L: Record<keyof typeof anchors, Label> = {
-    face: labels.add({
-      text: 'faccia N',
-      anchor: anchors.face,
-      size: 'lg',
-      priority: 9,
-      occlude: false,
-    }),
-    current: labels.add({
-      text: 'i',
-      anchor: anchors.current,
-      quantity: 'i',
-      priority: 8,
-      occlude: false,
-    }),
-    force: labels.add({
-      text: 'F',
-      anchor: anchors.force,
-      quantity: 'f',
-      priority: 7,
-      occlude: false,
-    }),
-    bMag: labels.add({
-      text: 'B̄',
-      anchor: anchors.bMag,
-      quantity: 'b',
-      priority: 6,
-      occlude: false,
-    }),
-    bInd: labels.add({
-      text: 'B indotto',
-      anchor: anchors.bInd,
-      quantity: 'b',
-      priority: 5,
-      occlude: false,
-      size: 'sm',
-    }),
-    coil: labels.add({ text: 'N', anchor: anchors.coil, priority: 4, occlude: false, size: 'sm' }),
+  const ends: Record<Key, THREE.Vector3> = {
+    face: v(0.2, 2.75, 0),
+    current: galvo.root.localToWorld(v(-0.2, 2.15, 0.2)),
+    // idle spot of the force sensor (above the rail), moves with the arrow while F ≠ 0
+    force: v(3.6, 2.0, 0),
+  };
+  const KEYS = Object.keys(parts) as Key[];
+  const leaderPos = new Float32Array(KEYS.length * 6);
+  const leaderGeo = geo(new THREE.BufferGeometry());
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = mat(
+    new THREE.LineBasicMaterial({ color: 0x9da7b3, transparent: true, opacity: 0.75 }),
+  );
+  const leaders = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaders.frustumCulled = false;
+  scene.add(leaders);
+  const tag = (
+    k: Key,
+    o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
+  ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  const L: Record<Key, Label> = {
+    face: tag('face', { text: 'faccia N', size: 'lg', priority: 9 }),
+    current: tag('current', { text: 'i', quantity: 'i', priority: 8, sensorWidth: '24ch' }),
+    force: tag('force', { text: 'F', quantity: 'f', priority: 7, sensorWidth: '20ch' }),
+  };
+  const shown: Record<Key, boolean> = {
+    face: true,
+    current: true,
+    force: true,
+  };
+  const updateLeaders = (): void => {
+    KEYS.forEach((k, i) => {
+      const a = parts[k];
+      const b = shown[k] ? ends[k] : a;
+      leaderPos.set([a.x, a.y, a.z, b.x, b.y, b.z], 6 * i);
+    });
+    (leaderGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
   };
 
   const offTier = stage.onTierChange(() => {
@@ -780,11 +750,14 @@ export function createLenzScene(
   let lastPole: Pole | null = null;
   let threading = 0;
   const render = (f: LenzFrame): void => {
+    applyTints(stage);
     buildCoil(f.a, f.N);
     traceMagnet(f.pole);
     if (f.pole !== lastPole) {
       lastPole = f.pole;
       const nearLetter = f.pole;
+      near.material = paint[nearLetter];
+      far.material = paint[nearLetter === 'N' ? 'S' : 'N'];
       for (const letter of ['N', 'S'] as const) {
         for (const p of plates[letter]) {
           const isNear = (p.userData['half'] as number) < 0;
@@ -813,8 +786,8 @@ export function createLenzScene(
     kit.get('glowI', 'needle').emissiveIntensity = 0.35;
     flow.setCurrent(f.range > 0 ? f.i / f.range : 0);
 
-    // force arrow (log length), from the top of the magnet
-    const len = logLength(f.F, 1e-9, 1, 0.55, 2.4);
+    // force arrow (log length), above the magnet
+    const len = logLength(f.F, 1e-9, 1, 0.95, 2.6);
     arrow.visible = len > 0;
     if (arrow.visible) {
       const sgn = Math.sign(f.F);
@@ -822,29 +795,28 @@ export function createLenzScene(
       const shaft = Math.max(0.05, len - head);
       arrow.position.set(
         xm + (sgn > 0 ? MAG_LEN / 2 - 0.4 : -MAG_LEN / 2 + 0.4),
-        MAG_SIDE / 2 + 0.42,
+        MAG_SIDE / 2 + 0.7,
         0,
       );
       arrow.rotation.y = sgn > 0 ? 0 : Math.PI;
       arrowShaft.scale.x = shaft;
       arrowHead.position.x = shaft + head / 2;
-      anchors.force.set(arrow.position.x + sgn * (len + 0.15), arrow.position.y + 0.32, 0);
+      parts.force.set(arrow.position.x + (sgn * len) / 2, arrow.position.y + 0.1, 0);
+      ends.force.set(parts.force.x + 2.6, arrow.position.y + 0.9, -1.2);
     }
-    kit.get('glowF', 'force').emissiveIntensity = 1.1;
+    kit.get('glowF', 'force').emissiveIntensity = 0.9;
 
-    // label anchors
-    anchors.face.set(FORMER_HALF + 0.05, rFlange + 0.42, 0);
-    anchors.coil.set(-0.2, -rFlange - 0.1, rFlange + 0.4);
-    anchors.bMag.set(Math.max(1.4, xm - MAG_LEN / 2 - 0.55), -1.15, 0.9);
-    anchors.bInd.set(-FORMER_HALF - 2.3, 1.2, 0);
-    L.face.setVisible(f.sign !== 0);
-    L.bInd.setVisible(showInd);
-    L.force.setVisible(arrow.visible);
+    // label anchors (parts follow the coil size and the magnet)
+    parts.face.set(-FORMER_HALF - FLANGE_T, rFlange * 0.75, -rFlange * 0.4);
+    ends.face.set(-1.2, rFlange + 2.5, -0.8);
+    shown.face = f.sign !== 0;
+    shown.force = arrow.visible;
+    // sensor labels never turn into empty "-,--" boxes: they stay on with their real (zero) text;
+    // only the leader line follows the activity
+    L.face.setVisible(shown.face);
+    updateLeaders();
     const t = f.labels;
     L.face.setText(t.face);
-    L.coil.setText(t.coil);
-    L.bMag.setText(t.bMag);
-    L.bInd.setText(t.bInd);
     L.current.setText(t.current);
     L.force.setText(t.force);
 
@@ -894,8 +866,8 @@ export function createLenzScene(
         m.dispose();
         live.materials--;
       }
-      for (const t of textures.splice(0)) {
-        t.dispose();
+      for (const x of textures.splice(0)) {
+        x.dispose();
         live.textures--;
       }
       stage.dispose();

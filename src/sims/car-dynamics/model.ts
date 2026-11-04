@@ -59,7 +59,7 @@ export interface CarUiParams {
 
 /**
  * Parameter schema. NOTE: v₁, v₂ in km/h, P_max in kW and the balance in % (display
- * units) — use {@link toSI}. Every value is illustrative except the 120 / 350 kW presets.
+ * units) — use {@link toSI}. Vehicle parameters are illustrative; the presets source power and η from FIA rules.
  */
 export const params = {
   v1: { min: 100, max: 360, step: 1, default: 300, unit: 'km/h', labelIT: 'Velocità iniziale v₁' },
@@ -74,7 +74,7 @@ export const params = {
     labelIT: 'Potenza massima MGU-K Pₘₐₓ (elettrica)',
   },
   // η ≥ 0,5: below it the D8 cap Pₘₐₓ/η is meaningless (η → 0 ⇒ infinite MGU-K force, QA-029).
-  eta: { min: 0.5, max: 1, step: 0.01, default: 0.9, unit: '', labelIT: 'Rendimento MGU-K η' },
+  eta: { min: 0.5, max: 1, step: 0.01, default: 0.95, unit: '', labelIT: 'Rendimento MGU-K η' },
   mu: {
     min: 0.8,
     max: 2,
@@ -165,30 +165,34 @@ export function idealBalancePercent(mu: number): number {
 /** Peak slip κ* of the illustrative tyre [–]. */
 export const PEAK_SLIP = pacejkaPeakSlip(FIXED.tyre);
 
-// --- Presets (MGU-K power only; numbers and sources from kers-braking / OPEN_FACTS) ---
+// --- Presets (MGU-K power and η; numbers and sources from kers-braking / OPEN_FACTS) ---
 
 export interface CarPreset {
   id: '2025' | '2026';
   labelIT: string;
   /** MGU-K electrical cap [kW]. */
   Pmax: number;
+  /** FIA fixed correction used as an efficiency proxy [–]. */
+  eta: number;
   noteIT: string;
   sources: readonly Source[];
 }
 
 /**
- * The 2025 (120 kW) and 2026 (≈ 350 kW) presets reuse the sourced values of the
- * `kers-braking` presets (OPEN_FACTS #1 and #5, both "Verificato"). They change only
- * P_max; every other parameter stays illustrative.
+ * The 2025 (120 kW) and 2026 (350 kW electrical DC) presets reuse the sourced values of the
+ * `kers-braking` presets (OPEN_FACTS #1 and #5, both "Verificato"). They change
+ * P_max and η (FIA fixed correction used as an efficiency proxy, not measured efficiency);
+ * every other parameter stays illustrative.
  */
 export const PRESETS: readonly CarPreset[] = KERS_PRESETS.map((p) => ({
   id: p.id,
   labelIT: p.labelIT,
   Pmax: p.values.Pmax,
+  eta: p.values.eta,
   noteIT:
     p.id === '2025'
-      ? 'MGU-K fino al 2025: 120 kW massimi (potenza elettrica).'
-      : 'MGU-K dal 2026: circa 350 kW (potenza elettrica).',
+      ? 'MGU-K fino al 2025: 120 kW (Art. 5.3.3); η 0,95 = correzione fissa FIA (Art. 5.3.2) usata come stima del rendimento, non un rendimento misurato.'
+      : 'MGU-K dal 2026: 350 kW potenza elettrica DC (C5.2.7); η 0,97 (C5.2.21) = correzione fissa FIA usata come stima del rendimento, non un rendimento misurato.',
   sources: p.sources,
 }));
 

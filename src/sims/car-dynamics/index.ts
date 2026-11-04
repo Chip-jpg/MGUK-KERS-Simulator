@@ -240,6 +240,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   layout.controls.append(createTheoryLinks());
   const presets = createPresets((p) => {
     setParam('Pmax', p.Pmax);
+    setParam('eta', p.eta);
     recompute();
   });
   layout.controls.append(presets.element);
@@ -247,7 +248,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
   const hints: Partial<Record<ParamKey, string>> = {
     m: '800 kg: valore tondo illustrativo, non la massa regolamentare.',
     Pmax: 'Limite sulla potenza elettrica inviata alla batteria: l’MGU-K assorbe al più Pₘₐₓ/η.',
-    eta: 'Valore illustrativo (0,9 di default).',
+    eta: 'Default 0,95: correzione fissa FIA usata come stima del rendimento, non un rendimento misurato (FIA 2025 F1 Technical Regulations, Issue 3 (07 Apr 2025), Art. 5.3.2); nel 2026 0,97 (FIA 2026 F1 Regulations Section C, Issue 21 (19 Oct 2026), C5.2.21).',
     mu: 'Valore illustrativo per pneumatici da corsa.',
     balance: 'Quota della forza frenante totale sull’asse anteriore.',
   };

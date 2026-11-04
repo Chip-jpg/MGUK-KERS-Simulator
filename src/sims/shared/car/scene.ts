@@ -49,11 +49,40 @@ export interface CarSceneCore {
   dispose(): void;
 }
 
-/** Home view: front-left three-quarter, slightly above the car. */
-export const CAR_VIEW = {
-  position: [3.95, 1.8, 4.95] as [number, number, number],
-  target: [-0.15, 0.42, 0.1] as [number, number, number],
+const FOV = 30;
+type Vec3 = [number, number, number];
+/**
+ * Home framing: the whole car (5,55 m × ~1 m, front wing tip to rear wing) fills ~66 % of
+ * the canvas, seen 3/4 from the cut-open side (+z) and slightly above, so the opened engine
+ * bay, the MGU-K and the energy store face the camera.
+ */
+const HOME = {
+  target: [0.15, 0.52, 0.2] as Vec3,
+  halfW: 2.55,
+  halfH: 1.1,
+  fill: 0.56,
+  elevation: 25,
+  azimuth: 44,
 };
+/** Camera position/target fitting the car into a canvas of the given aspect ratio. */
+export function carView(aspect: number): { position: Vec3; target: Vec3 } {
+  const tanV = Math.tan((FOV * Math.PI) / 360);
+  const tanH = tanV * (Number.isFinite(aspect) && aspect > 0.2 ? aspect : 2.1);
+  const d = Math.max(HOME.halfW / (HOME.fill * tanH), HOME.halfH / (HOME.fill * tanV));
+  const el = (HOME.elevation * Math.PI) / 180;
+  const az = (HOME.azimuth * Math.PI) / 180;
+  const [tx, ty, tz] = HOME.target;
+  return {
+    position: [
+      tx + d * Math.cos(el) * Math.sin(az),
+      ty + d * Math.sin(el),
+      tz + d * Math.cos(el) * Math.cos(az),
+    ],
+    target: HOME.target,
+  };
+}
+/** Home view at the default 2,1:1 canvas (re-fitted to the real aspect on mount). */
+export const CAR_VIEW = carView(2.1);
 
 export function createCarSceneCore(
   container: HTMLElement,
@@ -64,13 +93,16 @@ export function createCarSceneCore(
 ): CarSceneCore {
   const stage = createStage(container, ctx, {
     ariaLabel,
-    camera: { ...CAR_VIEW, fov: 34, far: 160 },
-    controls: { minDistance: 3, maxDistance: 24, maxPolarAngle: (84 * Math.PI) / 180 },
+    camera: { ...CAR_VIEW, fov: FOV, far: 160 },
+    controls: { minDistance: 2.2, maxDistance: 24, maxPolarAngle: (84 * Math.PI) / 180 },
     floorY: -0.02,
     // the studio floor runs out under the scene fog (no disc edge beside the track)
     floor: { radius: 64 },
     shadowRadius: 4.2,
+    look: 'teardown',
   });
+  const home = carView(stage.camera.aspect);
+  stage.setView(home.position, home.target, false);
   let car: Car | null = null;
   let track: Track | null = null;
   let labels: LabelLayer | null = null;
@@ -86,41 +118,93 @@ export function createCarSceneCore(
     throw e;
   }
   const a = car.anchors;
+  // Callout spots: fixed offsets from each part, in screen terms of the home view (right /
+  // up / toward the camera), joined to the part by a thin leader line.
+  const az = (HOME.azimuth * Math.PI) / 180;
+  const RIGHT = new THREE.Vector3(Math.cos(az), 0, -Math.sin(az));
+  const NEAR = new THREE.Vector3(Math.sin(az), 0, Math.cos(az));
+  const spot = (r: number, u: number, n: number): THREE.Vector3 =>
+    RIGHT.clone()
+      .multiplyScalar(r)
+      .add(NEAR.clone().multiplyScalar(n))
+      .add(new THREE.Vector3(0, u, 0));
+  const SPOT = {
+    mguk: spot(-1.2, 0.9, 0),
+    battery: spot(0.0, -0.25, 1.15),
+    discFront: spot(1.0, -0.15, 0.9),
+    discRear: spot(-1.0, 0.0, 0.8),
+  };
+  type PartKey = keyof typeof SPOT;
+  const PARTS = Object.keys(SPOT) as PartKey[];
+  const ends = {
+    mguk: new THREE.Vector3(),
+    battery: new THREE.Vector3(),
+    discFront: new THREE.Vector3(),
+    discRear: new THREE.Vector3(),
+  };
+  const leaderPos = new Float32Array(PARTS.length * 6);
+  const leaderGeo = new THREE.BufferGeometry();
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = new THREE.LineBasicMaterial({
+    color: 0xaeb7c2,
+    transparent: true,
+    opacity: 0.8,
+  });
+  const leaderLines = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaderLines.frustumCulled = false;
+  stage.scene.add(leaderLines);
+  const updateLeaders = (): void => {
+    PARTS.forEach((k, i) => {
+      const p = a[k];
+      ends[k].copy(p).add(SPOT[k]);
+      leaderPos.set([p.x, p.y, p.z, ends[k].x, ends[k].y, ends[k].z], 6 * i);
+    });
+    (leaderGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+  };
+  updateLeaders();
   const L: Record<keyof CoreTexts | 'start' | 'end', Label> = {
     mguk: labels.add({
       text: 'MGU-K',
-      sensorHeight: '1.7rem',
-      sensorWidth: '27ch',
-      anchor: a.mguk,
+      // compact one-line sensor boxes (like the car-dynamics force labels)
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '25ch',
+      anchor: ends.mguk,
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      offset: [0, -34],
+      offset: [0, 0],
     }),
     battery: labels.add({
       text: 'Batteria',
-      sensorHeight: '1.7rem',
-      anchor: a.battery,
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '17ch',
+      anchor: ends.battery,
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      offset: [-40, 30],
+      offset: [0, 0],
     }),
     discFront: labels.add({
       text: 'Disco ant.',
-      sensorHeight: '1.7rem',
-      anchor: a.discFront,
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '18ch',
+      anchor: ends.discFront,
       priority: 8,
       occlude: false,
-      offset: [40, 46],
+      offset: [0, 0],
     }),
     discRear: labels.add({
       text: 'Disco post.',
-      sensorHeight: '1.7rem',
-      anchor: a.discRear,
+      size: 'sm',
+      sensorHeight: '1.5rem',
+      sensorWidth: '19ch',
+      anchor: ends.discRear,
       priority: 8,
       occlude: false,
-      offset: [-84, 14],
+      offset: [0, 0],
     }),
     start: labels.add({
       text: 'Punto di frenata',
@@ -201,6 +285,7 @@ export function createCarSceneCore(
       const dt = lastMs === 0 ? 0 : Math.min(0.1, (now - lastMs) / 1000);
       lastMs = now;
       c.update(f);
+      updateLeaders();
       t.update(f.x, f.distance, f.v, dt * f.timeScale);
       L.mguk.setText(f.texts.mguk);
       L.battery.setText(f.texts.battery);
@@ -214,6 +299,9 @@ export function createCarSceneCore(
       if (disposed) return;
       disposed = true;
       l.dispose();
+      stage.scene.remove(leaderLines);
+      leaderGeo.dispose();
+      leaderMat.dispose();
       c.dispose();
       t.dispose();
       stage.dispose();
