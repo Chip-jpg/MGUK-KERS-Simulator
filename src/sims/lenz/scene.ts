@@ -84,10 +84,10 @@ const FLANGE_T = 0.06;
 const TURN_CAP = { alta: 48, bilanciata: 32, base: 16 } as const;
 /** Default framing: whole apparatus, slight 3/4 from the front, magnet side. */
 const FOV = 34;
-const VIEW_TARGET: [number, number, number] = [1.05, -1.0, 0.6];
-const VIEW_DIST = 12.6;
+const VIEW_TARGET: [number, number, number] = [1.6, -0.4, 0.4];
+const VIEW_DIST = 14.2;
 const VIEW_EL = (26 * Math.PI) / 180;
-const VIEW_AZ = (-5 * Math.PI) / 180;
+const VIEW_AZ = (-24 * Math.PI) / 180;
 const HOME = {
   position: [
     VIEW_TARGET[0] + VIEW_DIST * Math.cos(VIEW_EL) * Math.sin(VIEW_AZ),
@@ -798,7 +798,7 @@ export function createLenzScene(
     flow.setCurrent(f.range > 0 ? f.i / f.range : 0);
 
     // force arrow (log length), above the magnet
-    const len = logLength(f.F, 1e-9, 1, 0.55, 2.4);
+    const len = logLength(f.F, 1e-9, 1, 0.95, 2.6);
     arrow.visible = len > 0;
     if (arrow.visible) {
       const sgn = Math.sign(f.F);
@@ -806,14 +806,14 @@ export function createLenzScene(
       const shaft = Math.max(0.05, len - head);
       arrow.position.set(
         xm + (sgn > 0 ? MAG_LEN / 2 - 0.4 : -MAG_LEN / 2 + 0.4),
-        MAG_SIDE / 2 + 0.42,
+        MAG_SIDE / 2 + 0.7,
         0,
       );
       arrow.rotation.y = sgn > 0 ? 0 : Math.PI;
       arrowShaft.scale.x = shaft;
       arrowHead.position.x = shaft + head / 2;
       parts.force.set(arrow.position.x + (sgn * len) / 2, arrow.position.y + 0.1, 0);
-      ends.force.set(parts.force.x, arrow.position.y + 1.05, 0);
+      ends.force.set(parts.force.x + 2.6, arrow.position.y + 0.9, -1.2);
     }
     kit.get('glowF', 'force').emissiveIntensity = 0.9;
 
@@ -822,14 +822,14 @@ export function createLenzScene(
     parts.coil.set(0.1, -rOut * 0.55, rOut * 0.85);
     parts.bMag.set(Math.max(0.75, xm - MAG_LEN / 2 - 0.45), -0.32, 0.2);
     parts.bInd.set(-FORMER_HALF - 1.0, Math.min(rOut + 0.5, 1.6), 0);
-    ends.face.set(0.9, rFlange + 1.5, 0);
-    ends.bInd.set(-2.0, Math.max(2.4, rFlange + 1.2), -0.6);
+    ends.face.set(-1.2, rFlange + 2.5, -0.8);
+    ends.bInd.set(-3.6, Math.max(2.6, rFlange + 1.4), -0.6);
     shown.face = f.sign !== 0;
     shown.bInd = showInd;
     shown.force = arrow.visible;
+    // sensor labels never turn into empty "-,--" boxes: they stay on with their real (zero) text;
+    // only the leader line follows the activity
     L.face.setVisible(shown.face);
-    L.bInd.setVisible(shown.bInd);
-    L.force.setVisible(shown.force);
     updateLeaders();
     const t = f.labels;
     L.face.setText(t.face);
