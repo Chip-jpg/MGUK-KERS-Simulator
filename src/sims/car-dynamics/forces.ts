@@ -37,7 +37,7 @@ const SHAFT_R = 0.026;
 const HEAD_R = 0.072;
 const HEAD_L = 0.17;
 const COLLAR_R = 0.05;
-const TICK_R = 0.044;
+const TICK_R = 0.085;
 
 /** Geometry shared by every arrow of the scene (dispose once). */
 export interface ArrowKit {
@@ -63,7 +63,7 @@ export function createArrowKit(lowPoly: boolean): ArrowKit {
     seg + 6,
   );
   const collar = new THREE.SphereGeometry(COLLAR_R, seg, Math.max(6, seg >> 1));
-  const tick = new THREE.TorusGeometry(TICK_R, 0.009, 6, seg + 6).rotateX(Math.PI / 2);
+  const tick = new THREE.TorusGeometry(TICK_R, 0.017, 6, seg + 8).rotateX(Math.PI / 2);
   return {
     shaft,
     head,
@@ -95,7 +95,7 @@ export function createForceArrow(kit: ArrowKit, mats: MaterialKit, dir: THREE.Ve
   mats.assign(collar, 'darkSteel', 'arrowCollar');
   const ticks = ARROW_TICKS.map((y) => {
     const t = new THREE.Mesh(kit.tick);
-    mats.assign(t, 'darkSteel', 'arrowCollar');
+    mats.assign(t, 'steel', 'arrowTick');
     t.position.y = y;
     return t;
   });

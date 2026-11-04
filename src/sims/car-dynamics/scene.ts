@@ -68,6 +68,8 @@ interface Arrow {
 const PATCH_IN = { front: 0.25, rear: 0.3 };
 /** Drag arrow height above the drag anchor [m] (display only: clears the rear wing). */
 const DRAG_LIFT = 0.45;
+/** Drag arrow lateral offset toward the camera side [m] (display only: clear of the wing). */
+const DRAG_SIDE = 0.8;
 
 export function createCarScene(
   container: HTMLElement,
@@ -109,7 +111,7 @@ export function createCarScene(
   };
   const arrows = {
     // beside the tip, behind the rear wing
-    drag: makeArrow(back, 'D', [-46, 0]),
+    drag: makeArrow(back, 'D', [-68, -4]),
     // above the tails (the arrows press down on the car from above)
     downFront: makeArrow(down, 'L ant.', [0, -16]),
     downRear: makeArrow(down, 'L post.', [52, -10]),
@@ -160,7 +162,9 @@ export function createCarScene(
       core.frame(f);
       const A = car.anchors;
       // drawn just above the rear wing (illustrative +0,45 m), where the wing does not hide it
-      dragOrigin.copy(A.dragPoint).setY(A.dragPoint.y + DRAG_LIFT);
+      dragOrigin.copy(A.dragPoint);
+      dragOrigin.y += DRAG_LIFT;
+      dragOrigin.z += DRAG_SIDE;
       place(arrows.drag, dragOrigin, arrowLength(f.drag), back);
       placeOnto(arrows.downFront, A.frontTop, arrowLength(f.downforceFront));
       placeOnto(arrows.downRear, A.rearTop, arrowLength(f.downforceRear));
