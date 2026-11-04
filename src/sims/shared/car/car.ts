@@ -196,6 +196,11 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
     meshes++;
     return new THREE.Mesh(g, m);
   };
+  /** Smooth clear-coated carbon for the aero surfaces (the kit weave reads as a grid on wings). */
+  const aeroMat = own(
+    new THREE.MeshStandardMaterial({ color: 0x1b1e23, metalness: 0.35, roughness: 0.32 }),
+  );
+  const aeroMesh = (g: THREE.BufferGeometry): THREE.Mesh => ownMesh(g, aeroMat);
   /** Merge parts into one geometry (disposing the parts). */
   const merged = (parts: THREE.BufferGeometry[]): THREE.BufferGeometry => {
     const g = mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)));
@@ -447,21 +452,19 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
   floorShape.moveTo(outline[0]?.[0] ?? 0, -(outline[0]?.[1] ?? 0));
   for (const [x, z] of outline.slice(1)) floorShape.lineTo(x, -z);
   for (const [x, z] of [...outline].reverse()) floorShape.lineTo(x, z);
-  const floor = kitMesh(
+  const floor = aeroMesh(
     geo(
       new THREE.ExtrudeGeometry(floorShape, { depth: 0.025, bevelEnabled: false }).rotateX(
         Math.PI / 2,
       ),
     ),
-    'carbon',
-    'floor',
   );
   floor.position.y = CAR_DIMS.rideHeight + 0.025;
   const plank = kitMesh(geo(chamferBox(2.6, 0.012, 0.3, 0.004)), 'plastic', 'plank');
   plank.position.set(-0.2, CAR_DIMS.rideHeight - 0.004, 0);
   body.add(floor, plank);
   for (const s of [-1, 1]) {
-    const edge = kitMesh(geo(chamferBox(1.9, 0.06, 0.014, 0.005)), 'carbon');
+    const edge = aeroMesh(geo(chamferBox(1.9, 0.06, 0.014, 0.005)));
     edge.position.set(-0.15, CAR_DIMS.rideHeight + 0.05, s * 0.895);
     body.add(edge);
   }
@@ -471,7 +474,7 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
     k.translate(0, 0.05, zz);
     diff.push(k);
   }
-  const diffuser = kitMesh(merged(diff), 'carbon');
+  const diffuser = aeroMesh(merged(diff));
   diffuser.position.set(-1.95, 0.12, 0);
   diffuser.rotation.z = 0.3;
   body.add(diffuser);
@@ -484,15 +487,15 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
     { c: 0.1, span: 1.6, x: 2.37, y: 0.24, a: -0.72 },
   ];
   for (const e of fw) {
-    const m = kitMesh(geo(wingGeometry(e.c, e.span, 0.1, 0.06)), 'carbon');
+    const m = aeroMesh(geo(wingGeometry(e.c, e.span, 0.1, 0.06)));
     m.position.set(e.x, e.y, 0);
     m.rotation.z = e.a;
     body.add(m);
   }
   for (const s of [-1, 1]) {
-    const ep = kitMesh(geo(chamferBox(0.46, 0.22, 0.014, 0.02)), 'carbon');
+    const ep = aeroMesh(geo(chamferBox(0.46, 0.22, 0.014, 0.02)));
     ep.position.set(2.58, 0.15, s * 0.96);
-    const pillar = kitMesh(geo(chamferBox(0.18, 0.12, 0.012, 0.004)), 'carbon');
+    const pillar = aeroMesh(geo(chamferBox(0.18, 0.12, 0.012, 0.004)));
     pillar.position.set(2.5, 0.17, s * 0.08);
     body.add(ep, pillar);
   }
@@ -501,21 +504,21 @@ export function createCar(stage: Stage, opts: CarOptions = {}): Car {
     { c: 0.22, x: -2.67, y: 0.94, a: -0.5 },
   ];
   for (const e of rw) {
-    const m = kitMesh(geo(wingGeometry(e.c, 1.0, 0.11, 0.06)), 'carbon');
+    const m = aeroMesh(geo(wingGeometry(e.c, 1.0, 0.11, 0.06)));
     m.position.set(e.x, e.y, 0);
     m.rotation.z = e.a;
     body.add(m);
   }
-  const beam = kitMesh(geo(wingGeometry(0.17, 0.9, 0.1, 0.05)), 'carbon');
+  const beam = aeroMesh(geo(wingGeometry(0.17, 0.9, 0.1, 0.05)));
   beam.position.set(-2.36, 0.4, 0);
   beam.rotation.z = -0.15;
-  const pylon = kitMesh(geo(chamferBox(0.16, 0.5, 0.02, 0.006)), 'carbon');
+  const pylon = aeroMesh(geo(chamferBox(0.16, 0.5, 0.02, 0.006)));
   pylon.position.set(-2.32, 0.55, 0);
   const rainLight = kitMesh(geo(chamferBox(0.03, 0.06, 0.08, 0.008)), 'darkSteel');
   rainLight.position.set(-2.42, 0.24, 0);
   body.add(beam, pylon, rainLight);
   for (const s of [-1, 1]) {
-    const ep = kitMesh(geo(chamferBox(0.66, 0.6, 0.016, 0.06)), 'carbon');
+    const ep = aeroMesh(geo(chamferBox(0.66, 0.6, 0.016, 0.06)));
     ep.position.set(-2.52, 0.73, s * 0.51);
     body.add(ep);
   }

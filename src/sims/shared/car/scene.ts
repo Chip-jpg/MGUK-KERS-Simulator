@@ -57,10 +57,10 @@ type Vec3 = [number, number, number];
  * bay, the MGU-K and the energy store face the camera.
  */
 const HOME = {
-  target: [0.15, 0.25, 0.2] as Vec3,
+  target: [0.15, 0.52, 0.2] as Vec3,
   halfW: 2.55,
   halfH: 1.1,
-  fill: 0.6,
+  fill: 0.56,
   elevation: 25,
   azimuth: 44,
 };
@@ -118,6 +118,50 @@ export function createCarSceneCore(
     throw e;
   }
   const a = car.anchors;
+  // Callout spots: fixed offsets from each part, in screen terms of the home view (right /
+  // up / toward the camera), joined to the part by a thin leader line.
+  const az = (HOME.azimuth * Math.PI) / 180;
+  const RIGHT = new THREE.Vector3(Math.cos(az), 0, -Math.sin(az));
+  const NEAR = new THREE.Vector3(Math.sin(az), 0, Math.cos(az));
+  const spot = (r: number, u: number, n: number): THREE.Vector3 =>
+    RIGHT.clone()
+      .multiplyScalar(r)
+      .add(NEAR.clone().multiplyScalar(n))
+      .add(new THREE.Vector3(0, u, 0));
+  const SPOT = {
+    mguk: spot(-1.2, 0.9, 0),
+    battery: spot(0.0, -0.25, 1.15),
+    discFront: spot(1.0, -0.15, 0.9),
+    discRear: spot(-1.0, 0.0, 0.8),
+  };
+  type PartKey = keyof typeof SPOT;
+  const PARTS = Object.keys(SPOT) as PartKey[];
+  const ends = {
+    mguk: new THREE.Vector3(),
+    battery: new THREE.Vector3(),
+    discFront: new THREE.Vector3(),
+    discRear: new THREE.Vector3(),
+  };
+  const leaderPos = new Float32Array(PARTS.length * 6);
+  const leaderGeo = new THREE.BufferGeometry();
+  leaderGeo.setAttribute('position', new THREE.BufferAttribute(leaderPos, 3));
+  const leaderMat = new THREE.LineBasicMaterial({
+    color: 0xaeb7c2,
+    transparent: true,
+    opacity: 0.8,
+  });
+  const leaderLines = new THREE.LineSegments(leaderGeo, leaderMat);
+  leaderLines.frustumCulled = false;
+  stage.scene.add(leaderLines);
+  const updateLeaders = (): void => {
+    PARTS.forEach((k, i) => {
+      const p = a[k];
+      ends[k].copy(p).add(SPOT[k]);
+      leaderPos.set([p.x, p.y, p.z, ends[k].x, ends[k].y, ends[k].z], 6 * i);
+    });
+    (leaderGeo.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+  };
+  updateLeaders();
   const L: Record<keyof CoreTexts | 'start' | 'end', Label> = {
     mguk: labels.add({
       text: 'MGU-K',
@@ -125,44 +169,42 @@ export function createCarSceneCore(
       size: 'sm',
       sensorHeight: '1.5rem',
       sensorWidth: '25ch',
-      anchor: a.mguk,
+      anchor: ends.mguk,
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      // up-left on the backdrop behind the rear wing, clear of the opened bay
-      offset: [-200, -70],
+      offset: [0, 0],
     }),
     battery: labels.add({
       text: 'Batteria',
       size: 'sm',
       sensorHeight: '1.5rem',
       sensorWidth: '17ch',
-      anchor: a.battery,
+      anchor: ends.battery,
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      // below the floor, on the asphalt
-      offset: [20, 120],
+      offset: [0, 0],
     }),
     discFront: labels.add({
       text: 'Disco ant.',
       size: 'sm',
       sensorHeight: '1.5rem',
       sensorWidth: '18ch',
-      anchor: a.discFront,
+      anchor: ends.discFront,
       priority: 8,
       occlude: false,
-      offset: [120, 20],
+      offset: [0, 0],
     }),
     discRear: labels.add({
       text: 'Disco post.',
       size: 'sm',
       sensorHeight: '1.5rem',
       sensorWidth: '19ch',
-      anchor: a.discRear,
+      anchor: ends.discRear,
       priority: 8,
       occlude: false,
-      offset: [-110, 60],
+      offset: [0, 0],
     }),
     start: labels.add({
       text: 'Punto di frenata',
@@ -243,6 +285,7 @@ export function createCarSceneCore(
       const dt = lastMs === 0 ? 0 : Math.min(0.1, (now - lastMs) / 1000);
       lastMs = now;
       c.update(f);
+      updateLeaders();
       t.update(f.x, f.distance, f.v, dt * f.timeScale);
       L.mguk.setText(f.texts.mguk);
       L.battery.setText(f.texts.battery);
@@ -256,6 +299,9 @@ export function createCarSceneCore(
       if (disposed) return;
       disposed = true;
       l.dispose();
+      stage.scene.remove(leaderLines);
+      leaderGeo.dispose();
+      leaderMat.dispose();
       c.dispose();
       t.dispose();
       stage.dispose();
