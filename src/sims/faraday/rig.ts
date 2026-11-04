@@ -494,7 +494,15 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
   board.position.y = boardH / 2;
   const holder = k.mesh(k.geo(new THREE.CylinderGeometry(0.14, 0.16, 0.24, 28)), 'brass', 'lamp');
   holder.position.y = boardH + 0.12;
-  const bulb = k.mesh(k.geo(new THREE.SphereGeometry(0.32, 40, 28)), 'glass', 'lamp');
+  const bulb = k.mesh(
+    k.geo(
+      stage.tier === 'base'
+        ? new THREE.SphereGeometry(0.32, 20, 12)
+        : new THREE.SphereGeometry(0.32, 40, 28),
+    ),
+    'glass',
+    'lamp',
+  );
   bulb.position.y = boardH + 0.5;
   bulb.renderOrder = 4;
   bulb.castShadow = false;
@@ -563,7 +571,17 @@ export function buildRig(stage: Stage, k: RigSink): Rig {
   ];
   const cable = (pts: THREE.Vector3[], key: string): void => {
     const c = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-    root.add(k.mesh(k.geo(new THREE.TubeGeometry(c, 64, 0.03, 10, false)), 'plastic', key));
+    root.add(
+      k.mesh(
+        k.geo(
+          stage.tier === 'base'
+            ? new THREE.TubeGeometry(c, 40, 0.03, 5, false)
+            : new THREE.TubeGeometry(c, 64, 0.03, 10, false),
+        ),
+        'plastic',
+        key,
+      ),
+    );
     for (const end of [pts[0]!, pts[pts.length - 1]!]) {
       const plug = k.mesh(k.geo(new THREE.CylinderGeometry(0.05, 0.05, 0.12, 12)), 'plastic', key);
       plug.position.copy(end);

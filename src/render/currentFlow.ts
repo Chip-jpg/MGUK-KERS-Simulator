@@ -44,7 +44,12 @@ export function createCurrentFlow(stage: Stage, o: CurrentFlowOptions): CurrentF
   const speedPerAmp = o.speedPerAmp ?? 1;
   const vMax = o.vMax ?? 3;
   const full = o.count ?? 60;
-  const geo = new THREE.SphereGeometry(radius, 10, 8);
+  // base tier: an octahedron (8 tris) instead of a UV sphere (~140 tris), same footprint.
+  const makeGeo = (): THREE.BufferGeometry =>
+    stage.settings.tier === 'base'
+      ? new THREE.OctahedronGeometry(radius * 1.15, 0)
+      : new THREE.SphereGeometry(radius, 10, 8);
+  let geo = makeGeo();
   renderStats.liveGeometries++;
   const mat = new THREE.MeshStandardMaterial({
     color: 0x220000,
@@ -111,6 +116,10 @@ export function createCurrentFlow(stage: Stage, o: CurrentFlowOptions): CurrentF
   place();
 
   const offTier = stage.onTierChange(() => {
+    const old = geo;
+    geo = makeGeo();
+    mesh.geometry = geo;
+    old.dispose();
     applyCount();
     place();
   });

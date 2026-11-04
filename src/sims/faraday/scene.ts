@@ -23,6 +23,7 @@ import {
   createFieldLines,
   createLabelLayer,
   createStage,
+  mergeStatic,
   renderStats,
   roundedRectPoints,
   seedRect,
@@ -233,6 +234,14 @@ export function createFaradayScene(
   const rig = buildRig(stage, sink);
   scene.add(rig.root);
   stage.occluders.push(...rig.occluders);
+  // base tier: the rig never moves — bake it to one mesh per material (draw-call budget)
+  if (stage.tier === 'base')
+    mergeStatic(rig.root, {
+      kit,
+      track: geo,
+      drop: dropGeo,
+      keep: [rig.lamp.group, ...rig.brushes, ...rig.occluders],
+    });
 
   // --- field lines: the model's uniform B between the pole faces -----------------------------
   // straight, evenly spaced N → S lines on a regular grid over the face (equal flux per line);
@@ -348,7 +357,9 @@ export function createFaradayScene(
     pts.push(new THREE.Vector3(0, a0 + 0.14, -0.07), new THREE.Vector3(0, RING_Y[1], -0.13));
     const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal', 0.5);
     const g = geo(
-      new THREE.TubeGeometry(curve, pts.length * 2, WIRE_R, stage.tier === 'base' ? 5 : 7, false),
+      stage.tier === 'base'
+        ? new THREE.TubeGeometry(curve, pts.length, WIRE_R, 4, false)
+        : new THREE.TubeGeometry(curve, pts.length * 2, WIRE_R, 7, false),
     );
     if (coilWire) {
       dropGeo(coilWire.geometry);

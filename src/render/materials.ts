@@ -59,6 +59,10 @@ const GLOW_QUANTITY: Partial<Record<MaterialKind, Quantity>> = {
 export interface MaterialKit {
   get(kind: MaterialKind, key?: string): KitMaterial;
   assign(mesh: THREE.Mesh | THREE.InstancedMesh, kind: MaterialKind, key?: string): KitMaterial;
+  /** Kind/key a mesh was assigned with (undefined when it was never `assign`ed). */
+  binding(mesh: THREE.Mesh): { kind: MaterialKind; key: string } | undefined;
+  /** Drop a mesh's recorded assignment (before the mesh is removed for good). */
+  forget(mesh: THREE.Mesh): void;
   /** Rebuild for a new tier and re-assign every recorded mesh. */
   setTier(settings: TierSettings): void;
   setTheme(theme: Theme): void;
@@ -316,6 +320,14 @@ export function createMaterialKit(settings: TierSettings, theme: Theme): Materia
       mesh.material = m;
       bindings.push({ mesh, kind, key });
       return m;
+    },
+    binding(mesh) {
+      const b = bindings.find((x) => x.mesh === mesh);
+      return b ? { kind: b.kind, key: b.key } : undefined;
+    },
+    forget(mesh) {
+      const k = bindings.findIndex((x) => x.mesh === mesh);
+      if (k >= 0) bindings.splice(k, 1);
     },
     setTier(s) {
       if (s.tier === tier.tier) return;

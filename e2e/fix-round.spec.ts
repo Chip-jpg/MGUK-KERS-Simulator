@@ -103,6 +103,8 @@ for (const id of sims) {
 test('F6: Faraday axes stay labelled through every parameter and zero/extreme values', async ({
   page,
 }) => {
+  // long input loops on a software-GL CI runner
+  test.setTimeout(90_000);
   await page.goto('./?quality=base#/sim/faraday');
   for (const key of ['B', 'S', 'N', 'omega']) {
     const range = page.locator(`#faraday-${key}-range`);
@@ -179,6 +181,8 @@ test('F3: final drive pedals, gradual keys, brake priority, scenario energy', as
 });
 
 test('F10: transmission operating values for three hand-derived sets', async ({ page }) => {
+  // long input loops on a software-GL CI runner
+  test.setTimeout(90_000);
   await page.goto('./?quality=base#/sim/joule-transformer');
   for (const plot of await page
     .locator('.transmission-plots__grid')

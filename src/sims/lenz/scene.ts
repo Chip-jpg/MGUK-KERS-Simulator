@@ -36,6 +36,7 @@ import {
   seedByFlux,
   seedDisc,
   fieldFromSpec,
+  mergeStatic,
   type CurrentFlow,
   type FieldLines,
   type FieldSpec,
@@ -357,6 +358,13 @@ export function createLenzScene(
   stage.castShadows(carriage);
   stage.castShadows(arrow, false);
   stage.occluders.push(near, far, galvo.caseMesh, ...bench.occluders);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  if (stage.tier === 'base') {
+    const opts = { kit, track: geo, drop: dropGeo };
+    mergeStatic(bench.root, { ...opts, keep: [pedestal, ...bench.occluders] });
+    mergeStatic(galvo.root, { ...opts, keep: [galvo.needlePivot, galvo.caseMesh] });
+    mergeStatic(carriage, opts);
+  }
 
   // --- leads: red/black 4 mm cables from the coil stand to the galvanometer (static) -----------
   const sA = bench.standPlugs[0] as THREE.Vector3;
@@ -387,9 +395,9 @@ export function createLenzScene(
       geo(
         new THREE.TubeGeometry(
           new THREE.CatmullRomCurve3(pts, false, 'centripetal'),
-          80,
+          stage.tier === 'base' ? 48 : 80,
           0.032,
-          10,
+          stage.tier === 'base' ? 5 : 10,
         ),
       ),
       'plastic',
@@ -623,9 +631,9 @@ export function createLenzScene(
           geo(
             new THREE.TubeGeometry(
               new THREE.CatmullRomCurve3(tp, false, 'centripetal'),
-              40,
+              stage.tier === 'base' ? 24 : 40,
               0.022,
-              6,
+              stage.tier === 'base' ? 4 : 6,
             ),
           ),
           wireMat,

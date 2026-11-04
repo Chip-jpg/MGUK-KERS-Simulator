@@ -31,6 +31,7 @@ import {
   createFieldLines,
   createLabelLayer,
   createStage,
+  mergeStatic,
   ironbow,
   seedByFlux,
   seedDisc,
@@ -296,7 +297,7 @@ export function createRlScene(
   coil.name = 'coil';
   coil.position.set(SOL.x, SOL.y, SOL.z);
   scene.add(coil);
-  const seg = 72;
+  const seg = stage.tier === 'base' ? 40 : 72;
   const tube = new THREE.Mesh(
     geo(ringX(TUBE_IN, TUBE_OUT, -SOL.tube / 2, SOL.tube / 2, seg)),
     tubeMat,
@@ -345,7 +346,15 @@ export function createRlScene(
   const core = new THREE.Group();
   core.add(
     new THREE.Mesh(
-      geo(ringX(0.001, CORE_R, -SOL.tube / 2 - 0.25, SOL.tube / 2 + 0.25, 48)),
+      geo(
+        ringX(
+          0.001,
+          CORE_R,
+          -SOL.tube / 2 - 0.25,
+          SOL.tube / 2 + 0.25,
+          stage.tier === 'base' ? 28 : 48,
+        ),
+      ),
       coreMat,
     ),
   );
@@ -554,6 +563,15 @@ export function createRlScene(
   stage.castShadows(coil);
   for (const m of [energyGlow, tube]) m.castShadow = false;
   stage.occluders.push(...app.occluders);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  if (stage.tier === 'base') {
+    const opts = { kit, track: geo, drop: dropGeo };
+    mergeStatic(app.root, {
+      ...opts,
+      keep: [app.blade, app.resWire, app.resThermal, ...app.occluders],
+    });
+    mergeStatic(coil, { ...opts, keep: [tube, core, windParts, energyGlow] });
+  }
 
   // --- current particles: − → cells → + → switch → rheostat → coil → − --------------------------
   const flow: CurrentFlow = createCurrentFlow(stage, {

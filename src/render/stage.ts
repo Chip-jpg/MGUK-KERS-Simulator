@@ -212,6 +212,9 @@ export interface StageInfo {
   programs: number;
 }
 
+/** Minimum time between two drawn frames in the `base` tier (≈30 fps, slightly under 33 ms). */
+const BASE_FRAME_MS = 30;
+
 /** Render targets inside a post chain (for the leak counters). */
 function countTargets(passes: Array<{ name: string; rt: number }>): number {
   return passes.reduce((s, p) => s + p.rt, 0);
@@ -734,6 +737,10 @@ export function createStage(host: HTMLElement, ctx: AppContext, opts: StageOptio
     render() {
       if (disposed) return;
       const now = performance.now();
+      // base tier targets weak/software GL: cap the draw rate (~30 fps). A skipped call keeps
+      // lastFrameMs, so the next drawn frame advances the updatables by the whole elapsed time.
+      if (settings.tier === 'base' && lastRenderMs !== 0 && now - lastRenderMs < BASE_FRAME_MS)
+        return;
       const dt = lastFrameMs === 0 ? 0 : Math.min(0.1, (now - lastFrameMs) / 1000);
       lastFrameMs = now;
       draw(dt);

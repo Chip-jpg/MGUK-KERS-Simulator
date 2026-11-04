@@ -95,7 +95,8 @@ for (const width of [1280, 1920]) {
 test('machine indicators stay fully readable through parameter extremes and camera changes', async ({
   page,
 }) => {
-  test.setTimeout(60000);
+  // long input loops on a software-GL CI runner
+  test.setTimeout(120_000);
   await page.goto('./?quality=base#/sim/alternator-motor');
   await expect(page.locator('.am-indicator')).toHaveCount(7);
   for (const input of await page.locator('.sim-controls input[type=range]').all()) {

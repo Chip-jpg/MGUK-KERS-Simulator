@@ -43,6 +43,7 @@ import {
   createFieldLines,
   createLabelLayer,
   createStage,
+  mergeStatic,
   roundedRectPoints,
   seedRect,
   type CurrentFlow,
@@ -298,7 +299,7 @@ export function createMachineScene(
         [SLIP_R - 0.015, 0.08],
         [0.14, 0.08],
       ].map(([r, y]) => new THREE.Vector2(r, y)),
-      48,
+      stage.tier === 'base' ? 28 : 48,
     ),
   );
   for (const y of SLIP_Y) {
@@ -336,7 +337,11 @@ export function createMachineScene(
     v(0.2, 0.17),
     v(0.0, 0.17),
   ].map((p) => new THREE.Vector2(p.x, p.y));
-  const flywheel = mesh(geo(new THREE.LatheGeometry(flyProfile, 72)), 'darkSteel', 'flywheel');
+  const flywheel = mesh(
+    geo(new THREE.LatheGeometry(flyProfile, stage.tier === 'base' ? 36 : 72)),
+    'darkSteel',
+    'flywheel',
+  );
   flywheel.position.y = FLY_X;
   rotor.add(flywheel);
   const boltGeo = geo(new THREE.CylinderGeometry(0.06, 0.06, 0.14, 6));
@@ -365,7 +370,11 @@ export function createMachineScene(
       [0.44, 0.22],
       [0, 0.22],
     ].map(([r, y]) => new THREE.Vector2(r, y));
-    const body = mesh(geo(new THREE.LatheGeometry(prof, 48)), 'steel', 'pulley');
+    const body = mesh(
+      geo(new THREE.LatheGeometry(prof, stage.tier === 'base' ? 28 : 48)),
+      'steel',
+      'pulley',
+    );
     const key = mesh(geo(chamferBox(0.1, 0.44, 0.1, 0.02, 1)), 'brass', 'ring');
     key.position.set(0.12, 0, 0);
     pulley.add(body, key);
@@ -642,6 +651,14 @@ export function createMachineScene(
   stage.castShadows(battery.root);
   for (const l of leads) stage.castShadows(l);
   stage.occluders.push(battery.case, converter.body, flywheel);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  if (stage.tier === 'base') {
+    const opts = { kit, track: geo, drop: dropGeo };
+    mergeStatic(bench.root, { ...opts, keep: [...bench.brushes, ...bench.occluders] });
+    mergeStatic(stator.root, { ...opts, keep: stator.occluders });
+    mergeStatic(converter.root, { ...opts, keep: [converter.led, converter.body] });
+    mergeStatic(battery.root, { ...opts, keep: [battery.gaugeFill, battery.case] });
+  }
 
   // --- labels: callouts at fixed spots off the rotor, leader lines to the parts ------------------
   container.classList.add('am-scene');

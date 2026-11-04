@@ -31,6 +31,7 @@ import {
   createLabelLayer,
   createStage,
   ironbow,
+  mergeStatic,
   type CurrentFlow,
   type FieldLines,
   type Label,
@@ -250,6 +251,14 @@ export function createTransformerScene(
   const townParts = buildTown(sink);
   const town = townParts.root;
   scene.add(town);
+  // base tier: bake the static parts to one mesh per material (draw-call budget)
+  const bakeOpts = { kit, track: geo, drop: dropGeo };
+  if (stage.tier === 'base') {
+    mergeStatic(base, bakeOpts);
+    mergeStatic(plant.root, bakeOpts);
+    mergeStatic(pylons, bakeOpts);
+    mergeStatic(town, bakeOpts);
+  }
 
   // --- transformers ---------------------------------------------------------------------------
   stage.renderer.localClippingEnabled = true;
@@ -269,6 +278,10 @@ export function createTransformerScene(
   const makeXfmr = (gx: number, hv: 1 | -1): Xfmr => {
     const parts = buildTransformer(sink, hv, tess);
     const group = parts.root;
+    if (stage.tier === 'base') {
+      mergeStatic(group, { ...bakeOpts, keep: [parts.tank] });
+      mergeStatic(parts.tank, bakeOpts); // the tank group toggles as a whole; its contents don't
+    }
     group.position.set(gx, GROUND, 0);
     scene.add(group);
     // cutaway of the windings: removes x > gx AND z > 0 (front-right quarter)
