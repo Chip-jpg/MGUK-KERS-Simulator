@@ -495,18 +495,20 @@ export function createFaradayScene(
     phi: v(),
     emf: rig.anchors.brushes,
     load: rig.anchors.lamp,
+    turns: v(),
   };
   type Key = keyof typeof parts;
   /** Label positions (world); the leader runs from the part to here. */
   const ends: Record<Key, THREE.Vector3> = {
     n: v(-4.6, 1.9, FACE_HZ),
     s: v(4.6, 1.9, FACE_HZ),
-    b: v(-6.8, -0.4, FACE_HZ),
-    normal: v(1.3, 2.45, 1.2),
+    b: v(-8.4, -0.2, FACE_HZ),
+    normal: v(2.2, 3.5, 1.2),
     alpha: v(6.6, -2.6, FACE_HZ),
     phi: v(6.8, -0.4, FACE_HZ),
     emf: v(4.6, 3.0, 0.9),
-    load: v(-7.0, -4.2, LAMP_POS.z),
+    load: v(-7.2, -4.4, LAMP_POS.z),
+    turns: v(-2.6, 3.3, 1.2),
   };
   const KEYS = Object.keys(parts) as Key[];
   const leaderPos = new Float32Array(KEYS.length * 6);
@@ -520,7 +522,7 @@ export function createFaradayScene(
   scene.add(leaders);
   const updateLeaders = (rotating: boolean): void => {
     KEYS.forEach((k, i) => {
-      const on = rotating || !['normal', 'alpha', 'phi'].includes(k);
+      const on = rotating || !['normal', 'alpha', 'phi', 'turns'].includes(k);
       const a = parts[k];
       const b = on ? ends[k] : a;
       leaderPos.set([a.x, a.y, a.z, b.x, b.y, b.z], 6 * i);
@@ -531,15 +533,24 @@ export function createFaradayScene(
     k: Key,
     o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
   ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  /** Reserved readout box hugging a one-line text. */
+  const fit = (w: string) => ({ sensorWidth: w, sensorHeight: '1.7rem' });
   const L: Record<Key, Label> = {
     n: tag('n', { text: 'N', size: 'lg', priority: 9 }),
     s: tag('s', { text: 'S', size: 'lg', priority: 9 }),
-    b: tag('b', { text: 'B', quantity: 'b', priority: 6 }),
+    b: tag('b', { text: 'B', quantity: 'b', priority: 6, ...fit('11ch') }),
     normal: tag('normal', { text: 'n̂', quantity: 'accent', priority: 7, size: 'sm' }),
     alpha: tag('alpha', { text: 'α', quantity: 'accent', priority: 5, size: 'sm' }),
     phi: tag('phi', { text: 'Φ', quantity: 'b', priority: 8, sensorWidth: '14ch' }),
-    emf: tag('emf', { text: 'f.e.m.', quantity: 'emf', priority: 8, sensorWidth: '16ch' }),
-    load: tag('load', { text: 'carico', quantity: 'energy', priority: 4, sensorWidth: '20ch' }),
+    emf: tag('emf', { text: 'f.e.m.', quantity: 'emf', priority: 8, ...fit('17ch') }),
+    load: tag('load', { text: 'carico', quantity: 'energy', priority: 4, ...fit('21ch') }),
+    turns: tag('turns', {
+      text: 'spire',
+      quantity: 'accent',
+      priority: 5,
+      size: 'sm',
+      ...fit('13ch'),
+    }),
   };
 
   // --- theme -----------------------------------------------------------------------------------------
@@ -649,7 +660,9 @@ export function createFaradayScene(
       coil.localToWorld(parts.normal);
       parts.phi.set(PROJ_X, -side / 4, (side / 2) * Math.abs(c));
     }
-    for (const k of ['normal', 'alpha', 'phi'] as const) L[k].setVisible(rotating);
+    parts.turns.set(0, loopSide(p.S) / 2, 0);
+    coil.localToWorld(parts.turns);
+    for (const k of ['normal', 'alpha', 'phi', 'turns'] as const) L[k].setVisible(rotating);
     updateLeaders(rotating);
     const t = s.labels;
     if (t) {
@@ -657,7 +670,10 @@ export function createFaradayScene(
       L.phi.setText(t.phi);
       L.emf.setText(t.emf);
       L.alpha.setText(t.alpha);
-      L.load.setText(t.load);
+      // the lamp label keeps only the lamp reading; "N = … spire" goes on the coil
+      const [lamp, turns] = t.load.split(' · ');
+      L.load.setText(lamp ?? t.load);
+      L.turns.setText(turns ?? 'spire');
     }
     stage.render();
     sceneStats.frames++;
