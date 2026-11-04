@@ -12,6 +12,8 @@ import {
 import { PRESETS, type KersPreset } from '../kers-braking/model';
 import { MGUK_MAX_RPM_BY_ERA, type BrakingState, type MgukEra } from './model';
 import type { HousingMode } from './geometry';
+import type { PartId } from './stage';
+import { PART_INFO } from './tour';
 
 export const PHASE_SPEC: ParamSpec = {
   min: 0,
@@ -34,6 +36,9 @@ export interface PanelOptions {
   onPlayToggle(playing: boolean): void;
   onHousing(mode: HousingMode): void;
   onView(view: 'home' | 'mguk'): void;
+  /** User picked a part (null = back to the overview). */
+  onFocus?(part: PartId | null): void;
+  onTour?(running: boolean): void;
 }
 
 export interface TeardownPanel extends Disposable {
@@ -41,6 +46,9 @@ export interface TeardownPanel extends Disposable {
   /** Show a state; `phase` moves the slider only while the sim plays (never while dragging). */
   update(state: BrakingState, phase: number): void;
   setPlaying(playing: boolean): void;
+  /** Reflect the focused part (buttons, caption, data-focus-part). */
+  setFocus(part: PartId | null): void;
+  setTour(running: boolean): void;
 }
 
 /** Readout rows: key, Italian label, formatter of the BrakingState. */
@@ -154,6 +162,60 @@ export function createTeardownPanel(host: HTMLElement, o: PanelOptions): Teardow
     onChange: o.onView,
   });
 
+  // Part buttons: each toggles focus (aria-pressed); the "Insieme" / "MGU-K" view radios leave it.
+  let focus: PartId | null = null;
+  let tourOn = false;
+  const partBtns = new Map<PartId, ButtonHandle>();
+  const partRow = el('div', {
+    class: 'mgt-parts',
+    attrs: { role: 'group', 'aria-label': 'Parti da inquadrare' },
+  });
+  for (const p of PART_INFO) {
+    const b = createButton({
+      labelIT: p.labelIT,
+      onClick: () => o.onFocus?.(focus === p.id ? null : p.id),
+    });
+    b.element.setAttribute('aria-pressed', 'false');
+    b.element.dataset['part'] = p.id;
+    partBtns.set(p.id, b);
+    partRow.append(b.element);
+  }
+  const caption = el('p', {
+    class: 'mgt-caption',
+    attrs: { 'aria-live': 'polite' },
+    dataset: { out: 'partCaption' },
+  });
+  caption.hidden = true;
+  const tour = createButton({
+    labelIT: 'Tour automatico',
+    icon: '⟳',
+    onClick: () => o.onTour?.(!tourOn),
+  });
+  tour.element.setAttribute('aria-pressed', 'false');
+  tour.element.dataset['tour'] = 'toggle';
+  function setFocus(p: PartId | null): void {
+    focus = p;
+    for (const [id, b] of partBtns) b.element.setAttribute('aria-pressed', String(id === p));
+    if (p) element.dataset['focusPart'] = p;
+    else delete element.dataset['focusPart'];
+    const info = PART_INFO.find((x) => x.id === p);
+    caption.hidden = !info;
+    caption.textContent = info?.captionIT ?? '';
+  }
+  function setTour(on: boolean): void {
+    tourOn = on;
+    tour.element.setAttribute('aria-pressed', String(on));
+    element.dataset['tour'] = on ? 'on' : 'off';
+  }
+  element.dataset['tour'] = 'off';
+  // Clicking the already selected view radio does not fire `change`: still leave the part focus.
+  view.element.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t instanceof HTMLInputElement && focus && t.value === view.value) {
+      o.onView(t.value as 'home' | 'mguk');
+    }
+  });
+
   const grid = el('dl', { class: 'mgt-grid' });
   const outs = new Map<string, HTMLElement>();
   for (const r of READOUTS) {
@@ -178,7 +240,9 @@ export function createTeardownPanel(host: HTMLElement, o: PanelOptions): Teardow
   });
 
   element.append(
-    el('div', { class: 'mgt-row' }, [play.element]),
+    el('div', { class: 'mgt-row' }, [play.element, tour.element]),
+    partRow,
+    caption,
     slider.element,
     era.element,
     grid,
@@ -208,7 +272,11 @@ export function createTeardownPanel(host: HTMLElement, o: PanelOptions): Teardow
     element,
     update,
     setPlaying,
+    setFocus,
+    setTour,
     dispose() {
+      for (const b of partBtns.values()) b.dispose();
+      tour.dispose();
       play.dispose();
       slider.dispose();
       housing.dispose();

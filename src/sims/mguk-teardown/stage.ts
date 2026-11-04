@@ -94,6 +94,8 @@ export function frameView(f: FrameSpec, aspect: number): { position: Vec3; targe
 export const HOME_VIEW = frameView(HOME_FRAME, DEFAULT_ASPECT);
 export const MGUK_VIEW = frameView(MGUK_FRAME, DEFAULT_ASPECT);
 
+export type PartId = 'wheel' | 'gears' | 'stator' | 'rotor' | 'inverter' | 'battery';
+
 export interface TeardownStage {
   readonly stage: Stage;
   readonly parts: Teardown;
@@ -104,6 +106,9 @@ export interface TeardownStage {
   setPMax(w: number): void;
   setHousing(m: HousingMode): void;
   setView(v: 'home' | 'mguk'): void;
+  /** Fly to a part and outline it (other labels dim); `null` returns to the home view. */
+  focusPart(part: PartId | null): void;
+  focused(): PartId | null;
   /** Rotor angle θ [rad] (debug / tests). */
   angle(): number;
   info(): StageInfo & { labels: ReturnType<LabelLayer['stats']> };
@@ -243,6 +248,86 @@ export function createTeardownStage(
       sensorHeight: '2.9rem',
     }),
   };
+  // Part focus: camera frame + one accent outline box (a single line draw call, only while focused).
+  const mc = parts.mgukCentre;
+  const frame = (
+    t: THREE.Vector3,
+    halfW: number,
+    halfH: number,
+    elevation: number,
+    azimuth: number,
+  ): FrameSpec => ({ target: t.toArray(), halfW, halfH, fill: 0.8, elevation, azimuth });
+  const gearsC = gearRim.clone().add(v3(-0.3, 0, 0));
+  const part: Record<PartId, { c: THREE.Vector3; half: Vec3; frame: FrameSpec; label: Label }> = {
+    wheel: {
+      c: hub,
+      half: [hub.y, hub.y, 0.42],
+      frame: frame(hub, 1.9, 1.5, 18, 40),
+      label: L.wheel,
+    },
+    gears: {
+      c: gearsC,
+      half: [0.85, 0.55, 0.2],
+      frame: frame(gearsC, 1.0, 0.65, 20, 140),
+      label: L.gears,
+    },
+    stator: {
+      c: mc,
+      half: [0.46, 0.46, 0.32],
+      frame: frame(mc, 0.78, 0.6, 28, 55),
+      label: L.mguk,
+    },
+    rotor: {
+      c: mc,
+      half: [0.27, 0.27, 0.4],
+      frame: frame(mc, 0.5, 0.4, 22, 68),
+      label: L.mguk,
+    },
+    inverter: {
+      c: a.inverter,
+      half: [0.55, 0.3, 0.45],
+      frame: frame(a.inverter, 0.85, 0.6, 35, 34),
+      label: L.inverter,
+    },
+    battery: {
+      c: a.battery,
+      half: [0.9, 0.35, 0.6],
+      frame: frame(a.battery, 1.3, 0.9, 32, 34),
+      label: L.battery,
+    },
+  };
+  const outlineGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(2, 2, 2));
+  const outlineMat = new THREE.LineBasicMaterial({
+    color: 0x8b5cf6,
+    transparent: true,
+    opacity: 0.95,
+    depthTest: false,
+  });
+  const outline = new THREE.LineSegments(outlineGeo, outlineMat);
+  outline.visible = false;
+  outline.frustumCulled = false;
+  outline.renderOrder = 10;
+  stage.scene.add(outline);
+  let focus: PartId | null = null;
+  const dimLabels = (active: Label | null): void => {
+    for (const k of spotKeys) {
+      const lab = L[k];
+      lab.element.style.opacity = !active || lab === active ? '' : '0.3';
+    }
+    leaderMat.opacity = active ? 0.3 : 0.85;
+  };
+  const applyFocus = (id: PartId | null): void => {
+    focus = id;
+    outline.visible = id !== null;
+    if (!id) return dimLabels(null);
+    const p = part[id];
+    outline.position.copy(p.c);
+    outline.scale.set(...p.half);
+    outlineMat.color.set(stage.theme === 'dark' ? 0xb68cff : 0x8b5cf6);
+    dimLabels(p.label);
+    const w = frameView(p.frame, stage.camera.aspect);
+    stage.setView(w.position, w.target);
+  };
   let theta = 0;
   let disposed = false;
   const fmt = ctx.formatIT;
@@ -272,7 +357,16 @@ export function createTeardownStage(
       activePMax = w;
     },
     setHousing: (m) => parts.setHousingMode(m),
+    focusPart(id) {
+      if (disposed) return;
+      if (id) return applyFocus(id);
+      applyFocus(null);
+      const w = frameView(HOME_FRAME, stage.camera.aspect);
+      stage.setView(w.position, w.target);
+    },
+    focused: () => focus,
     setView(v) {
+      applyFocus(null);
       const w = frameView(v === 'mguk' ? MGUK_FRAME : HOME_FRAME, stage.camera.aspect);
       stage.setView(w.position, w.target);
     },
@@ -283,6 +377,9 @@ export function createTeardownStage(
       disposed = true;
       labelLayer.dispose();
       stage.scene.remove(leaders);
+      stage.scene.remove(outline);
+      outlineGeo.dispose();
+      outlineMat.dispose();
       leaderGeo.dispose();
       leaderMat.dispose();
       flow.dispose();

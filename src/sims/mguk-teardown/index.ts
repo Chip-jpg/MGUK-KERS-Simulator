@@ -11,7 +11,8 @@ import { createLoop, createSimLayout, el } from '../../ui';
 import { PRESETS } from '../kers-braking/model';
 import { brakingStateAt, type BrakingState, type MgukEra } from './model';
 import { createTeardownPanel } from './panel';
-import { createTeardownStage, type TeardownStage } from './stage';
+import { createTeardownStage, type PartId, type TeardownStage } from './stage';
+import { createTour } from './tour';
 import './style.css';
 
 export const MODEL_NOTE_IT =
@@ -76,8 +77,36 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
       scene?.setHousing(m);
       draw(0);
     },
-    onView: (v) => scene?.setView(v),
+    onView: (v) => {
+      tour.stop();
+      scene?.setView(v);
+      panel.setFocus(null);
+    },
+    onFocus: (id) => {
+      tour.stop();
+      focusPart(id);
+    },
+    onTour: (on) => {
+      if (on) tour.start();
+      else tour.stop();
+    },
   });
+  function focusPart(id: PartId | null): void {
+    scene?.focusPart(id);
+    panel.setFocus(id);
+  }
+  const tour = createTour({
+    onStep: focusPart,
+    onState: (on) => panel.setTour(on),
+  });
+  // Any direct manipulation of the scene (drag, wheel, touch, keys) hands control back.
+  const stopTour = (): void => tour.stop();
+  const sceneEl = layout.scene;
+  const offInput = scene ? [scene.stage.controls] : [];
+  for (const c of offInput) c.addEventListener('start', stopTour);
+  for (const t of ['wheel', 'pointerdown', 'keydown'] as const) {
+    sceneEl.addEventListener(t, stopTour, { passive: true });
+  }
   function pause(): void {
     playing = false;
     panel.setPlaying(false);
@@ -137,6 +166,8 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     dispose() {
       if (disposed) return;
       disposed = true;
+      tour.dispose();
+      for (const c of offInput) c.removeEventListener('start', stopTour);
       loop.dispose();
       panel.dispose();
       resetView?.dispose();
