@@ -137,11 +137,11 @@ export interface TransformerScene {
 }
 
 const HOME = {
-  position: [-15.0, 6.3, 11.4] as [number, number, number],
-  target: [-2.5, 2.1, -0.8] as [number, number, number],
+  position: [-8.5, 7.2, 17.0] as [number, number, number],
+  target: [-0.4, 2.0, -0.8] as [number, number, number],
 };
 /** Aspect ratio for which {@link HOME} frames the whole chain (1920×1080 scene box). */
-const HOME_ASPECT = 2.33;
+const HOME_ASPECT = 2.0;
 
 /**
  * Home view for a scene box of aspect w/h (QA-043): same viewing direction, the camera
@@ -782,12 +782,12 @@ export function createTransformerScene(
   const ends: Record<Key, THREE.Vector3> = {
     plant: v(-11.2, 5.2, -2.8),
     stepUp: v(UP_X - 1.4, 7.0, -1.0),
-    core: v(UP_X + 2.7, 0.1, 3.7),
+    core: v(UP_X + 2.5, 0.1, 3.4),
     line: v(-1.6, 7.6, 0),
     loss: v(2.0, 7.7, -0.6),
-    sag: v(1.6, 0.0, 3.9),
-    stepDown: v(DOWN_X + 1.2, 0.0, 4.6),
-    town: v(13.2, 5.4, -0.8),
+    sag: v(1.0, 2.2, 5.0),
+    stepDown: v(DOWN_X + 1.2, 0.0, 5.6),
+    town: v(14.6, 4.6, 0.5),
   };
   const KEYS = Object.keys(parts) as Key[];
   const leaderPos = new Float32Array(KEYS.length * 6);
@@ -803,15 +803,19 @@ export function createTransformerScene(
     k: Key,
     o: Omit<Parameters<typeof labels.add>[0], 'anchor' | 'occlude' | 'offset'>,
   ): Label => labels.add({ ...o, anchor: ends[k], occlude: false, offset: [0, 0] });
+  const W = (sensorWidth: string): { sensorWidth: string; sensorHeight: string } => ({
+    sensorWidth,
+    sensorHeight: '1.5rem',
+  });
   const L: Record<Key, Label> = {
-    plant: tag('plant', { text: 'Centrale', quantity: 'emf', priority: 8 }),
-    stepUp: tag('stepUp', { text: 'Elevatore', priority: 7 }),
-    core: tag('core', { text: 'Φ', quantity: 'b', priority: 6 }),
-    line: tag('line', { text: 'Linea', quantity: 'i', priority: 9 }),
-    loss: tag('loss', { text: 'Joule', quantity: 'energy', priority: 8 }),
-    sag: tag('sag', { text: 'freccia', priority: 3, size: 'sm' }),
-    stepDown: tag('stepDown', { text: 'Abbassatore', priority: 7 }),
-    town: tag('town', { text: 'Utenze', quantity: 'energy', priority: 8 }),
+    plant: tag('plant', { text: 'Centrale', quantity: 'emf', priority: 8, ...W('30ch') }),
+    stepUp: tag('stepUp', { text: 'Elevatore', priority: 7, ...W('30ch') }),
+    core: tag('core', { text: 'Φ', quantity: 'b', priority: 6, ...W('15ch') }),
+    line: tag('line', { text: 'Linea', quantity: 'i', priority: 9, ...W('30ch') }),
+    loss: tag('loss', { text: 'Joule', quantity: 'energy', priority: 8, ...W('44ch') }),
+    sag: tag('sag', { text: 'freccia', priority: 3, size: 'sm', ...W('13ch') }),
+    stepDown: tag('stepDown', { text: 'Abbassatore', priority: 7, ...W('30ch') }),
+    town: tag('town', { text: 'Utenze', quantity: 'energy', priority: 8, ...W('17ch') }),
   };
   const updateLeaders = (): void => {
     KEYS.forEach((k, i) => {
