@@ -49,11 +49,40 @@ export interface CarSceneCore {
   dispose(): void;
 }
 
-/** Home view: front-left three-quarter, slightly above the car. */
-export const CAR_VIEW = {
-  position: [3.95, 1.8, 4.95] as [number, number, number],
-  target: [-0.15, 0.42, 0.1] as [number, number, number],
+const FOV = 30;
+type Vec3 = [number, number, number];
+/**
+ * Home framing: the whole car (5,55 m × ~1 m, front wing tip to rear wing) fills ~66 % of
+ * the canvas, seen 3/4 from the cut-open side (+z) and slightly above, so the opened engine
+ * bay, the MGU-K and the energy store face the camera.
+ */
+const HOME = {
+  target: [0.15, 0.25, 0.2] as Vec3,
+  halfW: 2.55,
+  halfH: 1.1,
+  fill: 0.6,
+  elevation: 25,
+  azimuth: 44,
 };
+/** Camera position/target fitting the car into a canvas of the given aspect ratio. */
+export function carView(aspect: number): { position: Vec3; target: Vec3 } {
+  const tanV = Math.tan((FOV * Math.PI) / 360);
+  const tanH = tanV * (Number.isFinite(aspect) && aspect > 0.2 ? aspect : 2.1);
+  const d = Math.max(HOME.halfW / (HOME.fill * tanH), HOME.halfH / (HOME.fill * tanV));
+  const el = (HOME.elevation * Math.PI) / 180;
+  const az = (HOME.azimuth * Math.PI) / 180;
+  const [tx, ty, tz] = HOME.target;
+  return {
+    position: [
+      tx + d * Math.cos(el) * Math.sin(az),
+      ty + d * Math.sin(el),
+      tz + d * Math.cos(el) * Math.cos(az),
+    ],
+    target: HOME.target,
+  };
+}
+/** Home view at the default 2,1:1 canvas (re-fitted to the real aspect on mount). */
+export const CAR_VIEW = carView(2.1);
 
 export function createCarSceneCore(
   container: HTMLElement,
@@ -64,13 +93,16 @@ export function createCarSceneCore(
 ): CarSceneCore {
   const stage = createStage(container, ctx, {
     ariaLabel,
-    camera: { ...CAR_VIEW, fov: 34, far: 160 },
-    controls: { minDistance: 3, maxDistance: 24, maxPolarAngle: (84 * Math.PI) / 180 },
+    camera: { ...CAR_VIEW, fov: FOV, far: 160 },
+    controls: { minDistance: 2.2, maxDistance: 24, maxPolarAngle: (84 * Math.PI) / 180 },
     floorY: -0.02,
     // the studio floor runs out under the scene fog (no disc edge beside the track)
     floor: { radius: 64 },
     shadowRadius: 4.2,
+    look: 'teardown',
   });
+  const home = carView(stage.camera.aspect);
+  stage.setView(home.position, home.target, false);
   let car: Car | null = null;
   let track: Track | null = null;
   let labels: LabelLayer | null = null;
@@ -95,7 +127,8 @@ export function createCarSceneCore(
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      offset: [0, -34],
+      // up-left on the backdrop behind the rear wing, clear of the opened bay
+      offset: [-200, -70],
     }),
     battery: labels.add({
       text: 'Batteria',
@@ -104,7 +137,8 @@ export function createCarSceneCore(
       quantity: 'energy',
       priority: 9,
       occlude: false,
-      offset: [-40, 30],
+      // below the floor, on the asphalt
+      offset: [20, 120],
     }),
     discFront: labels.add({
       text: 'Disco ant.',
@@ -112,7 +146,7 @@ export function createCarSceneCore(
       anchor: a.discFront,
       priority: 8,
       occlude: false,
-      offset: [40, 46],
+      offset: [120, 20],
     }),
     discRear: labels.add({
       text: 'Disco post.',
@@ -120,7 +154,7 @@ export function createCarSceneCore(
       anchor: a.discRear,
       priority: 8,
       occlude: false,
-      offset: [-84, 14],
+      offset: [-110, 60],
     }),
     start: labels.add({
       text: 'Punto di frenata',
