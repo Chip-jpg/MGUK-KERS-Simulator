@@ -7,6 +7,18 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-05
+
+### Aggiunto
+
+- Ricostruzione 3D in stile teardown di tutti e 9 i simulatori ([#23](https://github.com/Chip-jpg/MGUK-KERS-Simulator/pull/23)).
+- Pulsanti di focus sui componenti dell'MGU-K con evidenziazione della parte selezionata e tour automatico con didascalie.
+- La versione 3D è pubblicata sotto `/3d/`, accanto al sito v0.7.4 alla radice.
+
+### Modificato
+
+- Prestazioni al livello base: unione delle mesh statiche e limite al frame rate.
+
 ## [0.7.4] - 2026-11-01
 
 ### Corretto
@@ -329,7 +341,8 @@ Correzioni dal round 2 della revisione QA:
 - I 60 fps non sono stati misurati sul portatile di riferimento: sono disponibili solo
   misure in Chromium headless.
 
-[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.7.4...v0.8.0
 [0.7.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Chip-jpg/MGUK-KERS-Simulator/compare/v0.5.0...v0.5.1

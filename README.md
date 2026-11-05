@@ -19,7 +19,7 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Simulatori** — 8 simulatori 3D con guida finale e un approfondimento con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
-**Versione attuale: v0.7.4** — tutte le fasi del progetto (1–4) sono completate; le
+**Versione attuale: v0.8.0** — tutte le fasi del progetto (1–4) sono completate; le
 novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Il filo logico
@@ -162,6 +162,7 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
 - [x] **v0.6.0 — Grafica 3D**: nuova grafica di tutti i simulatori guidata dalla fisica dei modelli: materiali realistici, ombre, linee di campo, particelle di corrente, temperature e nastri di energia con scale dichiarate, qualità grafica Alta / Bilanciata / Base.
 
 - [x] **v0.7.4 — Tipografia indicatori**: indicatori dell’alternatore/motore con lo stesso stile delle etichette degli altri simulatori e testo più nitido, posizione e letture invariate.
+- [x] **v0.8.0 — Versione 3D**: tutti i 9 simulatori ricostruiti in 3D in stile teardown, con pulsanti di focus sui componenti dell’MGU-K, tour automatico con didascalie e ottimizzazioni per il livello base; pubblicata in `/3d/` accanto al sito v0.7.4 alla radice.
 - [x] **v0.7.3 — Indicatori macchina**: letture leggibili e ferme accanto ai componenti dell’alternatore/motore, senza seguire il rotore.
 - [x] **v0.7.2 — Preset guida**: confronto MGU-K 2025 (120 kW) / 2026 (350 kW), selezione evidenziata e riavvio comparabile.
 - [x] **v0.7.1 — Interfaccia**: sensori ancorati ai componenti, spaziature MGU-K, limite fisso 200 FPS e pedali a pulsante.
