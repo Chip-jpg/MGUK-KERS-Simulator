@@ -31,12 +31,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout triggering ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
       - name: Checkout stable ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.stable_ref || env.STABLE_REF }}
           path: stable
