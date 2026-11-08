@@ -14,28 +14,28 @@ denominators). Results never return `−0` (normalised to `+0`).
 
 ## 1. Function table
 
-| Function                                 | Formula                                                                       | Slide                                                                       | Units (in → out)              | Validity limits / notes                                                                                                                                                                                          |
-| ---------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fluxUniform(B, S, alphaRad)`            | $\Phi_B = B\,S\cos\alpha$                                                     | 7                                                                           | T, m², rad → Wb               | Uniform B, flat surface. α = angle between B and normal n̂. S ≥ 0.                                                                                                                                                |
-| `emfFaraday(dPhi, dt, N = 1)`            | $\text{f.e.m.} = -N\,\Delta\Phi_B/\Delta t$                                   | 8                                                                           | Wb, s, – → V                  | Average emf over Δt. **Δt ≤ 0 ⇒ RangeError** (Δt = 0 included). N ≥ 0.                                                                                                                                           |
-| `emfMotional(B, l, v)`                   | $\text{f.e.m.} = B\,l\,v$                                                     | 8                                                                           | T, m, m/s → V                 | B ⟂ l ⟂ v, uniform B. Signed with B·v. l ≥ 0.                                                                                                                                                                    |
-| `rotatingLoop(B, S, N, omega, t)`        | $\Phi=BS\cos\omega t$, $\text{f.e.m.}=NBS\omega\sin\omega t$, $V_0=NBS\omega$ | 18, 19                                                                      | T, m², –, rad/s, s → Wb, V, V | Single-phase loop, uniform B, constant ω, α(0) = 0. `phi` is per turn; `emf` is the whole coil. `V0` is signed so that `emf = V0·sin ωt` always holds; peak = \|V0\|. Simplified model of the three-phase MGU-K. |
-| `inducedCurrent(emf, R)`                 | $i = \text{f.e.m.}/R = -\frac{1}{R}\frac{\Delta\Phi}{\Delta t}$               | 9                                                                           | V, Ω → A                      | Ohm's law, self-inductance of the loop neglected. **R ≤ 0 ⇒ RangeError** (R = 0 included).                                                                                                                       |
-| `lenzSign(dPhiDt)`                       | $\operatorname{sign}(i) = -\operatorname{sign}(d\Phi/dt)$                     | 11                                                                          | Wb/s → {−1, 0, 1}             | Orientation convention in §2. NaN ⇒ RangeError; ±∞ allowed.                                                                                                                                                      |
-| `solenoidInductance(N, S, l, mu = MU_0)` | $L = \mu N^2 S / l$                                                           | 14                                                                          | –, m², m, H/m → H             | Long solenoid (l ≫ diameter), uniform internal field, no fringe field, linear core (no saturation, μ constant). l > 0, μ > 0.                                                                                    |
-| `emfSelf(L, dIdt)`                       | $\text{f.e.m.} = -L\,di/dt$                                                   | 13                                                                          | H, A/s → V                    | Constant L. L ≥ 0.                                                                                                                                                                                               |
-| `rlTimeConstant(R, L)` _(added)_         | $\tau = L/R$                                                                  | 15                                                                          | Ω, H → s                      | R > 0.                                                                                                                                                                                                           |
-| `rlCurrent(emfDC, R, L, t)`              | $i(t) = I_0\,(1-e^{-Rt/L})$, $I_0 = \text{f.e.m.}/R$                          | 15                                                                          | V, Ω, H, s → A                | Switch closed at t = 0, i(0) = 0, ideal DC source. t < 0 ⇒ 0. **R = 0 ⇒ exact limit i = f.e.m.·t/L.** L > 0. Uses `expm1` for small Rt/L.                                                                        |
-| `magneticEnergy(L, I)`                   | $U_M = \tfrac12 L I^2$                                                        | 17                                                                          | H, A → J                      | Linear inductor (no saturation). L ≥ 0.                                                                                                                                                                          |
-| `transformerSecondary(V1, N1, N2)`       | $\Delta V_1/\Delta V_2 = N_1/N_2 \Rightarrow V_2 = V_1 N_2/N_1$               | 20                                                                          | V, –, – → V                   | **Ideal transformer**: no winding resistance, no leakage flux, no core losses, no saturation. N1, N2 > 0.                                                                                                        |
-| `transformerCurrent(I1, N1, N2)`         | $I_2 = I_1 N_1/N_2$ (so $V_1I_1 = V_2I_2$)                                    | 20                                                                          | A, –, – → A                   | Ideal transformer; the current ratio follows from power conservation (not written on slide 20).                                                                                                                  |
-| `jouleLoss(R, I)`                        | $P = R\,I^2$                                                                  | 16                                                                          | Ω, A → W                      | The $R i^2$ term of the slide-16 energy balance. R ≥ 0.                                                                                                                                                          |
-| `lineLoss(P, V, Rline)`                  | $I = P/V$, $P_{loss} = R I^2$, $\text{fraction} = P_{loss}/P$                 | 23 (21–23)                                                                  | W, V, Ω → A, W, –             | Purely resistive line, power factor 1, single-phase equivalent. V > 0. P = 0 ⇒ fraction 0. fraction > 1 ⇒ outside model.                                                                                         |
-| `lorentzForce(B, I, L, theta = π/2)`     | $F = B\,I\,L\sin\theta$                                                       | none (extension: inverse principle of induction, from the assignment sheet) | T, A, m, rad → N              | Straight wire, uniform B. Signed; direction by the right-hand rule on $\vec L\times\vec B$.                                                                                                                      |
-| `kineticEnergyDelta(m, v1, v2)`          | $\Delta E_k = \tfrac12 m (v_1^2 - v_2^2)$                                     | none (extension: mechanics)                                                 | kg, m/s, m/s → J              | Point mass, translational KE only (wheel rotational inertia ignored). Negative if speeding up.                                                                                                                   |
-| `kersBrakingEvent(p)`                    | see §4                                                                        | none (extension: KERS model; builds on 16–17 and 18–19)                     | see §4                        | see §4                                                                                                                                                                                                           |
-| `kersDissipationSplit(r)` _(added)_      | brakes $= \Delta E_k - E_{rec}$, mguk $= E_{rec} - E_{el}$                    | none (extension)                                                            | J → J                         | Splits `dissipated` of a `kersBrakingEvent` result.                                                                                                                                                              |
-| `rk4Step(f, t, y, dt)`                   | classical RK4 (see TSDoc)                                                     | none (extension: numerical method)                                          | –                             | Global error O(dt⁴). Pure; dt = 0 returns a copy; dt < 0 integrates backwards.                                                                                                                                   |
+| Function                                 | Formula                                                                       | Slide                                                                       | Units (in → out)              | Validity limits / notes                                                                                                                                                                                                                                                              |
+| ---------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fluxUniform(B, S, alphaRad)`            | $\Phi_B = B\,S\cos\alpha$                                                     | 7                                                                           | T, m², rad → Wb               | Uniform B, flat surface. α = angle between B and normal n̂. S ≥ 0.                                                                                                                                                                                                                    |
+| `emfFaraday(dPhi, dt, N = 1)`            | $\text{f.e.m.} = -N\,\Delta\Phi_B/\Delta t$                                   | 8                                                                           | Wb, s, – → V                  | Average emf over Δt. **Δt ≤ 0 ⇒ RangeError** (Δt = 0 included). N ≥ 0.                                                                                                                                                                                                               |
+| `emfMotional(B, l, v)`                   | $\text{f.e.m.} = B\,l\,v$                                                     | 8                                                                           | T, m, m/s → V                 | B ⟂ l ⟂ v, uniform B. Signed with B·v. l ≥ 0.                                                                                                                                                                                                                                        |
+| `rotatingLoop(B, S, N, omega, t)`        | $\Phi=BS\cos\omega t$, $\text{f.e.m.}=NBS\omega\sin\omega t$, $V_0=NBS\omega$ | 3, 7, 9; sine on 19                                                         | T, m², –, rad/s, s → Wb, V, V | Single-phase loop, uniform B, constant ω, α(0) = 0. `phi` is per turn; `emf` is the whole coil. `V0` is signed so that `emf = V0·sin ωt` always holds; peak = \|V0\|. Derivation from the rotating-loop experiment, the flux law and Faraday; pages 18–19 do not print this formula. |
+| `inducedCurrent(emf, R)`                 | $i = \text{f.e.m.}/R = -\frac{1}{R}\frac{\Delta\Phi}{\Delta t}$               | 9                                                                           | V, Ω → A                      | Ohm's law, self-inductance of the loop neglected. **R ≤ 0 ⇒ RangeError** (R = 0 included).                                                                                                                                                                                           |
+| `lenzSign(dPhiDt)`                       | $\operatorname{sign}(i) = -\operatorname{sign}(d\Phi/dt)$                     | 11                                                                          | Wb/s → {−1, 0, 1}             | Orientation convention in §2. NaN ⇒ RangeError; ±∞ allowed.                                                                                                                                                                                                                          |
+| `solenoidInductance(N, S, l, mu = MU_0)` | $L = \mu N^2 S / l$                                                           | 14                                                                          | –, m², m, H/m → H             | Long solenoid (l ≫ diameter), uniform internal field, no fringe field, linear core (no saturation, μ constant). l > 0, μ > 0.                                                                                                                                                        |
+| `emfSelf(L, dIdt)`                       | $\text{f.e.m.} = -L\,di/dt$                                                   | 13                                                                          | H, A/s → V                    | Constant L. L ≥ 0.                                                                                                                                                                                                                                                                   |
+| `rlTimeConstant(R, L)` _(added)_         | $\tau = L/R$                                                                  | 15                                                                          | Ω, H → s                      | R > 0.                                                                                                                                                                                                                                                                               |
+| `rlCurrent(emfDC, R, L, t)`              | $i(t) = I_0\,(1-e^{-Rt/L})$, $I_0 = \text{f.e.m.}/R$                          | 15                                                                          | V, Ω, H, s → A                | Switch closed at t = 0, i(0) = 0, ideal DC source. t < 0 ⇒ 0. **R = 0 ⇒ exact limit i = f.e.m.·t/L.** L > 0. Uses `expm1` for small Rt/L.                                                                                                                                            |
+| `magneticEnergy(L, I)`                   | $U_M = \tfrac12 L I^2$                                                        | 17                                                                          | H, A → J                      | Linear inductor (no saturation). L ≥ 0.                                                                                                                                                                                                                                              |
+| `transformerSecondary(V1, N1, N2)`       | $\Delta V_1/\Delta V_2 = N_1/N_2 \Rightarrow V_2 = V_1 N_2/N_1$               | 20                                                                          | V, –, – → V                   | **Ideal transformer**: no winding resistance, no leakage flux, no core losses, no saturation. N1, N2 > 0.                                                                                                                                                                            |
+| `transformerCurrent(I1, N1, N2)`         | $I_2 = I_1 N_1/N_2$ (so $V_1I_1 = V_2I_2$)                                    | 20                                                                          | A, –, – → A                   | Ideal transformer; the current ratio follows from power conservation (not written on slide 20).                                                                                                                                                                                      |
+| `jouleLoss(R, I)`                        | $P = R\,I^2$                                                                  | 16                                                                          | Ω, A → W                      | The $R i^2$ term of the slide-16 energy balance. R ≥ 0.                                                                                                                                                                                                                              |
+| `lineLoss(P, V, Rline)`                  | $I = P/V$, $P_{loss} = R I^2$, $\text{fraction} = P_{loss}/P$                 | 16 + 23 (derivation)                                                        | W, V, Ω → A, W, –             | Purely resistive line, power factor 1, single-phase equivalent. V > 0. P = 0 ⇒ fraction 0. fraction > 1 ⇒ outside model. Page 23 draws the transport chain and illustrative voltages; it does not print this formula. The $R i^2$ factor is the page-16 term.                        |
+| `lorentzForce(B, I, L, theta = π/2)`     | $F = B\,I\,L\sin\theta$                                                       | none (extension: inverse principle of induction, from the assignment sheet) | T, A, m, rad → N              | Straight wire, uniform B. Signed; direction by the right-hand rule on $\vec L\times\vec B$.                                                                                                                                                                                          |
+| `kineticEnergyDelta(m, v1, v2)`          | $\Delta E_k = \tfrac12 m (v_1^2 - v_2^2)$                                     | none (extension: mechanics)                                                 | kg, m/s, m/s → J              | Point mass, translational KE only (wheel rotational inertia ignored). Negative if speeding up.                                                                                                                                                                                       |
+| `kersBrakingEvent(p)`                    | see §4                                                                        | none (extension: KERS model; builds on 16–17 and 18–19)                     | see §4                        | see §4                                                                                                                                                                                                                                                                               |
+| `kersDissipationSplit(r)` _(added)_      | brakes $= \Delta E_k - E_{rec}$, mguk $= E_{rec} - E_{el}$                    | none (extension)                                                            | J → J                         | Splits `dissipated` of a `kersBrakingEvent` result.                                                                                                                                                                                                                                  |
+| `rk4Step(f, t, y, dt)`                   | classical RK4 (see TSDoc)                                                     | none (extension: numerical method)                                          | –                             | Global error O(dt⁴). Pure; dt = 0 returns a copy; dt < 0 integrates backwards.                                                                                                                                                                                                       |
 
 Constants and helpers: `PHYSICS_DT = 1/240 s`; `MU_0`; `MU_0_SI2019`; `KERS_TRACE_SAMPLES = 201`;
 `kmhToMs`, `msToKmh`, `degToRad`, `radToDeg`.
@@ -47,21 +47,23 @@ model quantity that drives it.
 
 ### μ₀ choice
 
-`MU_0 = 4π·10⁻⁷ H/m` — the value used in the slides (slide 14) and exact in the pre-2019
-SI. Since the 2019 SI redefinition μ₀ is measured: `MU_0_SI2019 = 1.25663706212·10⁻⁶ H/m`
-(CODATA 2018). Relative difference ≈ 5.5·10⁻¹⁰, invisible at any UI precision; the slide
-value is kept so that numbers match the student's notebook exactly.
+`MU_0 = 4π·10⁻⁷ H/m` — the pre-2019 SI value. Page 14 prints the symbol μ₀ in
+$L = \mu_0 N^2 S/\ell$ and calls it the permeability of the medium; it does not print this
+number, and μ₀ there is the vacuum permeability (air-core idealization), not an arbitrary
+medium. Since the 2019 SI redefinition μ₀ is measured: `MU_0_SI2019 = 1.25663706212·10⁻⁶ H/m`
+(CODATA 2018). Relative difference ≈ 5.5·10⁻¹⁰, invisible at any UI precision; the pre-2019
+value is kept.
 
 ### Slide references vs. A0's D7 guesses
 
-| Function             | A0 stub | A1 final                                                                           |
-| -------------------- | ------- | ---------------------------------------------------------------------------------- |
-| `jouleLoss`          | 16      | **16** (confirmed: $R i^2 \Delta t$ term of the energy balance)                    |
-| `lineLoss`           | 22, 23  | **23** (transport chain, slides 21–23 group; 22 is plants renewable/non-renewable) |
-| `transformerCurrent` | 20      | **20** (ratio from power conservation, not printed on the slide)                   |
-| `lorentzForce`       | none    | **none (extension)** — confirmed                                                   |
-| `kineticEnergyDelta` | none    | **none (extension)** — confirmed                                                   |
-| `kersBrakingEvent`   | 16, 17  | **none (extension)**, builds on 16–17 (energy balance) and 18–19 (alternator)      |
+| Function             | A0 stub | A1 final                                                                                                 |
+| -------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| `jouleLoss`          | 16      | **16** (confirmed: $R i^2 \Delta t$ term of the energy balance)                                          |
+| `lineLoss`           | 22, 23  | **16 + 23** (Ri² from the energy balance; page 23 is the chain, formula not printed; 22 is plant photos) |
+| `transformerCurrent` | 20      | **20** (ratio from power conservation, not printed on the slide)                                         |
+| `lorentzForce`       | none    | **none (extension)** — confirmed                                                                         |
+| `kineticEnergyDelta` | none    | **none (extension)** — confirmed                                                                         |
+| `kersBrakingEvent`   | 16, 17  | **none (extension)**, builds on 16–17 (energy balance) and 18–19 (alternator)                            |
 
 The KERS topic as a whole (sim `kers-braking` and theory `10-kers-mguk`) builds on
 slides **16, 17, 18, 19** — energy balance and alternator (aligned in QA round 1, QA-013);
@@ -69,9 +71,38 @@ Faraday-Neumann (8) and Lenz (11) are reached through theories 03 and 04. Since 
 numbers appear only in this document and in the `@slide` TSDoc tags, not in the app UI
 (D13).
 
-Slide numbers were derived from the slide summary in the project brief, not from the
-deck file itself (not in the repo). Exact numbering of slides 21–23 should be checked
-against the deck by QA (A11).
+Page numbers below were checked against the SEI deck _L’induzione elettromagnetica_
+(23 pages, page = printed number, cover = 1) on 2026-11-08. They stay in this developer
+map. Decision D13 still forbids slide chips and the words “slide” / “slides” in theory
+Markdown.
+
+| Page | Printed content used by theory                                   | Theory card         |
+| ---- | ---------------------------------------------------------------- | ------------------- |
+| 1    | Title only                                                       | —                   |
+| 2    | Translation, area in the field                                   | 02                  |
+| 3    | Rotating loop, qualitative                                       | 02, 07              |
+| 4    | Magnet and coil                                                  | 02, 04              |
+| 5    | Two coils, closing transient                                     | 02                  |
+| 6    | Common conclusion                                                | 02                  |
+| 7    | $\Phi_B = BS\cos\alpha$, weber                                   | 01                  |
+| 8    | $B\ell v$ with $L$ = work; Faraday average                       | 03                  |
+| 9    | Resistive current; derivatives                                   | 03                  |
+| 10   | Worked example, 4 mΩ, 62,5 mA (prompt writes 4 mW)               | 03                  |
+| 11   | Lenz, both magnet cases                                          | 04                  |
+| 12   | Self-induction                                                   | 05                  |
+| 13   | $L=\lambda/i$, $-L\,di/dt$                                       | 05                  |
+| 14   | Solenoid $L=\mu_0 N^2 S/\ell$                                    | 05                  |
+| 15   | Closing $i(t)=I_0(1-e^{-Rt/L})$; green “apertura” label is wrong | 06                  |
+| 16   | Incremental energy balance, $Ri^2$                               | 06, 08              |
+| 17   | $U_M=\tfrac12 LI_0^2$, magnetic energy, not a battery            | 06                  |
+| 18   | Alternator, mechanical → electrical                              | 07                  |
+| 19   | $V_0\sin(\omega t)$ only                                         | 07                  |
+| 20   | $\Delta V_1/\Delta V_2 = N_1/N_2$                                | 08                  |
+| 21   | Generator / plant sketch                                         | omitted from theory |
+| 22   | Plant photographs                                                | omitted from theory |
+| 23   | Transport chain, illustrative voltages                           | 08, words only      |
+
+Corrections carried into `content/theory`: page 10 uses 4 mΩ; page 13’s $\Phi$ in $L=\Phi/i$ is linked flux; page 14’s $\mu_0$ is vacuum and the current-independence claim is the linear case; page 15’s closing transient is not named “di apertura”; page 17’s $\tfrac12 LI^2$ is not KERS storage. TSDoc `@slide` tags in `src/physics` were not edited.
 
 ## 2. Sign and orientation conventions
 
@@ -194,6 +225,7 @@ S = 5.0·10⁻² m², Δt = 0.46 s, B: 1.2·10⁻³ → 3.5·10⁻³ T, R = 4 m�
 - |f.e.m.| = ΔΦ/Δt = 1.15·10⁻⁴ / 0.46 = 2.5·10⁻⁴ V (exact: 1.15/0.46 = 2.5)
 - |I| = 2.5·10⁻⁴ V / 4·10⁻³ Ω = 6.25·10⁻² A = **62.5 mA**
 
+The deck’s problem statement writes “4 mW”; the data line and this denominator are 4 mΩ.
 The computation is exact — no rounding needed. With signs: f.e.m. = −2.5·10⁻⁴ V and
 I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted in
 `tests/physics/targets.test.ts` to ±0.1 mA (actual agreement ~1e-15).
@@ -201,8 +233,10 @@ I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted 
 ## 6. Global validity limits
 
 - **Uniform B** over the circuit surface in the slide-based functions above (the field of real, finite coils is not modelled).
-- **Single-phase simplification**: the rotating loop is a simplified model of the real
-  MGU-K, a three-phase permanent-magnet synchronous machine.
+- **Single-phase simplification**: the rotating loop is a single-phase teaching model.
+  A three-phase permanent-magnet description of a real MGU-K is an estimate in
+  `docs/OPEN_FACTS.md` (#8), not a statement in the theory cards. Simulator notes that
+  still say so were left unchanged.
 - **Ideal transformer** and **linear materials** (no saturation, no hysteresis, no eddy
   current losses in cores).
 - **Lumped circuits**, quasi-static (no radiation, no skin effect).
@@ -478,7 +512,7 @@ clamps above 2500 K, which none of the simulated parts reaches.
 ## 11. Overhead line and transformer core (`src/physics/powerline.ts`)
 
 Extension used by the `joule-transformer` diorama (`@slide none (extension: visualisation)`).
-The line-loss physics itself is `lineLoss` (§1, slide 23); these functions only drive the sag
+The line-loss physics itself is `lineLoss` (§1: Ri² from page 16, chain on page 23; the loss formula is not printed on page 23); these functions only drive the sag
 of the drawn spans and the number of core flux loops.
 
 | Function                                | Formula                                                                     | Slide                           | Units (in → out) | Validity limits / notes                                                                                                                                                      |
