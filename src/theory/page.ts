@@ -7,7 +7,46 @@ import { renderMarkdown } from './markdown';
 import { watchScrollableMath } from './scrollable';
 
 /** Theory index: intro + ordered list of sections (or an "in preparazione" note). */
-export function renderTheoryIndex(host: HTMLElement, docs: readonly TheoryDoc[]): Disposable {
+export function renderTheoryIndex(
+  host: HTMLElement,
+  docs: readonly TheoryDoc[],
+  /** Optional home extras: a section rendered below the theory grid (simulators). */
+  simsSection?: HTMLElement,
+): Disposable {
+  const first = [...docs].sort((a, b) => a.order - b.order)[0];
+  const jump = (e: Event): void => {
+    // The hash router owns `location.hash`, so scroll in page instead of navigating.
+    e.preventDefault();
+    const target = host.querySelector<HTMLElement>(`#${t.home.simsId}`);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target?.focus({ preventScroll: true });
+  };
+  const hero = el('section', { class: 'hero', attrs: { 'aria-labelledby': 'hero-title' } }, [
+    el('h1', {
+      class: 'page-title hero__title',
+      text: t.app.name,
+      attrs: { id: 'hero-title', tabindex: -1 },
+    }),
+    el('p', { class: 'hero__tagline', text: t.app.tagline }),
+    el('p', { class: 'lead', text: t.home.intro }),
+    el('div', { class: 'hero__actions' }, [
+      first
+        ? el('a', {
+            class: 'btn btn--primary btn--lg',
+            text: t.home.startTheory,
+            attrs: { href: formatRoute({ kind: 'teoria', id: first.id }) },
+          })
+        : null,
+      el('a', {
+        class: 'btn btn--lg',
+        text: t.home.openSims,
+        attrs: { href: `#${t.home.simsId}` },
+      }),
+    ]),
+  ]);
+  const jumpLink = hero.querySelector<HTMLAnchorElement>(`a[href="#${t.home.simsId}"]`);
+  const offJump = jumpLink ? listen(jumpLink, 'click', jump) : () => {};
+
   const list = el('ol', { class: 'card-list theory-index' });
   for (const d of docs) {
     list.append(
@@ -29,13 +68,20 @@ export function renderTheoryIndex(host: HTMLElement, docs: readonly TheoryDoc[])
     );
   }
   host.replaceChildren(
+    hero,
     el('header', { class: 'page-header' }, [
-      el('h1', { class: 'page-title', text: t.theory.indexTitle, attrs: { tabindex: -1 } }),
+      el('h2', { class: 'section-title', text: t.theory.indexTitle }),
       el('p', { class: 'lead', text: t.theory.indexIntro }),
     ]),
     docs.length > 0 ? list : el('p', { class: 'empty-state', text: t.theory.empty }),
+    ...(simsSection ? [simsSection] : []),
   );
-  return { dispose: () => host.replaceChildren() };
+  return {
+    dispose: () => {
+      offJump();
+      host.replaceChildren();
+    },
+  };
 }
 
 /** One theory section: header, TOC, Markdown body, previous/next. */

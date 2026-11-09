@@ -56,6 +56,15 @@ export const it = {
     on: 'Attivo',
     off: 'Disattivo',
   },
+  home: {
+    intro:
+      'Un laboratorio interattivo e didattico sull’induzione elettromagnetica: dalla legge di Faraday-Neumann-Lenz all’MGU-K, la macchina elettrica che in Formula 1 recupera energia in frenata e la restituisce in accelerazione.',
+    startTheory: 'Inizia dalla teoria',
+    openSims: 'Apri i simulatori',
+    simsId: 'simulatori',
+    simsTitle: 'Simulatori',
+    simsIntro: 'Scena 3D, parametri e grafici in tempo reale.',
+  },
   theory: {
     indexTitle: 'Teoria',
     indexIntro: 'Sezioni sintetiche: dalla legge di Faraday all’MGU-K, un passo alla volta.',
