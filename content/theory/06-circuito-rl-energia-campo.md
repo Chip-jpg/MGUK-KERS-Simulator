@@ -7,42 +7,34 @@ level: base
 
 ## In breve
 
-In un circuito con un generatore, una resistenza $R$ e un'induttanza $L$, alla chiusura dell'interruttore la corrente **non sale di colpo**: l'[autoinduzione](05-autoinduzione-induttanza.md) la frena e la fa crescere con legge esponenziale (extracorrente di chiusura). Parte dell'energia del generatore diventa calore nella resistenza (effetto Joule), parte resta **immagazzinata nel campo magnetico**: $U_M = \tfrac12 L I_0^2$.
+Alla chiusura di un circuito con resistenza $R$ e induttanza $L$ in serie a un generatore in continua, la corrente totale cresce con l’esponenziale di chiusura. Una parte dell’energia del generatore scalda la resistenza; un’altra resta nel campo magnetico.
 
 ## Formule
 
-Corrente alla chiusura, con $I_0 = \text{f.e.m.}/R$ e costante di tempo $\tau = L/R$:
+$$i(t) = I_0\left(1 - e^{-(R/L)\,t}\right) \qquad I_0 = \frac{\text{f.e.m.}}{R}$$
 
-$$i(t) = I_0\left(1 - e^{-\frac{R}{L}t}\right) = I_0\left(1 - e^{-t/\tau}\right)$$
+Valida con f.e.m. costante, $R$ e $L$ costanti e $i(0) = 0$. A regime $i = I_0$. Durante il transitorio non vale $i = \text{f.e.m.}/R$.
 
-Bilancio energetico in un intervallo $\Delta t$:
+Bilancio incrementale stampato, in joule:
 
-$$\text{f.e.m.}\cdot i\,\Delta t = R\,i^2\,\Delta t + L\,i\,\Delta i$$
+$$\text{f.e.m.}\cdot i\cdot\Delta t = R\,i^2\cdot\Delta t + L\frac{\Delta i}{\Delta t}\cdot i\cdot\Delta t$$
 
-Energia immagazzinata nel campo magnetico:
+Il risultato di quella somma, da $0$ a $I_0$, è l’energia del campo magnetico:
 
-$$U_M = \frac{1}{2}\,L\,I_0^2$$
+$$U_M = \frac12 L I_0^2$$
+
+$I_0$ è la corrente finale di questo circuito. L’etichetta «massima» indica quel valore finale, non un massimo di una corrente alternata.
 
 ## Spiegazione
 
-**Perché l'esponenziale.** Per la legge delle maglie: $\text{f.e.m.} - L\,\Delta i/\Delta t = R\,i$. All'inizio $i = 0$: tutta la f.e.m. del generatore serve a "vincere" l'autoinduzione e la corrente cresce rapidamente. Man mano che $i$ aumenta, cresce la caduta $Ri$, resta meno tensione per far crescere la corrente e la crescita rallenta. A regime $\Delta i/\Delta t = 0$ e $i = I_0 = \text{f.e.m.}/R$, come se l'induttanza non ci fosse.
+La corrente $i(t)$ della formula è la corrente totale, quella che parte da zero e arriva a $I_0$. Il termine transitorio opposto è la descrizione di chiusura. Una didascalia della presentazione chiama quel termine «di apertura»: non va seguita, e la presentazione non stampa una formula di apertura.
 
-**La costante di tempo** $\tau = L/R$ (in secondi) dice quanto è "lento" il circuito: dopo $t = \tau$ la corrente è al $63{,}2\ \%$ di $I_0$, dopo $5\tau$ è oltre il $99\ \%$.
-
-**Lettura del bilancio.** Moltiplicando la legge delle maglie per $i\,\Delta t$: a sinistra l'energia fornita dal generatore; a destra il **calore Joule** $R\,i^2\Delta t$ e il termine $L\,i\,\Delta i$, che è energia **non persa** ma accumulata nel campo. Sommando i contributi $L\,i\,\Delta i$ da $0$ a $I_0$ si ottiene l'area di un triangolo nel grafico $L\,i$ in funzione di $i$: $\tfrac12 L I_0^2$.
-
-**Dove va questa energia all'apertura?** Il campo scompare e l'energia viene restituita al circuito (extracorrente di apertura): per questo un'induttanza può produrre scintille. Approfondimento: l'energia per unità di volume del campo è $u = B^2/(2\mu_0)$.
+$U_M$ è l’energia magnetica di un induttore lineare. Non è la carica di una batteria, non è l’energia cinetica e non è l’energia recuperata da un KERS.
 
 ## Esempio numerico
 
-$\text{f.e.m.} = 12\ \text{V}$, $R = 4{,}0\ \Omega$, $L = 0{,}20\ \text{H}$.
-
-$$I_0 = \frac{12}{4{,}0} = 3{,}0\ \text{A} \qquad \tau = \frac{0{,}20}{4{,}0} = 0{,}050\ \text{s}$$
-
-$$i(\tau) = 3{,}0\,(1 - e^{-1}) \approx 1{,}9\ \text{A} \qquad U_M = \tfrac12 \cdot 0{,}20 \cdot 3{,}0^2 = 0{,}90\ \text{J}$$
-
-A regime il generatore eroga $12 \cdot 3{,}0 = 36\ \text{W}$, che diventano tutti calore Joule in $R$: l'energia del campo non cresce più.
+Nessun circuito numerico. In simboli: per $t$ grande, $i \to I_0$ e l’energia magnetica si avvicina a $\tfrac12 L I_0^2$, che resta positiva se $L > 0$.
 
 ## Collegamento con KERS / MGU-K
 
-Il bilancio "energia fornita = Joule + energia accumulata" è lo stesso schema che usiamo per la frenata: energia cinetica = energia recuperata + perdite (Joule negli avvolgimenti, calore nei freni). Le perdite $R\,i^2$ crescono con il quadrato della corrente: anche per questo i sistemi ibridi lavorano a tensioni alte e correnti più basse. Vedi [KERS e MGU-K](10-kers-mguk.md) e [Trasformatore ed effetto Joule](08-trasformatore-trasporto-joule.md).
+Lo schema «energia in ingresso = calore + energia accumulata» è solo un’analogia con la frenata. In frenata l’energia che arriva in batteria non è $\tfrac12 LI^2$. Il conto del laboratorio è in [KERS e MGU-K](10-kers-mguk.md).

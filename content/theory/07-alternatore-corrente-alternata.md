@@ -7,42 +7,28 @@ level: base
 
 ## In breve
 
-L'**alternatore** trasforma energia meccanica in energia elettrica: una bobina di $N$ spire ruota con velocità angolare costante $\omega$ in un campo magnetico uniforme (o, equivalentemente, un magnete ruota dentro bobine fisse). Il flusso varia come un coseno e la f.e.m. indotta è **sinusoidale**: $\text{f.e.m.}(t) = V_0 \sin(\omega t)$. La corrente che ne risulta cambia verso periodicamente: è la **corrente alternata** (AC).
+L’alternatore trasforma energia meccanica in energia elettrica. La corrente che produce cambia verso periodicamente: è corrente alternata.
 
 ## Formule
 
-Flusso attraverso una spira che ruota (angolo $\alpha = \omega t$):
+La presentazione stampa la tensione sinusoidale, con la resistenza interna del generatore trascurata. $V_0$ è l’ampiezza, non un valore efficace:
 
-$$\Phi_B(t) = B\,S\cos(\omega t)$$
+$$\text{f.e.m.}(t) \cong v(t) = V_0\sin(\omega t)$$
 
-F.e.m. indotta in $N$ spire (Faraday-Neumann in forma istantanea):
+Per leggere il grafico della spira che ruota si applicano il flusso e Faraday-Neumann all’esperimento della rotazione. Non è una formula stampata accanto al disegno dell’alternatore. Con $B$ e $S$ costanti, rotazione uniforme e $\alpha(0) = 0$:
 
-$$\text{f.e.m.}(t) = -N\,\frac{d\Phi_B}{dt} = N B S \omega \sin(\omega t) = V_0 \sin(\omega t)$$
+$$\Phi_B(t) = B\,S\cos(\omega t) \qquad \text{f.e.m.}(t) = N B S \omega \sin(\omega t) \qquad V_0 = N B S \omega$$
 
-$$V_0 = N B S \omega \qquad \omega = 2\pi f = \frac{2\pi}{T}$$
-
-Valore efficace (approfondimento): $V_{\text{eff}} = V_0/\sqrt{2}$.
+In questo modello a due poli, $\omega$ della tensione è la velocità angolare della spira.
 
 ## Spiegazione
 
-**Da dove viene il seno.** Il flusso è massimo quando il piano della spira è perpendicolare a $\vec B$ e nullo quando è parallelo. Derivando $\cos(\omega t)$ si ottiene $-\omega\sin(\omega t)$, e il segno meno di [Faraday-Neumann](03-faraday-neumann.md) lo rende positivo. Risultato importante: **la f.e.m. è massima quando il flusso è nullo** (lì il flusso cambia più rapidamente) e nulla quando il flusso è massimo.
-
-**Cosa fa aumentare $V_0$:** più spire, campo più intenso, spira più grande, rotazione più veloce. La frequenza della tensione coincide con quella di rotazione (nel modello a due poli).
-
-**Alternatore e dinamo.** L'alternatore fornisce corrente **alternata** (AC). La dinamo è la stessa macchina con un **collettore a lamelle** che inverte i collegamenti ogni mezzo giro: la tensione in uscita ha sempre lo stesso segno, cioè corrente **continua** (DC), anche se pulsante. Nelle centrali elettriche si usano alternatori: la turbina (a vapore, idraulica, eolica) fa ruotare il rotore e l'energia viene poi trasportata con i [trasformatori](08-trasformatore-trasporto-joule.md).
-
-**Lenz anche qui.** Se l'alternatore eroga corrente, nella bobina circola corrente e il campo esercita una coppia che si oppone alla rotazione ([legge di Lenz](04-lenz.md)): per mantenere $\omega$ costante la turbina deve fornire lavoro. Più potenza elettrica si preleva, più è "dura" da far girare.
+La f.e.m. è massima quando il flusso passa per zero, perché lì il flusso cambia più in fretta, ed è nulla quando il flusso è massimo. Le frecce meccanica $\to$ elettrica non dicono che la conversione sia integrale, né che l’energia venga accumulata, né che la macchina funzioni da motore. Il disegno non documenta una macchina da competizione.
 
 ## Esempio numerico
 
-$N = 100$, $B = 0{,}20\ \text{T}$, $S = 1{,}0\cdot10^{-2}\ \text{m}^2$, frequenza $f = 50\ \text{Hz}$:
-
-$$\omega = 2\pi \cdot 50 \approx 314\ \text{rad/s}$$
-
-$$V_0 = 100 \cdot 0{,}20 \cdot 1{,}0\cdot10^{-2} \cdot 314 \approx 63\ \text{V} \qquad V_{\text{eff}} \approx \frac{63}{\sqrt 2} \approx 44\ \text{V}$$
-
-Raddoppiando la velocità di rotazione raddoppia anche $V_0$.
+Nessun alternatore numerico. L’ampiezza da leggere sul grafico è $V_0 = NBS\omega$.
 
 ## Collegamento con KERS / MGU-K
 
-In frenata l'MGU-K è un alternatore: il rotore, collegato meccanicamente al motore e quindi alle ruote, gira e induce f.e.m. alternate negli avvolgimenti dello statore. Un convertitore elettronico (inverter) le trasforma in continua per caricare la batteria. **Attenzione:** la macchina reale è **trifase** (tre gruppi di avvolgimenti sfasati di 120°), generalmente descritta come sincrona a magneti permanenti (tipo esatto `[DA VERIFICARE]`); il modello a una spira è una versione semplificata dello stesso principio. Vedi [Motore elettrico](09-motore-elettrico-lorentz.md) e [KERS e MGU-K](10-kers-mguk.md).
+In frenata la macchina è usata come alternatore: il rotore riceve lavoro meccanico e una parte dell’energia diventa elettrica verso la batteria. Il verso motore è il [principio inverso](09-motore-elettrico-lorentz.md); i numeri del recupero sono in [KERS e MGU-K](10-kers-mguk.md).

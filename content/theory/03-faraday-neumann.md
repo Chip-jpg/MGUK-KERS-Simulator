@@ -7,52 +7,48 @@ level: base
 
 ## In breve
 
-La **legge di Faraday-Neumann** dà la misura dell'induzione: la forza elettromotrice indotta (f.e.m.) in un circuito è uguale, cambiata di segno, alla **rapidità con cui varia il flusso** magnetico. Più il flusso cambia velocemente, più grande è la f.e.m.; dividendo per la resistenza si ottiene la corrente indotta.
+La legge di Faraday-Neumann dà la relazione quantitativa tra la variazione del flusso e la forza elettromotrice indotta. La corrente si ricava dopo, con la legge del circuito.
 
 ## Formule
 
-F.e.m. "di movimento" di una sbarretta di lunghezza $l$ che si muove con velocità $v$ perpendicolare a $B$:
+Nella catena della sbarretta, $L$ è il lavoro in joule ed $e$ è la carica, non l’induttanza:
 
-$$\text{f.e.m.} = B \cdot l \cdot v$$
+$$\text{f.e.m.} = \frac{L}{e} = \frac{F\ell}{e} = \frac{e\,v\,B\,\ell}{e} = B\,\ell\,v$$
 
-Legge di Faraday-Neumann, per una spira; con $N$ spire si moltiplica per $N$:
+Legge di Faraday-Neumann, valore medio sull’intervallo $\Delta t$:
 
-$$\text{f.e.m.} = -\frac{\Delta \Phi_B}{\Delta t} \qquad \text{f.e.m.} = -N\,\frac{\Delta \Phi_B}{\Delta t}$$
+$$\text{f.e.m.} = -\frac{\Delta\Phi_B}{\Delta t}$$
 
-Corrente indotta in un circuito di resistenza $R$:
+La formula stampata è per una spira. Per $N$ spire uguali la f.e.m. è $N$ volte tanto: è l’unico fattore $N$, lo stesso del flusso concatenato.
 
-$$i = \frac{\text{f.e.m.}}{R} = -\frac{1}{R}\,\frac{\Delta \Phi_B}{\Delta t}$$
+Forme con la legge di Ohm resistiva, e forme istantanee:
 
-Forma istantanea (differenziale):
+$$i = \frac{\text{f.e.m.}}{R} = -\frac{1}{R}\frac{\Delta\Phi_B}{\Delta t}$$
 
-$$\text{f.e.m.}(t) = -\frac{d\Phi_B}{dt} \qquad i(t) = -\frac{1}{R}\,\frac{d\Phi_B}{dt}$$
+$$\text{f.e.m.} = -\frac{d\Phi_B}{dt} \qquad i = -\frac{1}{R}\frac{d\Phi_B}{dt}$$
 
-Unità: $1\ \text{Wb/s} = 1\ \text{V}$.
+$i = \text{f.e.m.}/R$ vale per un circuito resistivo. Non è la legge di un [circuito RL](06-circuito-rl-energia-campo.md) durante il transitorio.
 
 ## Spiegazione
 
-**Da dove viene $Blv$.** Una sbarretta scorre su due binari chiusi da un filo. In un tempo $\Delta t$ percorre $v\,\Delta t$ e l'area del circuito aumenta di $\Delta S = l\,v\,\Delta t$. Il flusso aumenta di $\Delta\Phi_B = B\,l\,v\,\Delta t$, e dividendo per $\Delta t$ si ritrova $\text{f.e.m.} = Blv$: la f.e.m. di movimento è un caso particolare di Faraday-Neumann.
-
-Il laboratorio [Faraday-Neumann](#/sim/faraday) propone la sola **spira rotante**; la sbarretta resta qui come esempio teorico. Il grafico del flusso è riferito a una spira, con ampiezza $BS$; la f.e.m. dell'intera bobina ha ampiezza $NBS\omega$.
-
-**Il segno meno** non cambia il valore ma il verso: la f.e.m. si oppone alla variazione di flusso. È la [legge di Lenz](04-lenz.md), che va sempre detta insieme a questa.
-
-**Rapporto incrementale e derivata.** $\Delta\Phi_B/\Delta t$ è la variazione media nell'intervallo; facendo tendere $\Delta t$ a zero si ottiene la derivata $d\Phi_B/dt$, cioè la f.e.m. istante per istante. È la forma che serve per la [spira rotante](07-alternatore-corrente-alternata.md), dove il flusso varia come un coseno.
-
-**Cosa aumenta la f.e.m.:** campo più intenso, area più grande, più spire, variazione più rapida. Per questo i generatori veri girano veloci e hanno molte spire.
+$B\ell v$ è il caso in cui la sbarretta, in un campo perpendicolare, cambia l’area del circuito. Il rapporto $\Delta\Phi_B/\Delta t$ è la f.e.m. media; la derivata è la f.e.m. istante per istante. Il segno meno è la [legge di Lenz](04-lenz.md). Unità: $1\ \text{Wb/s} = 1\ \text{V}$.
 
 ## Esempio numerico
 
-Esercizio tipo: $S = 5{,}0 \cdot 10^{-2}\ \text{m}^2$, il campo passa da $1{,}2 \cdot 10^{-3}\ \text{T}$ a $3{,}5 \cdot 10^{-3}\ \text{T}$ in $\Delta t = 0{,}46\ \text{s}$, $R = 4\ \text{m}\Omega$.
+Esercizio della presentazione. Nella consegna la resistenza è scritta $4\ \text{mW}$; i dati e il denominatore usano $4\ \text{m}\Omega = 4\cdot 10^{-3}\ \Omega$. Si tiene il milliohm.
 
-$$\Delta\Phi_B = S\,\Delta B = 5{,}0 \cdot 10^{-2} \cdot 2{,}3 \cdot 10^{-3} = 1{,}15 \cdot 10^{-4}\ \text{Wb}$$
+$S = 5{,}0\cdot 10^{-2}\ \text{m}^2$, $B$ da $1{,}2\cdot 10^{-3}\ \text{T}$ a $3{,}5\cdot 10^{-3}\ \text{T}$, $\Delta t = 0{,}46\ \text{s}$.
 
-$$|\text{f.e.m.}| = \frac{1{,}15 \cdot 10^{-4}}{0{,}46} = 2{,}5 \cdot 10^{-4}\ \text{V}$$
+$$\Phi_{B1} = 6{,}0\cdot 10^{-5}\ \text{Wb} \qquad \Phi_{B2} = 17{,}5\cdot 10^{-5}\ \text{Wb}$$
 
-$$I = \frac{2{,}5 \cdot 10^{-4}\ \text{V}}{4 \cdot 10^{-3}\ \Omega} = 6{,}25 \cdot 10^{-2}\ \text{A} = 62{,}5\ \text{mA}$$
+$$\Delta\Phi_B = 11{,}5\cdot 10^{-5}\ \text{Wb}$$
 
-Una f.e.m. piccolissima dà comunque una corrente apprezzabile perché la resistenza è molto bassa.
+La presentazione calcola il modulo, trascurando il segno:
+
+$$I = \frac{1}{4\cdot 10^{-3}}\cdot\frac{11{,}5\cdot 10^{-5}}{0{,}46} = 62{,}5\ \text{mA}$$
+
+È una corrente media. Il valore $62{,}5\ \text{mA}$ è il risultato di quel calcolo.
 
 ## Collegamento con KERS / MGU-K
 
-In frenata le ruote fanno girare velocemente il rotore dell'MGU-K: $d\Phi_B/dt$ è grande, quindi la f.e.m. indotta è grande e la corrente può caricare la batteria. Velocità di rotazione alta significa f.e.m. alta: è il motivo per cui la macchina elettrica gira molto più veloce delle ruote. Vedi [KERS e MGU-K](10-kers-mguk.md).
+In frenata il flusso negli avvolgimenti varia in fretta, quindi la f.e.m. indotta può caricare la batteria. Il modello è in [KERS e MGU-K](10-kers-mguk.md).

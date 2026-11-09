@@ -7,44 +7,32 @@ level: base
 
 ## In breve
 
-Un circuito percorso da corrente genera un campo magnetico che attraversa **il circuito stesso**: c'è quindi un flusso "proprio". Se la corrente cambia, cambia questo flusso e nel circuito nasce una f.e.m. indotta su se stesso: è l'**autoinduzione**. La grandezza che misura quanto un circuito "reagisce" alle variazioni di corrente è l'**induttanza** $L$, misurata in henry.
+C’è autoinduzione quando il circuito induttore e il circuito indotto coincidono: una corrente variabile induce una f.e.m. nello stesso circuito. L’induttanza $L$ misura quel legame.
 
 ## Formule
 
-Definizione di induttanza:
+Nella definizione, $\Phi_B$ è il flusso concatenato $\lambda$, non il flusso di una sola spira da moltiplicare poi un’altra volta per $N$:
 
-$$L = \frac{\Phi_B}{i} \qquad \Leftrightarrow \qquad \Phi_B = L\,i$$
+$$L = \frac{\lambda}{i} \qquad 1\ \text{H} = \frac{1\ \text{Wb}}{1\ \text{A}} = \frac{1\ \text{V}\cdot\text{s}}{1\ \text{A}} = \frac{1\ \text{V}}{1\ \text{A/s}}$$
 
-$$1\ \text{H} = 1\ \frac{\text{Wb}}{\text{A}} = 1\ \frac{\text{V}\cdot\text{s}}{\text{A}}$$
+Con $L$ costante:
 
-F.e.m. autoindotta (Faraday-Neumann con $\Phi_B = L\,i$ e $L$ costante):
+$$\text{f.e.m.} = -\frac{\Delta\lambda}{\Delta t} = -\frac{\Delta(Li)}{\Delta t} = -L\frac{\Delta i}{\Delta t} \qquad \text{f.e.m.} = -L\frac{di}{dt}$$
 
-$$\text{f.e.m.} = -L\,\frac{\Delta i}{\Delta t}$$
+Solenoide lungo, in aria, nucleo lineare, campo interno trattato come uniforme. $\mu_0$ è la permeabilità del vuoto, non quella di un mezzo qualunque; $L$ non dipende dalla corrente solo finché il nucleo è lineare:
 
-Induttanza di un solenoide lungo, con $N$ spire, sezione $S$, lunghezza $l$:
+$$L = \mu_0\frac{N^2 S}{\ell} \qquad \mu_0 = 4\pi\cdot 10^{-7}\ \text{H/m}$$
 
-$$L = \frac{\mu_0 N^2 S}{l} \qquad \mu_0 = 4\pi \cdot 10^{-7}\ \frac{\text{T}\cdot\text{m}}{\text{A}}$$
+Il fattore $N^2$ è il prodotto unico tra il campo, proporzionale a $N$, e il concatenamento con $N$ spire.
 
 ## Spiegazione
 
-**Perché $\Phi_B$ è proporzionale a $i$.** Il campo prodotto da un circuito è proporzionale alla corrente che lo percorre; quindi anche il flusso concatenato lo è. La costante di proporzionalità $L$ dipende solo dalla **geometria** del circuito e dal materiale (nucleo), non dalla corrente.
-
-**Il segno meno** è ancora la [legge di Lenz](04-lenz.md): se la corrente aumenta, la f.e.m. autoindotta si oppone all'aumento (è una "forza controelettromotrice"); se la corrente diminuisce, la f.e.m. tende a mantenerla. Un'induttanza si comporta quindi come una **inerzia elettrica**: come la massa si oppone alle variazioni di velocità, $L$ si oppone alle variazioni di corrente.
-
-**Perché $N^2$ nel solenoide.** Il campo interno è $B = \mu_0 N i / l$ (proporzionale a $N$) e il flusso va concatenato con tutte le $N$ spire (un altro fattore $N$): $N \cdot BS = \mu_0 N^2 S\,i/l$. Raddoppiare le spire quadruplica l'induttanza. Un nucleo di ferro la aumenta ancora moltissimo.
-
-**Conseguenze.** All'apertura di un circuito con grande $L$, $\Delta i/\Delta t$ è enorme e si possono avere scintille (extracorrente di apertura). Alla chiusura la corrente non sale istantaneamente: è il [circuito RL](06-circuito-rl-energia-campo.md).
+Le due frecce, corrente del generatore e corrente indotta, sono una sovrapposizione disegnata, non due correnti indipendenti nello stesso filo. Il segno meno è ancora la [legge di Lenz](04-lenz.md): la f.e.m. autoindotta si oppone alla variazione di corrente. Il simbolo grafico può indicare l’autoinduzione del circuito oppure un solenoide in serie. La permeabilità relativa di un nucleo, nel simulatore, è un’estensione lineare: non è la formula della presentazione.
 
 ## Esempio numerico
 
-Solenoide con $N = 500$, $S = 1{,}0 \cdot 10^{-3}\ \text{m}^2$, $l = 0{,}20\ \text{m}$, in aria:
-
-$$L = \frac{4\pi\cdot10^{-7} \cdot 500^2 \cdot 1{,}0\cdot10^{-3}}{0{,}20} \approx 1{,}57 \cdot 10^{-3}\ \text{H} = 1{,}57\ \text{mH}$$
-
-Se la corrente sale di $2{,}0$ A in $0{,}010$ s:
-
-$$|\text{f.e.m.}| = 1{,}57\cdot10^{-3} \cdot \frac{2{,}0}{0{,}010} \approx 0{,}31\ \text{V}$$
+Nessun solenoide numerico. Il controllo è l’identità del henry: $1\ \text{H} = 1\ \text{Wb}/1\ \text{A}$.
 
 ## Collegamento con KERS / MGU-K
 
-Gli avvolgimenti dello statore dell'MGU-K sono bobine con una loro induttanza: la corrente non può cambiare istantaneamente e l'elettronica di potenza (inverter) deve tenerne conto quando commuta rapidamente le correnti. L'induttanza contribuisce anche all'energia immagazzinata nel campo magnetico, vedi [Circuito RL ed energia](06-circuito-rl-energia-campo.md) e [KERS e MGU-K](10-kers-mguk.md).
+L’energia $\tfrac12 LI^2$ di questa induttanza è energia del campo magnetico, non l’energia accumulata in batteria durante la frenata. Il bilancio è nel [circuito RL](06-circuito-rl-energia-campo.md).
