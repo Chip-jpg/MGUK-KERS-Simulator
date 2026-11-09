@@ -119,6 +119,9 @@ export const it = {
       'mguk-teardown': 'MGU-K in frenata: spaccato 3D',
     },
   },
+  plot: {
+    emptyHint: 'Premi ▶ per avviare la simulazione',
+  },
   errors: {
     notFound: 'Pagina non trovata.',
     backHome: 'Torna alla teoria',

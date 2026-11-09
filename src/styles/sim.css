@@ -274,8 +274,31 @@
 }
 
 .plot__chart {
+  position: relative;
   width: 100%;
   min-width: 0;
+}
+
+/* Empty-state overlay (createPlot emptyHintIT): dim the dummy axes, centre a message. */
+.plot--empty .u-wrap {
+  opacity: 0.3;
+}
+.plot__empty-hint {
+  position: absolute;
+  inset: 40% var(--space-4) auto;
+  z-index: 1;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  pointer-events: none;
+}
+.plot__empty-hint[hidden] {
+  display: none;
 }
 
 .plot .u-legend {

@@ -91,7 +91,7 @@ test('loads with canvas, shows i(τ) = 63,2 %, transient + energy balance', asyn
   expect(Math.abs((await debug(page)).tauRatio - 0.632)).toBeLessThan(1e-3);
   await expect(page.locator('.plot')).toHaveCount(3);
   // QA-017: before the switch closes the energy plot shows a hint, not empty axes.
-  await expect(page.getByTestId('energy-hint')).toHaveText(
+  await expect(page.locator('.plot', { hasText: 'Energie nel tempo' }).getByTestId('plot-empty-hint')).toHaveText(
     'Chiudi l’interruttore per avviare il transitorio',
   );
   const d0 = await settled(page);
@@ -101,7 +101,7 @@ test('loads with canvas, shows i(τ) = 63,2 %, transient + energy balance', asyn
 
   await page.getByRole('button', { name: 'Chiudi interruttore' }).click();
   await expect(page.getByRole('button', { name: 'Apri e azzera' })).toBeVisible();
-  await expect(page.getByTestId('energy-hint')).toBeHidden();
+  await expect(page.locator('.plot', { hasText: 'Energie nel tempo' }).getByTestId('plot-empty-hint')).toBeHidden();
   // The transient (6τ) is played in ≈ 7 s; wait until t > τ.
   await expect.poll(async () => (await debug(page)).t, { timeout: 10_000 }).toBeGreaterThan(0.05);
   const d = await debug(page);

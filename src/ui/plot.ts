@@ -1,6 +1,7 @@
 import uPlot from 'uplot';
 import 'uplot/dist/uPlot.min.css';
 import { formatIT } from '../core/format';
+import { t } from '../core/i18n/it';
 import { currentTheme, onThemeChange } from '../core/theme';
 import type { Disposable, Theme } from '../core/types';
 import { getPalette, type Quantity } from './colors';
@@ -61,6 +62,15 @@ export interface PlotOptions {
   syncKey?: string;
   /** Initial theme (default: the one on `<html>`). The plot follows later toggles itself. */
   theme?: Theme;
+  /**
+   * Overlay shown while the plot holds no samples (after create and after `clear()`),
+   * hiding the misleading dummy ticks of empty axes. Default: `it.plot.emptyHint`
+   * ("Premi ▶ …"). `null`/`false` opts out (plots that show static curves on load).
+   * The state is derived from the buffer: the first `push`/`setData` with samples
+   * hides it, `clear()` restores it. A sim that wants its own hint while idle must
+   * not seed the buffer (RL: `clear()` and only `push(0,…)` once the switch is closed).
+   */
+  emptyHintIT?: string | null | false;
 }
 
 export interface Plot extends Disposable {
@@ -124,12 +134,28 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
   let rangeChangedMs = -Infinity;
   let fromRange = shownRange;
 
+  const hintText = o.emptyHintIT === undefined ? t.plot.emptyHint : o.emptyHintIT;
+  const hint = hintText
+    ? el('p', {
+        class: 'plot__empty-hint',
+        text: hintText,
+        attrs: { 'data-testid': 'plot-empty-hint', role: 'status' },
+      })
+    : null;
   const host = el('div', { class: 'plot__chart' });
   const element = el('figure', { class: 'plot', attrs: { 'aria-label': o.titleIT } }, [
     el('figcaption', { class: 'plot__title', text: o.titleIT }),
     host,
   ]);
+  if (hint) host.append(hint);
   container.append(element);
+  /** Empty-state overlay follows the buffer; called after every mutation. */
+  const syncEmpty = (): void => {
+    if (!hint) return;
+    const empty = buffer.length === 0;
+    hint.hidden = !empty;
+    element.classList.toggle('plot--empty', empty);
+  };
 
   const width = (): number =>
     Math.max(200, Math.floor(host.clientWidth || container.clientWidth || 480));
@@ -254,6 +280,7 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
     };
   };
 
+  syncEmpty();
   const row: number[] = [];
   // Column arrays reused by every redraw (uPlot reads them in setData; resized in place).
   const columns: (number | null)[][] = [];
@@ -321,6 +348,7 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
     },
     push(x, ...ys) {
       buffer.push(x, ys);
+      syncEmpty();
       scheduleRedraw();
     },
     setData(xs, ...ys) {
@@ -332,10 +360,12 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
         for (let c = 0; c < ys.length; c++) row[c] = (ys[c] as readonly number[])[k] ?? Number.NaN;
         buffer.push(xs[k] as number, row); // one reused row, no per-sample arrays
       }
+      syncEmpty();
       scheduleRedraw();
     },
     clear() {
       buffer.clear();
+      syncEmpty();
       scheduleRedraw();
     },
     setYRange(range) {
