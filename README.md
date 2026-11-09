@@ -162,7 +162,7 @@ Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
 - [x] **v0.6.0 — Grafica 3D**: nuova grafica di tutti i simulatori guidata dalla fisica dei modelli: materiali realistici, ombre, linee di campo, particelle di corrente, temperature e nastri di energia con scale dichiarate, qualità grafica Alta / Bilanciata / Base.
 
 - [x] **v0.7.4 — Tipografia indicatori**: indicatori dell’alternatore/motore con lo stesso stile delle etichette degli altri simulatori e testo più nitido, posizione e letture invariate.
-- [x] **v0.8.0 — Versione 3D**: tutti i 9 simulatori ricostruiti in 3D in stile teardown, con pulsanti di focus sui componenti dell’MGU-K, tour automatico con didascalie e ottimizzazioni per il livello base; pubblicata in `/3d/` accanto al sito v0.7.4 alla radice.
+- [x] **v0.8.0 — Versione 3D**: tutti i 9 simulatori ricostruiti in 3D in stile teardown, con pulsanti di focus sui componenti dell’MGU-K, tour automatico con didascalie e ottimizzazioni per il livello base; pubblicata alla radice del sito e in `/3d/`.
 - [x] **v0.7.3 — Indicatori macchina**: letture leggibili e ferme accanto ai componenti dell’alternatore/motore, senza seguire il rotore.
 - [x] **v0.7.2 — Preset guida**: confronto MGU-K 2025 (120 kW) / 2026 (350 kW), selezione evidenziata e riavvio comparabile.
 - [x] **v0.7.1 — Interfaccia**: sensori ancorati ai componenti, spaziature MGU-K, limite fisso 200 FPS e pedali a pulsante.
@@ -193,11 +193,9 @@ GitHub Release partono dalla v0.7.0: le versioni precedenti sono documentate sol
    **Actions → Deploy to GitHub Pages → Run workflow** sul branch `main`
    (`workflow_dispatch`).
 
-   Un unico artefatto Pages contiene due versioni: l’URL radice serve la versione
-   stabile, fissata da `STABLE_REF` nel workflow (predefinito: `v0.7.4`); `/3d/` serve
-   la versione del tag o branch che ha avviato il deploy.
-   Per cambiare il tag stabile, modifica `STABLE_REF` in `pages.yml` oppure specifica
-   `stable_ref` in **Run workflow**: se compilato, l’input prevale su `STABLE_REF`.
+   Il sito viene compilato una sola volta dal tag o branch che ha avviato il deploy
+   (`github.sha`): lo stesso build è servito sia alla radice sia in `/3d/`, così i
+   vecchi collegamenti a `/3d/` continuano a funzionare.
 
 4. Crea la **GitHub Release** dal tag (`Releases → Draft a new release`, oppure
    `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file note.md`), copiando come note
