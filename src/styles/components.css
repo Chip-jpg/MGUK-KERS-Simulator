@@ -45,6 +45,13 @@
   color: var(--color-on-accent);
 }
 
+.btn--lg {
+  min-height: 2.75rem;
+  padding: 0 var(--space-5);
+  font-size: var(--fs-base);
+  text-decoration: none;
+}
+
 .btn__icon {
   font-size: 1em;
   line-height: 1;
@@ -78,7 +85,7 @@
 
 .badge--small {
   padding: 0 0.45em;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
 }
 
 .card-list {

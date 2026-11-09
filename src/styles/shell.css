@@ -89,6 +89,8 @@
 .nav__item {
   font-size: var(--fs-sm);
   line-height: var(--lh-tight);
+  overflow-wrap: anywhere;
+  white-space: normal;
   padding-top: 0.4rem;
   padding-bottom: 0.4rem;
 }
@@ -173,6 +175,44 @@
 .page-title {
   font-size: var(--fs-3xl);
   margin-bottom: var(--space-2);
+}
+
+.hero {
+  margin-bottom: var(--space-7);
+  padding: var(--space-5) 0 var(--space-5) var(--space-4);
+  border-left: 3px solid var(--color-accent);
+}
+
+.hero__title {
+  font-size: var(--fs-3xl);
+}
+
+.hero__tagline {
+  margin: 0 0 var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-medium);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.section-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--fs-2xl);
+}
+
+.home-sims {
+  margin-top: var(--space-7);
+  scroll-margin-top: var(--space-4);
+}
+
+.home-sims:focus {
+  outline: none;
 }
 
 .lead {

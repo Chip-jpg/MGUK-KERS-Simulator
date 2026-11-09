@@ -117,7 +117,8 @@ for (const vp of VIEWPORTS) {
         await page.waitForTimeout(400);
         const m = await measure(page);
         expect(m.overlaps, `overlaps in sample ${k}`).toEqual([]);
-        expect(m.legendFrac).toBeLessThanOrEqual(0.15);
+        // Budget raised 0.15 -> 0.17 with the readability token bump (larger projector type scale).
+        expect(m.legendFrac).toBeLessThanOrEqual(0.17);
         expect(m.sceneH).toBeGreaterThanOrEqual(355);
         if (vp.width === 1280) {
           // compact scene: every legend / HUD is docked below the canvas

@@ -298,20 +298,14 @@ export function mountRl(
     xLabelIT: 't',
     xUnit: 's',
     capacity: 900,
+    // Shared empty state (QA-017): visible while the buffer is empty, i.e. switch open.
+    emptyHintIT: 'Chiudi l’interruttore per avviare il transitorio',
     series: [
       { labelIT: 'Generatore', unit: 'J', quantity: 'energy', digits: 4 },
       { labelIT: 'Joule', unit: 'J', quantity: 'i', digits: 4 },
       { labelIT: 'Campo ½Li²', unit: 'J', quantity: 'b', digits: 4 },
     ],
   });
-  // Before the switch closes the energy plot would be empty axes: show a hint (QA-017).
-  const energyHint = el('p', {
-    class: 'rl-plot-hint',
-    text: 'Chiudi l’interruttore per avviare il transitorio',
-    attrs: { 'data-testid': 'energy-hint' },
-  });
-  energyPlot.element.classList.add('rl-energy-plot', 'rl-energy-plot--idle');
-  energyPlot.element.append(energyHint);
   const bars = createEnergyBars(layout.plots);
 
   // --- logic ------------------------------------------------------------------
@@ -319,13 +313,12 @@ export function mountRl(
     s = initialState();
     heat.reset();
     energyPlot.clear();
-    energyPlot.push(0, 0, 0, 0);
+    // Seed t=0 only when running: a zero sample while idle would clear the empty hint.
+    if (closed) energyPlot.push(0, 0, 0, 0);
     dirty = true;
   }
   function setClosed(c: boolean): void {
     closed = c;
-    energyHint.hidden = c;
-    energyPlot.element.classList.toggle('rl-energy-plot--idle', !c);
     switchBtn.setLabel(c ? 'Apri e azzera' : 'Chiudi interruttore', c ? '↺' : '⏻');
     resetState();
     if (c && loop.isPaused() && !ctx.reducedMotion) {

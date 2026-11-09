@@ -10,7 +10,7 @@ test.describe('navigation smoke', () => {
 
     await page.goto('./');
     await expect(page).toHaveURL(/#\/teoria$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Teoria' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'KERS Lab' })).toBeVisible();
 
     const nav = page.getByRole('navigation', { name: 'Navigazione principale' });
     const theoryLinks = nav.getByRole('list', { name: 'Sezioni di teoria' }).getByRole('link');
@@ -47,7 +47,7 @@ test.describe('navigation smoke', () => {
     for (const hash of ['#/interrogazione', '#/qualcosa/che/non/esiste']) {
       await page.goto(`./${hash}`);
       await expect(page).toHaveURL(/#\/teoria$/);
-      await expect(page.getByRole('heading', { level: 1, name: 'Teoria' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'KERS Lab' })).toBeVisible();
     }
 
     expect(errors).toEqual([]);

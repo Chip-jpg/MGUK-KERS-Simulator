@@ -198,16 +198,8 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
     document.title = title ? `${title} — ${t.app.name}` : t.app.documentTitle;
   };
 
-  const renderSimIndex = (myToken: number): void => {
-    const p = page();
-    const cards = el('ul', { class: 'card-list sim-index' });
-    p.append(
-      el('header', { class: 'page-header' }, [
-        el('h1', { class: 'page-title', text: t.sim.indexTitle, attrs: { tabindex: -1 } }),
-        el('p', { class: 'lead', text: t.sim.indexIntro }),
-      ]),
-      cards,
-    );
+  /** Fill `cards` with one card per simulator (shared by `#/sim` and the home grid). */
+  const fillSimCards = (cards: HTMLElement, myToken: number): void => {
     for (const id of SIM_IDS) {
       const title = t.sim.titles[id];
       if (!available.has(id)) {
@@ -240,6 +232,43 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
           if (myToken === token) summary.textContent = t.sim.loadError;
         });
     }
+  };
+
+  const renderSimIndex = (myToken: number): void => {
+    const p = page();
+    const cards = el('ul', { class: 'card-list sim-index' });
+    p.append(
+      el('header', { class: 'page-header' }, [
+        el('h1', { class: 'page-title', text: t.sim.indexTitle, attrs: { tabindex: -1 } }),
+        el('p', { class: 'lead', text: t.sim.indexIntro }),
+      ]),
+      cards,
+    );
+    fillSimCards(cards, myToken);
+  };
+
+  /** "Simulatori" section shown under the theory grid on the start page. */
+  const buildHomeSims = (myToken: number): HTMLElement => {
+    const cards = el('ul', { class: 'card-list sim-index' });
+    fillSimCards(cards, myToken);
+    return el(
+      'section',
+      {
+        class: 'home-sims',
+        attrs: { id: t.home.simsId, tabindex: -1, 'aria-labelledby': 'home-sims-title' },
+      },
+      [
+        el('header', { class: 'page-header' }, [
+          el('h2', {
+            class: 'section-title',
+            text: t.home.simsTitle,
+            attrs: { id: 'home-sims-title' },
+          }),
+          el('p', { class: 'lead', text: t.home.simsIntro }),
+        ]),
+        cards,
+      ],
+    );
   };
 
   const renderComingSoonSim = (id: SimId): Disposable => {
@@ -303,7 +332,7 @@ export function createApp(root: HTMLElement, options: AppOptions = {}): Disposab
       case 'teoria': {
         if (!route.id) {
           setTitle(t.theory.indexTitle);
-          current = renderTheoryIndex(page(), docs);
+          current = renderTheoryIndex(page(), docs, buildHomeSims(myToken));
           break;
         }
         const doc = findTheoryDoc(docs, route.id);

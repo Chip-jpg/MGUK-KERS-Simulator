@@ -41,8 +41,12 @@ describe('createApp (jsdom smoke)', () => {
     expect(nav.textContent).not.toContain('Interrogazione');
     expect(nav.querySelectorAll('.nav__section')).toHaveLength(2);
     expect(nav.querySelectorAll('.nav__item--soon')).toHaveLength(SIM_IDS.length);
-    expect(root.querySelector('h1')?.textContent).toBe('Teoria');
+    expect(root.querySelector('h1')?.textContent).toBe('KERS Lab');
+    expect(root.querySelector('h2')?.textContent).toBe('Teoria');
     expect(root.querySelectorAll('.theory-index .card')).toHaveLength(2);
+    expect(root.querySelector('.hero a.btn--primary')?.getAttribute('href')).toBe('#/teoria/01-a');
+    expect(root.querySelector('.hero a[href="#simulatori"]')).not.toBeNull();
+    expect(root.querySelectorAll('#simulatori .sim-index > li')).toHaveLength(SIM_IDS.length);
 
     await go('#/teoria/01-a');
     expect(root.querySelector('main h1')?.textContent).toBe('Primo');
@@ -70,7 +74,7 @@ describe('createApp (jsdom smoke)', () => {
     // The Interrogazione mode was removed in v0.5.0: its old route redirects to Teoria.
     await go('#/interrogazione');
     expect(window.location.hash).toBe('#/teoria');
-    expect(root.querySelector('main h1')?.textContent).toBe('Teoria');
+    expect(root.querySelector('main h1')?.textContent).toBe('KERS Lab');
 
     await go('#/teoria/99-nope');
     expect(root.querySelector('main')?.textContent).toContain('Sezione di teoria non trovata.');

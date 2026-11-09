@@ -32,7 +32,7 @@ describe('rl-energy mount (DOM, no WebGL)', () => {
     expect(norm(host.querySelector('[data-testid="tau-ratio"]')?.textContent)).toBe('63,2 %');
     expect(norm(host.querySelector('.rl-tau')?.textContent)).toBe('i(τ) = 63,2 % di I₀');
 
-    const hint = host.querySelector<HTMLElement>('[data-testid="energy-hint"]');
+    const hint = host.querySelector<HTMLElement>('.plot--empty [data-testid="plot-empty-hint"]');
     expect(hint?.hidden).toBe(false); // QA-017: hint while the switch is open
 
     const buttons = (): HTMLButtonElement[] => [...host.querySelectorAll('button')];
