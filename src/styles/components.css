@@ -78,7 +78,7 @@
 
 .badge--small {
   padding: 0 0.45em;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
 }
 
 .card-list {

@@ -14,8 +14,8 @@
     ui-monospace, 'Cascadia Code', 'Segoe UI Mono', Consolas, 'Liberation Mono', monospace;
 
   /* Type scale (1.2 ratio, rem based). */
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.875rem;
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.9rem;
   --fs-base: 1rem;
   --fs-lg: 1.125rem;
   --fs-xl: 1.35rem;
@@ -61,7 +61,7 @@
   --color-border: #30363d;
   --color-border-strong: #6e7681;
   --color-text: #e6edf3;
-  --color-text-muted: #9da7b3;
+  --color-text-muted: #aab4c0;
   --color-accent: #3dd6c6;
   --color-on-accent: #04201c;
   --color-danger: #ff7b72;
@@ -83,7 +83,7 @@
   --color-border: #d0d7de;
   --color-border-strong: #7d8590;
   --color-text: #1f2328;
-  --color-text-muted: #4d5866;
+  --color-text-muted: #434e5c;
   --color-accent: #0a7368;
   --color-on-accent: #ffffff;
   --color-danger: #b42318;

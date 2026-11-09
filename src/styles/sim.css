@@ -430,7 +430,7 @@
   padding: 0.35rem 0.5rem;
   border-radius: 0.35rem;
   background: var(--color-surface);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
 }
 .drive-hud {
   position: absolute;

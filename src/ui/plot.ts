@@ -137,7 +137,7 @@ export function createPlot(container: HTMLElement, o: PlotOptions): Plot {
   const buildOptions = (): uPlot.Options => {
     const p = getPalette(theme);
     const projector = !!container.closest('.sim-presentation');
-    const fontSize = projector ? 16 : 12;
+    const fontSize = projector ? 16 : 13;
     const axisCommon = {
       stroke: p.textMuted,
       grid: { stroke: p.grid, width: 1 },
