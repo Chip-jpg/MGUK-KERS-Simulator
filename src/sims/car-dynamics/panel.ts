@@ -220,7 +220,7 @@ export function createBalance(container: HTMLElement): BalanceHandle {
       table,
       el('p', {
         class: 'cd-small',
-        text: 'Decelerazione costante: il modello del simulatore «Frenata e recupero di energia» (senza aerodinamica, l’MGU-K può prendere tutta la potenza di frenata fino a Pₘₐₓ/η). Qui invece l’MGU-K frena solo l’asse posteriore.',
+        text: 'Decelerazione costante: il modello della scheda «Confronto: decelerazione costante» del simulatore «MGU-K: accelerazione e frenata» (senza aerodinamica, l’MGU-K può prendere tutta la potenza di frenata fino a Pₘₐₓ/η). Qui invece l’MGU-K frena solo l’asse posteriore.',
       }),
     ],
   );
