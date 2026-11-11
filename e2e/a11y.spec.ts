@@ -23,9 +23,9 @@ test('the sweep covers all theory sections', () => {
 });
 
 test('overflowing display formulas are focusable scroll regions (QA-020)', async ({ page }) => {
-  // On a phone-width viewport several formulas of theory 15 are wider than the column.
+  // On a phone-width viewport the energy calculation in theory 10 is wider than the column.
   await page.setViewportSize({ width: 360, height: 720 });
-  await page.goto('./#/teoria/15-dinamica-frenata');
+  await page.goto('./#/teoria/10-kers-mguk');
   await expect(page.locator('main h1')).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   const states = await page.locator('.math-display').evaluateAll((els) =>
