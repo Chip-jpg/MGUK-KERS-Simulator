@@ -330,11 +330,8 @@ export function mountRl(
   }
   function paramsChanged(): void {
     const row = formulas.element.querySelector<HTMLElement>('[data-key="L"]')!;
-    renderTexInto(
-      row.querySelector<HTMLElement>('.formula-row__tex')!,
-      fromSolenoid ? String.raw`L = \mu_0\,\mu_r\,\dfrac{N^2 S}{l}` : 'L',
-      false,
-    );
+    const tex = fromSolenoid ? String.raw`L = \mu_0\,\mu_r\,\dfrac{N^2 S}{l}` : 'L';
+    renderTexInto(row.querySelector<HTMLElement>('.formula-row__tex')!, tex, false);
     row.querySelector<HTMLElement>('.formula-row__label')!.textContent = fromSolenoid
       ? 'Induttanza del solenoide (μ₀μᵣN²S/l)'
       : 'Induttanza impostata dal cursore';
