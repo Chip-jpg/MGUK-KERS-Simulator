@@ -11,9 +11,9 @@ export const PART_INFO: ReadonlyArray<{ id: PartId; labelIT: string; captionIT: 
   },
   {
     id: 'gears',
-    labelIT: 'Riduzione 18:60',
+    labelIT: 'Riduzione (ipotesi 18:60)',
     captionIT:
-      'Riduzione 18:60: il pignone da 18 denti gira 60/18 volte più veloce dell’ingranaggio da 60 e porta il rotore al regime elevato.',
+      'Riduzione ipotizzata 18:60 (il rapporto reale non è pubblicato): il pignone da 18 denti gira 60/18 volte più veloce dell’ingranaggio da 60 e porta il rotore al regime elevato.',
   },
   {
     id: 'stator',

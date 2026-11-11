@@ -14,6 +14,7 @@ import {
   type Slider,
 } from '../../ui';
 import { magneticEnergy, rlTimeConstant } from '../../physics';
+import { renderTexInto } from '../../ui/math';
 import { createHeatBody, createResetViewButton, snapshotRenderStats } from '../../render';
 import {
   T_END_TAUS,
@@ -230,7 +231,7 @@ export function mountRl(
       unit: 'A',
       digits: 3,
       quantity: 'i',
-      labelIT: 'Extracorrente di chiusura (valore simulato)',
+      labelIT: 'Corrente nel circuito (chiusura, valore simulato)',
     },
     {
       key: 'ratio',
@@ -252,12 +253,12 @@ export function mountRl(
     },
     {
       key: 'L',
-      tex: String.raw`L = \mu_0\,\mu_r\,\dfrac{N^2 S}{l}`,
+      tex: 'L',
       symbolTex: 'L',
       unit: 'H',
       digits: 4,
       quantity: 'b',
-      labelIT: 'Induttanza (solenoide se attivato)',
+      labelIT: 'Induttanza impostata dal cursore',
     },
     {
       key: 'UM',
@@ -328,6 +329,15 @@ export function mountRl(
     loop.stepOnce();
   }
   function paramsChanged(): void {
+    const row = formulas.element.querySelector<HTMLElement>('[data-key="L"]')!;
+    renderTexInto(
+      row.querySelector<HTMLElement>('.formula-row__tex')!,
+      fromSolenoid ? String.raw`L = \mu_0\,\mu_r\,\dfrac{N^2 S}{l}` : 'L',
+      false,
+    );
+    row.querySelector<HTMLElement>('.formula-row__label')!.textContent = fromSolenoid
+      ? 'Induttanza del solenoide (μ₀μᵣN²S/l)'
+      : 'Induttanza impostata dal cursore';
     inp = inputs();
     tau = rlTimeConstant(inp.R, inp.L);
     resetState();

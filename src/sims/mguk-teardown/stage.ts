@@ -214,7 +214,7 @@ export function createTeardownStage(
       sensorHeight: '2.9rem',
     }),
     gears: labels.add({
-      text: `Riduzione semplificata (1 coppia) ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
+      text: `Riduzione ipotizzata (1 coppia) ${PINION_TEETH}:${CRANK_GEAR_TEETH}`,
       anchor: spot.gears,
       priority: 6,
       occlude: false,
@@ -346,7 +346,9 @@ export function createTeardownStage(
       parts.setSoc(s.soc);
       parts.setBrakeHeat(s.brakeHeat);
       L.mguk.setText(`MGU-K · ${fmt(s.pKers / 1e3, 0, 'kW')} · ${fmt(s.rpm, 0, 'giri/min')}`);
-      L.battery.setText(`SoC ${fmt(s.soc * 100, 1, '%')} · ${fmt(s.recovered / 1e6, 3, 'MJ')}`);
+      L.battery.setText(
+        `SoC ${fmt(s.soc * 100, 1, '%')} · +${fmt(s.recovered / 1e6, 3, 'MJ')} in questa frenata`,
+      );
       L.inverter.setText(`Inverter · ${fmt(s.current, 0, 'A')}`);
       L.wheel.setText(`Ruota posteriore · ${fmt(s.v * 3.6, 0, 'km/h')}`);
     },
