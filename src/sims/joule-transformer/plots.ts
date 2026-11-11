@@ -13,7 +13,7 @@ export function createTransmissionPlots(container: HTMLElement) {
   });
   const annotation = el('p', { class: 'transmission-annotation' });
   const reference = el('p', {
-    text: 'Riferimenti didattici della catena: centrale 10 kV → trasporto 220–380 kV → sottostazioni 20–132 kV → utenze 380 V / 220 V (questi ultimi sotto il limite sinistro di 1 kV). Trasformatore ideale; nella realtà ci sono perdite nel nucleo.',
+    text: 'Riferimenti didattici della catena: centrale 10 kV → trasporto 220–380 kV → sottostazioni 20–132 kV → utenze 380 V / 220 V nella presentazione (valori storici; oggi i nominali sono 400 V / 230 V), sotto il limite sinistro di 1 kV. Trasformatore ideale; nella realtà ci sono perdite nel nucleo.',
   });
   const main = el('div', { class: 'transmission-plots__grid' });
   const secondary = el('div', { class: 'transmission-plots__grid' });

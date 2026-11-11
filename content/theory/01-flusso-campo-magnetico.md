@@ -7,7 +7,7 @@ level: base
 
 ## In breve
 
-Il flusso del campo magnetico $\Phi_B$ misura l’attraversamento della superficie delimitata da un circuito. Una corrente indotta nasce quando $\Phi_B$ varia nel tempo.
+Il flusso del campo magnetico $\Phi_B$ misura l’attraversamento della superficie delimitata da un circuito. Quando $\Phi_B$ varia nel tempo nasce una f.e.m. indotta; se il circuito è chiuso, circola una corrente indotta.
 
 ## Formule
 

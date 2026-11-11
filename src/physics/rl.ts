@@ -52,7 +52,7 @@ export function emfSelf(L: number, dIdt: number): number {
  * @param L - inductance [H], ≥ 0
  * @returns τ [s]
  * @throws RangeError if R ≤ 0, L < 0, or non-finite input
- * @slide 15
+ * @slide 15 (context: τ = L/R is not printed; it follows from the exponent Rt/L)
  */
 export function rlTimeConstant(R: number, L: number): number {
   const fn = 'rlTimeConstant';

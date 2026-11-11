@@ -79,6 +79,9 @@ export function emfMotional(B: number, l: number, v: number): number {
  * f.e.m.(t) = −N · dΦ/dt = N · B · S · ω · sin(ωt) = V₀ · sin(ωt),
  * V₀ = N · B · S · ω   (signed; the peak value is |V₀|)
  *
+ * The emf formula N · B · S · ω · sin(ωt) is derived from slides 3, 7, 9;
+ * it is not printed in the presentation.
+ *
  * @param B - magnetic field [T]
  * @param S - loop area [m²], ≥ 0
  * @param N - number of turns [-], ≥ 0
@@ -86,8 +89,8 @@ export function emfMotional(B: number, l: number, v: number): number {
  * @param t - time [s]
  * @returns `phi` [Wb] (one turn), `emf` [V] (whole coil), `V0` [V]
  * @throws RangeError if S < 0, N < 0, or non-finite input
- * @slide 18
- * @slide 19
+ * @slide 18 (context: alternator, mechanical → electrical energy; no formula)
+ * @slide 19 (context: f.e.m.(t) ≅ v(t) = V₀ sen(ωt); no N · B · S · ω)
  */
 export function rotatingLoop(
   B: number,
