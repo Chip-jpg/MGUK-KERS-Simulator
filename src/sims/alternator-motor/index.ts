@@ -105,7 +105,7 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       key: 'F',
       tex: 'F = N\\,B\\,i\\,L',
       symbolTex: 'F',
-      labelIT: 'Forza di Lorentz su un lato attivo (N spire)',
+      labelIT: 'Forza su un lato attivo (N spire) — ponte del modello, non nella presentazione',
       unit: 'N',
       digits: 2,
       quantity: 'f',
@@ -116,7 +116,7 @@ export function formulaItems(mode: MachineMode): FormulaItem[] {
       symbolTex: '\\tau',
       labelIT: gen
         ? 'Coppia frenante: per Lenz si oppone alla rotazione'
-        : 'Coppia motrice prodotta dalla forza di Lorentz',
+        : 'Coppia motrice: corrente nel campo magnetico',
       unit: 'N·m',
       digits: 3,
       quantity: 'f',
@@ -426,7 +426,7 @@ function mount(host: HTMLElement, ctx: AppContext): Disposable {
     const stateText = battery.depleted
       ? '⚠ Batteria scarica — ricaricare almeno al 5 %'
       : mode === 'motor'
-        ? '▶ Erogazione — accelerazione (Lorentz)'
+        ? '▶ Erogazione — motore'
         : '↯ Recupero — frenata (Lenz)';
     if (batteryState.textContent !== stateText) batteryState.textContent = stateText;
     batteryState.dataset['empty'] = String(battery.depleted);
@@ -573,7 +573,7 @@ const sim: SimModule = {
   id: SIM_ID,
   titleIT: 'Alternatore ⇄ motore (MGU-K)',
   summaryIT:
-    'La stessa macchina in due modi: in frenata è un generatore (la coppia di Lenz si oppone al moto e l’energia cinetica va in batteria), in accelerazione è un motore (la corrente della batteria produce la forza di Lorentz F = B·I·L e quindi una coppia).',
+    'La stessa macchina in due modi: in frenata è un generatore (la coppia di Lenz si oppone al moto e l’energia cinetica va in batteria), in accelerazione è un motore (la corrente della batteria nel campo magnetico produce una coppia: principio inverso dell’alternatore, collegamento al simulatore).',
   theoryId: '10-kers-mguk',
   mount,
 };

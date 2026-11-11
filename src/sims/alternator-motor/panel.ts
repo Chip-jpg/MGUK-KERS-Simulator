@@ -9,16 +9,16 @@ import type { Disposable } from '../../core/types';
 import type { MachineMode } from './model';
 
 export const THREE_PHASE_NOTE_IT =
-  'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo un modello monofase a una spira.';
+  'Nota: l’MGU-K reale è trifase (dato del costruttore); che sia sincrona a magneti permanenti è una stima pubblicata, non un dato ufficiale. Qui usiamo un modello monofase a una spira.';
 
 /** In-panel links to the theory sections behind the two halves of the sim (QA-006). */
 export const THEORY_LINKS_IT: ReadonlyArray<{ labelIT: string; id: string }> = [
   { labelIT: 'Alternatore (07)', id: '07-alternatore-corrente-alternata' },
-  { labelIT: 'Motore e forza di Lorentz (09)', id: '09-motore-elettrico-lorentz' },
+  { labelIT: 'Motore elettrico (09)', id: '09-motore-elettrico-lorentz' },
   { labelIT: 'KERS/MGU-K (10)', id: '10-kers-mguk' },
 ];
 
-/** "Teoria: Alternatore (07) · Motore e forza di Lorentz (09) · KERS/MGU-K (10)". */
+/** "Teoria: Alternatore (07) · Motore elettrico (09) · KERS/MGU-K (10)". */
 export function createTheoryLinks(): HTMLElement {
   const parts: (Node | string)[] = ['Teoria: '];
   THEORY_LINKS_IT.forEach((l, k) => {

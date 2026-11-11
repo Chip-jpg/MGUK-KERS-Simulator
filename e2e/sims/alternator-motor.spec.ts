@@ -73,7 +73,7 @@ test('loads without console errors, shows canvas, note, readouts and passes the 
   await expect(page.getByRole('heading', { level: 1, name: /Alternatore/ })).toBeVisible();
   await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
   await expect(
-    page.getByRole('note').filter({ hasText: 'trifase, generalmente descritta come sincrona' }),
+    page.getByRole('note').filter({ hasText: 'trifase (dato del costruttore)' }),
   ).toBeVisible();
   // QA-006: theory 07 and 09 are linked from the panel, not only 10 from the header.
   for (const id of ['07-alternatore-corrente-alternata', '09-motore-elettrico-lorentz']) {

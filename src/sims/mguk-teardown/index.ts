@@ -185,7 +185,7 @@ const sim: SimModule = {
   id: 'mguk-teardown',
   titleIT: 'MGU-K in frenata: spaccato 3D',
   summaryIT:
-    'Spaccato dell’MGU-K durante la frenata: rotore a magneti permanenti, statore con avvolgimenti, ingranaggi verso ruota, inverter e batteria; una sola fase della frenata comanda giri, coppia, tensione indotta, corrente, flusso di energia e carica.',
+    'Spaccato dell’MGU-K durante la frenata: rotore (a magneti permanenti nel modello), statore con avvolgimenti, ingranaggi verso ruota, inverter e batteria; una sola fase della frenata comanda giri, coppia, tensione indotta, corrente, flusso di energia e carica.',
   theoryId: '10-kers-mguk',
   mount,
 };
