@@ -110,6 +110,23 @@ describe('createSlider', () => {
     keydown(number, 'Enter');
     expect(s.value).toBe(2);
     expect(number.value).toBe('2,00');
+    expect(number.hasAttribute('aria-invalid')).toBe(false);
+    expect(s.element.querySelector('.slider__error')?.textContent).toBe(
+      'Valore fuori intervallo: impostato a 2,00 (consentito tra 0,00 e 2,00).',
+    );
+
+    number.value = '-1';
+    number.dispatchEvent(new Event('change'));
+    expect(s.value).toBe(0);
+    expect(number.hasAttribute('aria-invalid')).toBe(false);
+    expect(s.element.querySelector('.slider__error')?.textContent).toBe(
+      'Valore fuori intervallo: impostato a 0,00 (consentito tra 0,00 e 2,00).',
+    );
+
+    number.value = '0,75';
+    number.dispatchEvent(new Event('change'));
+    expect(s.value).toBe(0.75);
+    expect(s.element.querySelector('.slider__error')?.textContent).toBe('');
     s.dispose();
   });
 
