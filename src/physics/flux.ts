@@ -40,7 +40,8 @@ export function fluxUniform(B: number, S: number, alphaRad: number): number {
  * @param N - number of turns [-], ≥ 0 (default 1)
  * @returns average induced emf [V]
  * @throws RangeError if dt ≤ 0 (in particular Δt = 0), N < 0, or non-finite input
- * @slide 8
+ * @slide 8 (one-turn form only; the factor N is an extension to N turns,
+ * not printed in the presentation)
  */
 export function emfFaraday(dPhi: number, dt: number, N?: number): number {
   const fn = 'emfFaraday';

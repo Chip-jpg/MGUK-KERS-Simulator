@@ -25,7 +25,7 @@ $$1\ \text{J} = 1\ \text{W}\cdot\text{s}$$
 - **Effetto Joule**: calore in un conduttore, potenza $Ri^2$ – watt (W).
 - **Energia cinetica**: $\Delta E_k = \tfrac12 m(v_1^2 - v_2^2)$ nel caso della frenata – joule (J).
 - **Energia magnetica**: $U_M = \tfrac12 LI_0^2$, energia del campo di un induttore lineare; non è l’energia in batteria – joule (J).
-- **Extracorrente di chiusura**: transitorio all’accensione di un circuito RL; la corrente totale è $i(t) = I_0(1 - e^{-(R/L)t})$ – [06](06-circuito-rl-energia-campo.md).
+- **Extracorrente di chiusura**: termine transitorio $i'(t) = -I_0 e^{-(R/L)t}$ dovuto alla f.e.m. autoindotta, che si oppone alla crescita della corrente in un circuito RL; la corrente totale è $i(t) = I_0(1 - e^{-(R/L)t})$ – [06](06-circuito-rl-energia-campo.md).
 - **Flusso** $\Phi_B = BS\cos\alpha$: attraversamento di una superficie; $\alpha$ rispetto alla normale – weber (Wb).
 - **Forza elettromotrice**: f.e.m. indotta $= -\Delta\Phi_B/\Delta t$ – volt (V).
 - **Henry**: unità di induttanza, $1\ \text{H} = 1\ \text{Wb/A}$.

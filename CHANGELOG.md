@@ -40,7 +40,7 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 - Ripristinati i preset **2025 (120 kW)** e **2026 (350 kW)** in **Guida: acceleratore e freno**, riutilizzando i valori dei preset esistenti.
 - Il preset selezionato è evidenziato; un limite MGU-K personalizzato disattiva l'evidenziazione. La scelta riavvia la prova con la stessa carica iniziale e aggiorna insieme i limiti di erogazione e recupero.
-- Confronto didattico con fonti: la MGU-H è eliminata nel 2026, ma non è simulata qui. Massa, motore termico e capacità batteria restano illustrativi e invariati; i pedali e il limite fisso di 200 FPS sono conservati.
+- Confronto didattico con fonti: l'MGU-H è eliminata nel 2026, ma non è simulata qui. Massa, motore termico e capacità batteria restano illustrativi e invariati; i pedali e il limite fisso di 200 FPS sono conservati.
 
 ## [0.7.1] - 2026-11-01
 
@@ -89,7 +89,7 @@ Nuova grafica 3D di tutti i simulatori, guidata dalla fisica dei modelli.
     di incandescenza dal corpo nero solo sopra 700 K; altrimenti falsi colori dichiarati;
   - nastri di energia con spessore proporzionale alla potenza.
 - Ridisegnati tutti i 7 simulatori: espansioni polari e lampadina (Faraday), banco con
-  galvanometro smorzato e campo indotto (Lenz), macchina completa con forze di Lorentz e flussi
+  galvanometro smorzato e campo indotto (Lenz), macchina completa con forze magnetiche sui conduttori percorsi da corrente e flussi
   di energia (alternatore/motore), monoposto originale con dischi che si scaldano (frenata KERS,
   dinamica della vettura), catena centrale → tralicci con catenaria → città (trasformatore),
   banco RL con il campo del solenoide che cresce con τ (circuito RL).
