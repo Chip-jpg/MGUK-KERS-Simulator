@@ -14,7 +14,7 @@ export const THREE_PHASE_NOTE_IT =
 /** In-panel links to the theory sections behind the two halves of the sim (QA-006). */
 export const THEORY_LINKS_IT: ReadonlyArray<{ labelIT: string; id: string }> = [
   { labelIT: 'Alternatore (07)', id: '07-alternatore-corrente-alternata' },
-  { labelIT: 'Motore elettrico (09)', id: '09-motore-elettrico-lorentz' },
+  { labelIT: 'Motore elettrico (09)', id: '09-motore-elettrico' },
   { labelIT: 'KERS/MGU-K (10)', id: '10-kers-mguk' },
 ];
 

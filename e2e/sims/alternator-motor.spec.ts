@@ -76,7 +76,7 @@ test('loads without console errors, shows canvas, note, readouts and passes the 
     page.getByRole('note').filter({ hasText: 'trifase (dato del costruttore)' }),
   ).toBeVisible();
   // QA-006: theory 07 and 09 are linked from the panel, not only 10 from the header.
-  for (const id of ['07-alternatore-corrente-alternata', '09-motore-elettrico-lorentz']) {
+  for (const id of ['07-alternatore-corrente-alternata', '09-motore-elettrico']) {
     await expect(page.locator(`.am-theory-links a[href="#/teoria/${id}"]`)).toBeVisible();
   }
   await expect(page.locator('.sim-note')).toContainText('Modello semplificato');

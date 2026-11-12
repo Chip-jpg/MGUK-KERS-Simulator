@@ -15,10 +15,15 @@ export type Route = { kind: 'teoria'; id?: string } | { kind: 'sim'; id?: string
 export const DEFAULT_ROUTE: Route = { kind: 'teoria' };
 export const DEFAULT_HASH = '#/teoria';
 
+const ROUTE_ALIASES = new Map([
+  ['#/teoria/09-motore-elettrico-lorentz', '#/teoria/09-motore-elettrico'],
+]);
+
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Parse a location hash into a {@link Route}. Unknown hashes map to the default route. */
 export function parseRoute(hash: string): Route {
+  hash = ROUTE_ALIASES.get(hash) ?? hash;
   const path = hash.replace(/^#?\/?/, '').replace(/\/+$/, '');
   const [head, id, ...rest] = path.split('/');
   if (rest.length > 0) return DEFAULT_ROUTE;
@@ -46,7 +51,7 @@ export function routesEqual(a: Route, b: Route): boolean {
 
 /** Minimal window surface the router needs (injectable for tests). */
 export interface RouterWindow {
-  location: { hash: string };
+  location: { hash: string; replace(hash: string): void };
   addEventListener(type: 'hashchange', cb: () => void): void;
   removeEventListener(type: 'hashchange', cb: () => void): void;
 }
@@ -67,7 +72,10 @@ export function createRouter(onChange: (route: Route) => void, win: RouterWindow
   const canonicalize = (): Route => {
     const next = parseRoute(win.location.hash);
     const hash = formatRoute(next);
-    if (win.location.hash !== hash) win.location.hash = hash;
+    if (win.location.hash !== hash) {
+      if (ROUTE_ALIASES.has(win.location.hash)) win.location.replace(hash);
+      else win.location.hash = hash;
+    }
     return next;
   };
   let route = canonicalize();

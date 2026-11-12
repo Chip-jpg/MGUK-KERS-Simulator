@@ -8,7 +8,7 @@ level: approfondimento
 
 ## In breve
 
-L’MGU-K è la macchina elettrica del recupero di energia cinetica. In frenata lavora da [alternatore](07-alternatore-corrente-alternata.md): la [coppia di Lenz](04-lenz.md) frena e una parte dell’energia cinetica diventa energia elettrica verso la batteria. In accelerazione lavora da [motore](09-motore-elettrico-lorentz.md). La presentazione dell’induzione non descrive questo sistema: quanto segue è il ponte con il laboratorio.
+L’MGU-K è la macchina elettrica del recupero di energia cinetica. In frenata lavora da [alternatore](07-alternatore-corrente-alternata.md): la [coppia di Lenz](04-lenz.md) frena e una parte dell’energia cinetica diventa energia elettrica verso la batteria. In accelerazione lavora da [motore](09-motore-elettrico.md). La presentazione dell’induzione non descrive questo sistema: quanto segue è il ponte con il laboratorio.
 
 ## Formule
 

@@ -124,7 +124,7 @@ describe('readouts', () => {
     );
     expect([...p.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
       '#/teoria/07-alternatore-corrente-alternata',
-      '#/teoria/09-motore-elettrico-lorentz',
+      '#/teoria/09-motore-elettrico',
       '#/teoria/10-kers-mguk',
     ]);
   });

@@ -3,6 +3,25 @@ import { expect, test } from '@playwright/test';
 /** App shell: navigation smoke + keyboard navigation (A3). */
 
 test.describe('navigation smoke', () => {
+  test('legacy theory 09 URL redirects without an extra history entry', async ({ page }) => {
+    await page.goto('./#/teoria');
+    await expect(page.locator('.theory-index')).toBeVisible();
+    const historyLength = await page.evaluate(() => history.length);
+    await page.goto('./#/teoria/09-motore-elettrico-lorentz');
+    await expect(page).toHaveURL(/#\/teoria\/09-motore-elettrico$/);
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Motore elettrico (principio inverso dell’alternatore)',
+        exact: true,
+      }),
+    ).toBeVisible();
+    expect(await page.evaluate(() => history.length)).toBe(historyLength + 1);
+    await page.goBack();
+    await expect(page).toHaveURL(/#\/teoria$/);
+    await expect(page.locator('.theory-index')).toBeVisible();
+  });
+
   test('sidebar reaches every area without console errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));

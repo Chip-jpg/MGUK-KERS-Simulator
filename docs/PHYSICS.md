@@ -234,9 +234,10 @@ I = −62.5 mA (the induced current opposes the increase of Φ, Lenz). Asserted 
 
 - **Uniform B** over the circuit surface in the slide-based functions above (the field of real, finite coils is not modelled).
 - **Single-phase simplification**: the rotating loop is a single-phase teaching model.
-  A three-phase permanent-magnet description of a real MGU-K is an estimate in
-  `docs/OPEN_FACTS.md` (#8), not a statement in the theory cards. Simulator notes that
-  still say so were left unchanged.
+  The real MGU-K is three-phase according to the manufacturer; its synchronous
+  permanent-magnet topology is a published estimate, not official data (see
+  `docs/OPEN_FACTS.md`, #8). Simulator notes distinguish the equivalent
+  permanent-magnet model from the real machine.
 - **Ideal transformer** and **linear materials** (no saturation, no hysteresis, no eddy
   current losses in cores).
 - **Lumped circuits**, quasi-static (no radiation, no skin effect).

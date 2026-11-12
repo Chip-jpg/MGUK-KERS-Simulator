@@ -41,7 +41,7 @@ const THEORY_IDS = [
   '06-circuito-rl-energia-campo',
   '07-alternatore-corrente-alternata',
   '08-trasformatore-trasporto-joule',
-  '09-motore-elettrico-lorentz',
+  '09-motore-elettrico',
   '10-kers-mguk',
   '11-agenda-2030-goal-9',
   '12-art-32-costituzione',

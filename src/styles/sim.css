@@ -654,10 +654,34 @@
   }
 
   .text-readout {
+    /* reserveTextReadout sets an inline minimum for desktop sensors. */
+    min-width: 0 !important;
     white-space: normal;
     overflow-wrap: anywhere;
     /* Reserve two lines even when the live value needs only one. */
     height: max(2lh, 2rem) !important;
+  }
+
+  .am-readouts__list,
+  .jt-results__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .am-readouts__row,
+  .jt-results__row {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .am-readouts__row dd {
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+  }
+
+  .cd-hud {
+    box-sizing: border-box;
+    max-width: calc(100% - 2 * var(--space-3));
   }
 
   .sim-legend-dock__body > [data-scene-legend] {
