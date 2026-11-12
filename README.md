@@ -217,10 +217,11 @@ aggiornamento automatico) in [`docs/DESKTOP.md`](docs/DESKTOP.md).
 
 KERS Lab è un **modello didattico**, non un simulatore certificato: ogni simulatore
 dichiara le proprie ipotesi in una nota "Modello semplificato: …" (campo uniforme,
-spira singola al posto della reale macchina trifase, generalmente descritta come
-sincrona a magneti permanenti `[DA VERIFICARE]`,
-trasformatore ideale, niente saturazione…). I valori regolamentari citati provengono
-da fonti ufficiali oppure sono marcati `[DA VERIFICARE]`.
+spira singola al posto della reale macchina trifase, trasformatore ideale, niente
+saturazione…). Per l’MGU-K reale, la macchina trifase è un dato del costruttore;
+che sia sincrona a magneti permanenti è una stima pubblicata, non un dato ufficiale.
+I valori regolamentari citati provengono da fonti ufficiali oppure sono marcati
+`[DA VERIFICARE]`.
 
 Il progetto **non è affiliato** a Formula 1, FIA o a qualsiasi scuderia e non usa loghi,
 marchi o immagini protetti: tutta la grafica è geometria astratta originale. Le slide
