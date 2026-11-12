@@ -45,7 +45,7 @@ describe('createApp (jsdom smoke)', () => {
     expect(root.querySelector('h2')?.textContent).toBe('Teoria');
     expect(root.querySelectorAll('.theory-index .card')).toHaveLength(2);
     expect(root.querySelector('.hero a.btn--primary')?.getAttribute('href')).toBe('#/teoria/01-a');
-    expect(root.querySelector('.hero a[href="#simulatori"]')).not.toBeNull();
+    expect(root.querySelector('.hero a[href="#/sim"]')).not.toBeNull();
     expect(root.querySelectorAll('#simulatori .sim-index > li')).toHaveLength(SIM_IDS.length);
 
     await go('#/teoria/01-a');

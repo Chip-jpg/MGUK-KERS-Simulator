@@ -232,7 +232,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
     {
       key: 'deploy',
       tex: 'F = B I l,\\quad P_{mecc} = \\tau\\omega = \\eta P_{batt}',
-      labelIT: 'Lorentz: batteria → moto (erogazione)',
+      labelIT: 'Motore: batteria → moto (erogazione) — modello, non nella presentazione',
       unit: 'kW',
       scale: 0.001,
       digits: 1,
@@ -354,7 +354,7 @@ export function mountDrive(host: HTMLElement, ctx: AppContext, interactive: bool
         : state.battery.depleted
           ? '⚠ Batteria scarica: MGU-K motrice disattivata'
           : q.pKers > 1
-            ? '▶ Erogazione — motore (Lorentz)'
+            ? '▶ Erogazione — motore'
             : q.pKers < -1
               ? '↯ Recupero — generatore (Faraday-Lenz)'
               : '● MGU-K inattiva';

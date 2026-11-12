@@ -182,6 +182,12 @@ export function createSlider(options: SliderOptions): Slider {
       return;
     }
     apply(parsed, true);
+    if (parsed < spec.min || parsed > spec.max) {
+      error.textContent = t.controls.clampedNumber
+        .replace('{valore}', fmt(value))
+        .replace('{min}', fmt(spec.min))
+        .replace('{max}', fmt(spec.max));
+    }
   };
 
   const offs = [

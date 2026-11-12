@@ -158,8 +158,6 @@ export function createBalance(container: HTMLElement): BalanceHandle {
   ]);
   const lap2026 = el('p', { class: 'kers-context' }, [
     `Energia recuperabile per giro nel 2026: ${LAP_RANGE_2026.textIT} `,
-    el('span', { class: 'badge badge--small', text: 'valore da verificare' }),
-    ' ',
     sourceLinks(LAP_RANGE_2026.sources),
   ]);
 

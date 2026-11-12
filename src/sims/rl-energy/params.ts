@@ -19,7 +19,7 @@ export interface RlParams {
 }
 
 /**
- * Defaults reproduce the worked example of theory section 06:
+ * Illustrative defaults (not taken from theory section 06):
  * E = 12 V, R = 4 Ω, L = 0,20 H ⇒ I₀ = 3 A, τ = 0,05 s, U_M = 0,90 J.
  */
 export const params = {

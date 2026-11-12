@@ -24,7 +24,7 @@ La f.e.m. di Faraday-Neumann, a circuito chiuso sulla batteria, produce la corre
 
 ## Esempio numerico
 
-Caso del laboratorio, non un dato della presentazione: $m = 800\ \text{kg}$ (minimo del 2025, senza carburante), da $300$ a $100\ \text{km/h}$ cioè da $300/3{,}6$ a $100/3{,}6\ \text{m/s}$, in $t_f = 3\ \text{s}$.
+Caso del laboratorio, non un dato della presentazione: $m = 800\ \text{kg}$ (minimo regolamentare 2025 senza carburante, FIA 2025 Technical Regulations Art. 4.1; salvo l’incremento per caldo dell’Art. 4.7, +5 kg in gara se è dichiarato Heat Hazard), da $300$ a $100\ \text{km/h}$ cioè da $300/3{,}6$ a $100/3{,}6\ \text{m/s}$, in $t_f = 3\ \text{s}$.
 
 $$\Delta E_k = \frac12\cdot 800\cdot\left[\left(\frac{300}{3{,}6}\right)^2 - \left(\frac{100}{3{,}6}\right)^2\right] \approx 2{,}47\ \text{MJ}$$
 

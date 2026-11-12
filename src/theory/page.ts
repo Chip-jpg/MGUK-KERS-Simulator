@@ -14,7 +14,8 @@ export function renderTheoryIndex(
   simsSection?: HTMLElement,
 ): Disposable {
   const first = [...docs].sort((a, b) => a.order - b.order)[0];
-  const jump = (e: Event): void => {
+  const jump = (e: MouseEvent): void => {
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
     // The hash router owns `location.hash`, so scroll in page instead of navigating.
     e.preventDefault();
     const target = host.querySelector<HTMLElement>(`#${t.home.simsId}`);
@@ -40,11 +41,13 @@ export function renderTheoryIndex(
       el('a', {
         class: 'btn btn--lg',
         text: t.home.openSims,
-        attrs: { href: `#${t.home.simsId}` },
+        attrs: { href: formatRoute({ kind: 'sim' }) },
       }),
     ]),
   ]);
-  const jumpLink = hero.querySelector<HTMLAnchorElement>(`a[href="#${t.home.simsId}"]`);
+  const jumpLink = hero.querySelector<HTMLAnchorElement>(
+    `a[href="${formatRoute({ kind: 'sim' })}"]`,
+  );
   const offJump = jumpLink ? listen(jumpLink, 'click', jump) : () => {};
 
   const list = el('ol', { class: 'card-list theory-index' });

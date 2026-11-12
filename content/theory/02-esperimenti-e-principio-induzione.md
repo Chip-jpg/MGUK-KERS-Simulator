@@ -7,7 +7,7 @@ level: base
 
 ## In breve
 
-Quattro esperimenti portano alla stessa conclusione: c’è corrente indotta quando varia il numero di linee di $\vec B$ che attraversano la superficie del circuito, cioè quando varia il [flusso](01-flusso-campo-magnetico.md) $\Phi_B$.
+Quattro esperimenti portano alla stessa conclusione: c’è corrente indotta nel circuito chiuso quando varia il [flusso](01-flusso-campo-magnetico.md) $\Phi_B$ attraverso la superficie del circuito (la presentazione lo descrive come «numero di linee di forza»: è un’immagine didattica, non un conteggio reale).
 
 ## Formule
 

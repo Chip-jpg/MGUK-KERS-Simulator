@@ -11,27 +11,27 @@ export const PART_INFO: ReadonlyArray<{ id: PartId; labelIT: string; captionIT: 
   },
   {
     id: 'gears',
-    labelIT: 'Riduzione 18:60',
+    labelIT: 'Riduzione (ipotesi 18:60)',
     captionIT:
-      'Riduzione 18:60: il pignone da 18 denti gira 60/18 volte più veloce dell’ingranaggio da 60 e porta il rotore al regime elevato.',
+      'Riduzione ipotizzata 18:60 (il rapporto reale non è pubblicato): il pignone da 18 denti gira 60/18 volte più veloce dell’ingranaggio da 60 e porta il rotore al regime elevato.',
   },
   {
     id: 'stator',
     labelIT: 'Statore',
     captionIT:
-      'Statore: i magneti in rotazione inducono nei suoi avvolgimenti di rame una tensione (EMF) e una corrente trifase: è la frenata elettrica.',
+      'Statore: nel modello i magneti in rotazione inducono nei suoi avvolgimenti di rame una tensione (EMF) e una corrente trifase: è la frenata elettrica.',
   },
   {
     id: 'rotor',
     labelIT: 'Rotore',
     captionIT:
-      'Rotore: i magneti permanenti ruotano nel campo dello statore; la coppia resistente che ne nasce frena la vettura.',
+      'Rotore: nel modello i magneti permanenti ruotano nel campo dello statore; la coppia resistente che ne nasce frena la vettura.',
   },
   {
     id: 'inverter',
     labelIT: 'Inverter',
     captionIT:
-      'Inverter: raddrizza la corrente alternata trifase dell’MGU-K in corrente continua ad alta tensione per la batteria.',
+      'Inverter: nel modello raddrizza la corrente alternata trifase dell’MGU-K in corrente continua ad alta tensione per la batteria.',
   },
   {
     id: 'battery',

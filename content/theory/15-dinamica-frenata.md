@@ -13,9 +13,13 @@ Questa scheda serve solo a leggere la ripartizione dell’energia nel simulatore
 
 L’energia cinetica persa si legge così:
 
-$$\Delta E_k = E_{\text{recuperata}} + E_{\text{freni}} + E_{\text{aria}} + E_{\text{perdite}}$$
+$$\Delta E_k = E_{\text{MGU-K}} + E_{\text{freni}} + E_{\text{aero}}$$
 
-$E_{\text{recuperata}}$ è l’energia elettrica arrivata in batteria. Non è $\tfrac12 LI^2$.
+$E_{\text{MGU-K}}$ è l’energia meccanica assorbita dall’MGU-K, comprese le perdite:
+
+$$E_{\text{MGU-K}} = E_{\text{batteria}} + E_{\text{perdite,MGU-K}}$$
+
+Le due quote corrispondono a «In batteria» e «Perdite MGU-K» nelle barre del simulatore. $E_{\text{batteria}}$ è l’energia elettrica arrivata in batteria. Non è $\tfrac12 LI^2$.
 
 ## Spiegazione
 

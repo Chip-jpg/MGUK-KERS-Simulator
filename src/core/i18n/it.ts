@@ -52,6 +52,7 @@ export const it = {
     value: 'Valore',
     toolbar: 'Comandi della simulazione',
     invalidNumber: 'Valore non valido: inserisci un numero tra',
+    clampedNumber: 'Valore fuori intervallo: impostato a {valore} (consentito tra {min} e {max}).',
     and: 'e',
     on: 'Attivo',
     off: 'Disattivo',

@@ -13,7 +13,7 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 - Ricostruzione 3D in stile teardown di tutti e 9 i simulatori ([#23](https://github.com/Chip-jpg/MGUK-KERS-Simulator/pull/23)).
 - Pulsanti di focus sui componenti dell'MGU-K con evidenziazione della parte selezionata e tour automatico con didascalie.
-- La versione 3D è pubblicata sotto `/3d/`, accanto al sito v0.7.4 alla radice.
+- La versione 3D è pubblicata sotto `/3d/`, accanto al sito alla radice (allora v0.7.4; ora la radice pubblica `main`).
 
 ### Modificato
 

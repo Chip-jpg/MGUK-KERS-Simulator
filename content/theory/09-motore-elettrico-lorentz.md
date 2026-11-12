@@ -1,6 +1,6 @@
 ---
 id: 09-motore-elettrico-lorentz
-titleIT: Motore elettrico e forza di Lorentz (principio inverso)
+titleIT: Motore elettrico (principio inverso dell’alternatore)
 order: 9
 level: approfondimento
 ---

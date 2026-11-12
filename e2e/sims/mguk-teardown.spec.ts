@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 const URL = './#/sim/mguk-teardown';
 const PARTS: Array<[string, string]> = [
   ['Ruota', 'wheel'],
-  ['Riduzione 18:60', 'gears'],
+  ['Riduzione (ipotesi 18:60)', 'gears'],
   ['Statore', 'stator'],
   ['Rotore', 'rotor'],
   ['Inverter', 'inverter'],
@@ -69,7 +69,9 @@ test.describe('mguk-teardown: parti e tour', () => {
     await expect(tourBtn(page)).toHaveAttribute('aria-pressed', 'true');
     await expect(panel(page)).toHaveAttribute('data-focus-part', 'wheel');
     await expect(panel(page)).toHaveAttribute('data-focus-part', 'gears', { timeout: 8000 });
-    await expect(page.locator('[data-out="partCaption"]')).toContainText('Riduzione 18:60');
+    await expect(page.locator('[data-out="partCaption"]')).toContainText(
+      'Riduzione ipotizzata 18:60',
+    );
     // a drag on the 3D scene stops it and keeps the current part
     const box = (await page.locator('canvas').first().boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

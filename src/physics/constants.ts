@@ -9,11 +9,11 @@ export const PHYSICS_DT = 1 / 240;
 /**
  * Vacuum magnetic permeability used by default in the app [H/m].
  *
- * μ₀ = 4π · 10⁻⁷ H/m — the value written in the slides (exact in the pre-2019 SI).
+ * μ₀ = 4π · 10⁻⁷ H/m — the value used in this model (exact in the pre-2019 SI).
  * The 2019-SI value {@link MU_0_SI2019} differs by ≈ 5.5 · 10⁻¹⁰ (relative), far
  * below any precision shown in the UI.
  *
- * @slide 14
+ * @slide 14 (only the symbol μ₀ is printed, not its numeric value)
  */
 export const MU_0 = 4 * Math.PI * 1e-7;
 

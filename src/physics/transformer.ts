@@ -80,7 +80,8 @@ export function jouleLoss(R: number, I: number): number {
  * @param Rline - total line resistance [Ω], ≥ 0
  * @returns `I` [A], `loss` [W], `fraction` [-]
  * @throws RangeError if V ≤ 0, P < 0, Rline < 0, or non-finite input
- * @slide 23 (transport chain plant → step-up → HV line → step-down; slides 21–23)
+ * @slide 23 (context: slides 21–23 show only the transport chain;
+ * loss = R · I² is a bridge to the simulator, not printed there)
  */
 export function lineLoss(
   P: number,

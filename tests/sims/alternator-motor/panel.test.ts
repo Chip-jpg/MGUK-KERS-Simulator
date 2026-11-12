@@ -113,14 +113,14 @@ describe('readouts', () => {
 
   it('three-phase note is hedged on the PMSM topology (QA-007)', () => {
     expect(THREE_PHASE_NOTE_IT).toBe(
-      'Nota: l’MGU-K reale è una macchina trifase, generalmente descritta come sincrona a magneti permanenti; qui usiamo un modello monofase a una spira.',
+      'Nota: l’MGU-K reale è trifase (dato del costruttore); che sia sincrona a magneti permanenti è una stima pubblicata, non un dato ufficiale. Qui usiamo un modello monofase a una spira.',
     );
   });
 
   it('links theory 07, 09 and 10 in the panel (QA-006)', () => {
     const p = createTheoryLinks();
     expect(p.textContent).toBe(
-      'Teoria: Alternatore (07) · Motore e forza di Lorentz (09) · KERS/MGU-K (10)',
+      'Teoria: Alternatore (07) · Motore elettrico (09) · KERS/MGU-K (10)',
     );
     expect([...p.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
       '#/teoria/07-alternatore-corrente-alternata',
