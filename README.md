@@ -74,45 +74,13 @@ Nel menu laterale si può scegliere la **qualità grafica Alta, Bilanciata o Bas
 
 ## Screenshot
 
-![La pagina iniziale introduce il percorso di teoria.](docs/screenshots/home.png)
-
-La pagina iniziale introduce il percorso di teoria.
-
-![L’indice raccoglie i simulatori disponibili.](docs/screenshots/simulatori.png)
-
-L’indice raccoglie i simulatori disponibili.
-
-![La scheda 10 spiega il recupero dell’energia con KERS e MGU-K.](docs/screenshots/teoria-10-kers-mguk.png)
-
-La scheda 10 spiega il recupero dell’energia con KERS e MGU-K.
-
-![Una bobina ruota nel campo magnetico: flusso e tensione indotta.](docs/screenshots/sim-faraday.png)
-
-Una bobina ruota nel campo magnetico: flusso e tensione indotta.
-
-![Magnete e bobina mostrano il verso della corrente indotta.](docs/screenshots/sim-lenz.png)
-
-Magnete e bobina mostrano il verso della corrente indotta.
-
-![La macchina elettrica funziona da alternatore o da motore.](docs/screenshots/sim-alternator-motor.png)
-
-La macchina elettrica funziona da alternatore o da motore.
-
-![L’MGU-K scambia energia con la batteria in accelerazione e frenata.](docs/screenshots/sim-kers-drive.png)
-
-L’MGU-K scambia energia con la batteria in accelerazione e frenata.
-
-![Lo spaccato 3D mostra i componenti dell’MGU-K e i flussi di energia.](docs/screenshots/sim-mguk-teardown.png)
-
-Lo spaccato 3D mostra i componenti dell’MGU-K e i flussi di energia.
-
-![La guida permette di provare acceleratore e freno.](docs/screenshots/sim-drive-sim.png)
-
-La guida permette di provare acceleratore e freno.
-
-![La frenata combina l’azione dell’MGU-K e dei freni con i limiti di aderenza.](docs/screenshots/sim-car-dynamics.png)
-
-La frenata combina l’azione dell’MGU-K e dei freni con i limiti di aderenza.
+|                                                                                                                                         |                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pagina iniziale**<br>![La pagina iniziale introduce il percorso di teoria.](docs/screenshots/home.png)                                | **Indice dei simulatori**<br>![L’indice raccoglie i simulatori disponibili.](docs/screenshots/simulatori.png)                                        |
+| **Teoria: KERS e MGU-K**<br>![La scheda 10 spiega il recupero dell’energia con KERS e MGU-K.](docs/screenshots/teoria-10-kers-mguk.png) | **Legge di Faraday**<br>![Una bobina ruota nel campo magnetico: flusso e tensione indotta.](docs/screenshots/sim-faraday.png)                        |
+| **Legge di Lenz**<br>![Magnete e bobina mostrano il verso della corrente indotta.](docs/screenshots/sim-lenz.png)                       | **Alternatore e motore**<br>![La macchina elettrica funziona da alternatore o da motore.](docs/screenshots/sim-alternator-motor.png)                 |
+| **MGU-K e batteria**<br>![L’MGU-K scambia energia con la batteria in accelerazione e frenata.](docs/screenshots/sim-kers-drive.png)     | **Spaccato 3D dell’MGU-K**<br>![Lo spaccato 3D mostra i componenti dell’MGU-K e i flussi di energia.](docs/screenshots/sim-mguk-teardown.png)        |
+| **Simulatore di guida**<br>![La guida permette di provare acceleratore e freno.](docs/screenshots/sim-drive-sim.png)                    | **Dinamica della frenata**<br>![La frenata combina l’azione dell’MGU-K e dei freni con i limiti di aderenza.](docs/screenshots/sim-car-dynamics.png) |
 
 ## Modello semplificato e crediti
 
