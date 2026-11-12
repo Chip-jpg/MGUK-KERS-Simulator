@@ -7,6 +7,10 @@ adotta il [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Modificato
+
+- README riscritto in italiano semplice per lettori non programmatori, con screenshot aggiornati in docs/screenshots/; i dettagli tecnici sono passati in docs/BUILD_SPEC.md.
+
 ## [0.8.0] - 2026-11-05
 
 ### Aggiunto

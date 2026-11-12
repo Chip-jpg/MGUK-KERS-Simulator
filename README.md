@@ -6,23 +6,15 @@
 [![Deploy to GitHub Pages](https://github.com/Chip-jpg/MGUK-KERS-Simulator/actions/workflows/pages.yml/badge.svg)](https://github.com/Chip-jpg/MGUK-KERS-Simulator/actions/workflows/pages.yml)
 [![Licenza: MIT](https://img.shields.io/badge/licenza-MIT-blue.svg)](./LICENSE)
 
-**KERS Lab** è un laboratorio interattivo e didattico sull'induzione elettromagnetica:
-parte dalla legge di Faraday-Neumann-Lenz e arriva all'**MGU-K**, la macchina elettrica
-che in Formula 1 recupera energia in frenata e la restituisce in accelerazione.
+**[Apri KERS Lab nel browser](https://chip-jpg.github.io/MGUK-KERS-Simulator/) — non occorre installare nulla.**
 
-È un'unica app web statica che funziona **offline** (nessuna richiesta di rete a
-runtime, font inclusi), disponibile anche come app desktop per Windows, e contiene:
+KERS Lab è un laboratorio didattico interattivo in italiano: attraverso 15 schede di teoria e 9 simulatori 3D, spiega come un campo magnetico può generare corrente e come l'MGU-K, la macchina elettrica della Formula 1, recupera energia durante la frenata e la restituisce in accelerazione. Formule, esempi e grafici che cambiano durante gli esperimenti aiutano a collegare la teoria a ciò che si osserva.
 
-- **Teoria** — 15 schede sintetiche in italiano (14 del percorso principale + 1 di
-  approfondimento sulla dinamica della frenata), con formule KaTeX, esempi numerici e
-  collegamento con l'MGU-K.
-- **Simulatori** — 9 simulatori 3D con guida finale e un approfondimento con grafici in
-  tempo reale e formule che si aggiornano con i valori numerici.
-
-**Versione attuale: v0.8.0** — tutte le fasi del progetto (1–4) sono completate; le
-novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
+È disponibile anche un'app per Windows che funziona senza connessione a Internet.
 
 ## Il filo logico
+
+Il laboratorio accompagna la presentazione di Chip: segue il percorso dalla fisica dell'induzione al recupero dell'energia, poi collega l'innovazione nella mobilità al Goal 9 dell'Agenda 2030 e al diritto alla salute dell'Art. 32 della Costituzione.
 
 ```
 Induzione di Faraday-Neumann-Lenz
@@ -40,218 +32,100 @@ Agenda 2030 — Goal 9 (imprese, innovazione, infrastrutture) · cenni a Goal 7 
 Art. 32 Costituzione — la salute come diritto individuale e interesse collettivo
 ```
 
+## Teoria: le 15 schede
+
+Le prime 14 schede formano il percorso principale; la scheda 15 è un approfondimento sulla frenata. Ogni scheda propone una spiegazione breve, formule, esempi numerici e collegamenti con l'MGU-K.
+
+- **01** Flusso del campo magnetico
+- **02** Esperimenti e principio dell’induzione elettromagnetica
+- **03** Legge di Faraday-Neumann
+- **04** Legge di Lenz
+- **05** Autoinduzione e induttanza
+- **06** Circuito RL ed energia del campo magnetico
+- **07** Alternatore e corrente alternata
+- **08** Trasformatore, trasporto dell’energia ed effetto Joule
+- **09** Motore elettrico (principio inverso dell’alternatore)
+- **10** KERS e MGU-K – recupero dell’energia in frenata
+- **11** Agenda 2030 – Goal 9
+- **12** Art. 32 della Costituzione – diritto alla salute
+- **13** Il filo logico: da Faraday all’Art. 32
+- **14** Glossario
+- **15** Dinamica della frenata – MGU-K e freni insieme
+
+## I 9 simulatori
+
+Si possono cambiare i valori e osservare insieme la scena 3D, i grafici e le formule con i risultati numerici. Le letture restano accanto ai componenti; le legende spiegano le scale delle immagini.
+
+| Simulatore                                                                    | Cosa mostra e quale principio illustra                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Flusso e legge di Faraday-Neumann**                                         | Una bobina ruota in un campo magnetico uniforme: il flusso cambia e nasce una tensione elettrica. Illustra la legge di Faraday-Neumann.                                                                                                                                                                     |
+| **Legge di Lenz**                                                             | Un magnete si avvicina o si allontana da una bobina: la corrente indotta crea un campo che si oppone alla variazione. Illustra la legge di Lenz.                                                                                                                                                            |
+| **Alternatore ⇄ motore (MGU-K)**                                              | La stessa macchina genera elettricità in frenata e produce movimento quando riceve corrente. Collega l'induzione alla forza magnetica sui conduttori percorsi da corrente e mostra i passaggi di energia.                                                                                                   |
+| **MGU-K: accelerazione e frenata**                                            | L'auto accelera o frena, mentre la batteria si scarica o si ricarica; i grafici mostrano velocità, accelerazione, potenze e carica. Illustra la conservazione dell'energia con perdite e limiti di recupero, anche attraverso un confronto con il calcolo della frenata.                                    |
+| **Trasformatore e perdite Joule**                                             | Un trasformatore ideale cambia tensione e corrente: a parità di potenza trasportata, una tensione 10 volte maggiore riduce le perdite di linea di 100 volte. Collega l'induzione all'effetto Joule.                                                                                                         |
+| **Autoinduzione, circuito RL, energia**                                       | La corrente cresce gradualmente in un circuito con resistenza e bobina; il campo magnetico immagazzina energia. Illustra l'autoinduzione e il bilancio energetico.                                                                                                                                          |
+| **Dinamica della vettura: frenata combinata MGU-K + freni** — approfondimento | Mostra come aderenza degli pneumatici, resistenza dell'aria e forza che preme l'auto al suolo influenzano la frenata. Collega le leggi del moto al recupero dell'energia: l'MGU-K agisce sulle ruote posteriori entro limiti di potenza e aderenza.                                                         |
+| **Guida: acceleratore e freno** — dimostrazione finale                        | Permette di accelerare e frenare, osservando il bilancio dell'energia. L'esempio con massa di **800 kg**, da **300 → 100 km/h**, corrisponde a circa **2,47 MJ** di energia cinetica disponibile nella frenata. È un **modello 1D, non un simulatore di giro**: considera il moto lungo una sola direzione. |
+| **MGU-K in frenata: spaccato 3D**                                             | Mostra la parte fissa (statore), quella rotante (rotore), il dispositivo che gestisce la corrente (inverter) e il percorso dell'energia. Collega l'induzione alla trasformazione dell'energia meccanica in energia elettrica.                                                                               |
+
+**Comandi:** **F** apre lo schermo intero; **P** attiva la vista di presentazione. Nella guida si tengono premuti i pedali sullo schermo con mouse o tocco, oppure si usano **W / S** o **↑ / ↓**; i pulsanti rispondono anche a Spazio e Invio e l'azione cresce gradualmente. I preset **2025 (120 kW)** e **2026 (350 kW)** permettono di confrontare l'MGU-K con la stessa vettura e la stessa carica iniziale della batteria.
+
+Nel menu laterale si può scegliere la **qualità grafica Alta, Bilanciata o Base**, secondo le capacità del computer.
+
 ## Screenshot
 
-| Teoria                                                                                                    | Simulatore `faraday`                                                                                  |
-| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| ![Pagina di teoria con formule KaTeX](e2e/screenshots/theory-dark-1280x720.png)                           | ![Simulatore Faraday-Neumann: spira rotante nel campo uniforme](docs/media/faraday-dark-1280x720.png) |
-| **Frenata e recupero di energia**                                                                         | **Dinamica della vettura**                                                                            |
-| ![Frenata con MGU-K al limite di potenza e freni a disco](docs/media/kers-braking-dark-1280x720.png)      | ![Frenata combinata MGU-K + freni con forze sugli assi](docs/media/car-dynamics-dark-1280x720.png)    |
-| **Legge di Lenz**                                                                                         | **Teoria e simulatori in qualità grafica Alta**                                                       |
-| ![Magnete, bobina avvolta e galvanometro con linee di campo calcolate](docs/media/lenz-dark-1280x720.png) | Le catture dei simulatori sono in qualità Alta (`?quality=alta`).                                     |
+|                                                                                                                                         |                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pagina iniziale**<br>![La pagina iniziale introduce il percorso di teoria.](docs/screenshots/home.png)                                | **Indice dei simulatori**<br>![L’indice raccoglie i simulatori disponibili.](docs/screenshots/simulatori.png)                                        |
+| **Teoria: KERS e MGU-K**<br>![La scheda 10 spiega il recupero dell’energia con KERS e MGU-K.](docs/screenshots/teoria-10-kers-mguk.png) | **Legge di Faraday**<br>![Una bobina ruota nel campo magnetico: flusso e tensione indotta.](docs/screenshots/sim-faraday.png)                        |
+| **Legge di Lenz**<br>![Magnete e bobina mostrano il verso della corrente indotta.](docs/screenshots/sim-lenz.png)                       | **Alternatore e motore**<br>![La macchina elettrica funziona da alternatore o da motore.](docs/screenshots/sim-alternator-motor.png)                 |
+| **MGU-K e batteria**<br>![L’MGU-K scambia energia con la batteria in accelerazione e frenata.](docs/screenshots/sim-kers-drive.png)     | **Spaccato 3D dell’MGU-K**<br>![Lo spaccato 3D mostra i componenti dell’MGU-K e i flussi di energia.](docs/screenshots/sim-mguk-teardown.png)        |
+| **Simulatore di guida**<br>![La guida permette di provare acceleratore e freno.](docs/screenshots/sim-drive-sim.png)                    | **Dinamica della frenata**<br>![La frenata combina l’azione dell’MGU-K e dei freni con i limiti di aderenza.](docs/screenshots/sim-car-dynamics.png) |
 
-## I simulatori
+## Modello semplificato e crediti
 
-| ID                  | Titolo                              | Cosa mostra                                                                                                                                |
-| ------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `faraday`           | Flusso e legge di Faraday-Neumann   | Spira di N spire che ruota in un campo uniforme; Φ(t) e f.e.m.(t), con scale sempre visibili.                                              |
-| `lenz`              | Legge di Lenz                       | Magnete che si avvicina/allontana da una bobina: campo indotto, verso della corrente, forza che si oppone.                                 |
-| `alternator-motor`  | Alternatore ⇄ motore (MGU-K)        | La stessa macchina come generatore (frenata) e come motore (forza magnetica sui conduttori percorsi da corrente), con i flussi di energia. |
-| `kers-drive`        | Accelerazione e frenata MGU-K       | Auto e MGU-K reversibili, batteria finita, telemetria; confronto analitico della frenata conservato.                                       |
-| `joule-transformer` | Trasformatore e perdite Joule       | Trasformatore ideale e perdite di linea: "10× tensione → 100× meno perdite".                                                               |
-| `rl-energy`         | Autoinduzione, circuito RL, energia | i(t) = I₀(1 − e^(−t/τ)), τ = L/R, energia ½LI² e bilancio energetico.                                                                      |
+KERS Lab è un **modello didattico, non un simulatore certificato**. Ogni simulatore dichiara le proprie semplificazioni: per esempio un campo uniforme, una sola spira al posto della macchina trifase reale, un trasformatore ideale o l'assenza di saturazione magnetica. Per l'MGU-K reale, la macchina trifase è un **dato del costruttore**; che sia sincrona a magneti permanenti è **una stima pubblicata, non un dato ufficiale**.
 
-**Spaccato 3D:** `mguk-teardown` — **MGU-K in frenata**, con statore, rotore, inverter e flussi di energia.
+I valori citati provengono da fonti ufficiali oppure sono segnati **[DA VERIFICARE]**: i punti ancora aperti sono raccolti in [dati da verificare](docs/OPEN_FACTS.md). La corrispondenza tra formule e slide della presentazione è documentata in [formule e modelli fisici](docs/PHYSICS.md).
 
-**Approfondimento (Fase 4)**
+Il progetto non è affiliato a Formula 1, FIA o scuderie e non usa loghi, marchi o immagini protetti: la grafica è originale e costruita con forme geometriche. Le slide del corso non sono incluse.
 
-| ID             | Titolo                                                  | Cosa mostra                                                                                                 |
-| -------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `car-dynamics` | Dinamica della vettura: frenata combinata MGU-K + freni | Pneumatici Pacejka, resistenza e deportanza, MGU-K sull'asse posteriore limitata da Pₘₐₓ/η e dall'aderenza. |
+Licenza [MIT](LICENSE) © 2026 Chip-jpg.
 
-**Dimostrazione finale:** `drive-sim` — **Guida: acceleratore e freno**, con ↑/W e ↓/S a risposta graduale o pedali sullo schermo. Lo scenario 800 kg, 300 → 100 km/h mostra circa 2,47 MJ. Modello longitudinale 1D, non un simulatore di giro.
+## Per chi sviluppa
 
-Ogni simulatore include sensori con dimensioni fisse accanto ai componenti, **F** per lo schermo intero, **P** per la vista di presentazione e contatore FPS attivabile con **`**. Il limite di rendering è fisso a **200 FPS**, senza selettore: monitor, GPU e browser determinano la frequenza effettiva. La fisica conserva il passo fisso di 1/240 s. Nella guida, tieni premuti i pulsanti Acceleratore e Freno (mouse, touch, Spazio/Invio) oppure usa W/S e frecce. I preset 2025 (120 kW) e 2026 (350 kW) consentono di confrontare l'MGU-K con lo stesso veicolo e la stessa carica iniziale.
-
-## Avvio rapido
-
-Requisiti: **Node.js ≥ 20** (in CI si usa Node 22) e npm.
-
-```bash
-npm ci            # installa le dipendenze (versioni bloccate dal lockfile)
-npm run dev       # server di sviluppo Vite → http://localhost:5173
-npm run build     # build di produzione in dist/
-npm run preview   # serve la build in locale
-```
-
-Controlli di qualità (gli stessi della CI):
-
-```bash
-npm run lint           # ESLint
-npm run format:check   # Prettier
-npm run typecheck      # TypeScript strict
-npm test               # Vitest (unit test)
-npm run test:coverage  # Vitest con copertura
-npm run e2e            # Playwright (Chromium), smoke test end-to-end
-```
-
-Per Playwright con un Chromium già installato: `PW_CHROMIUM_PATH=/percorso/chrome npm run e2e`.
-
-## Grafica 3D e qualità
-
-Le scene 3D sono costruite sulla fisica dei modelli: linee di campo calcolate, particelle di
-corrente proporzionali a i, temperature da modelli termici, nastri di energia proporzionali
-alla potenza; ogni scala è dichiarata nella legenda del simulatore e in
-[`docs/PHYSICS.md`](docs/PHYSICS.md) §12. Nel menu laterale si sceglie la **qualità grafica**:
-
-- **Alta** — post-processing, ombre, riflessi: automatica nell’app per PC e con scheda grafica
-  dedicata;
-- **Bilanciata** — per schede grafiche integrate;
-- **Base** — senza effetti, per PC senza accelerazione grafica.
-
-Si può forzare con `?quality=alta`, `?quality=bilanciata` o `?quality=base` nell’indirizzo.
-
-## Tecnologie
-
-- **Vite 5 + TypeScript 5** (strict), senza framework UI: TypeScript "vanilla" e piccoli componenti.
-- **Three.js r169** per le scene 3D, **uPlot 1.6** per i grafici in tempo reale.
-- **marked 14 + KaTeX 0.16** per la teoria in Markdown con formule.
-- **Vitest** (unit test) e **Playwright** (test end-to-end e accessibilità con axe su Chromium).
-- **ESLint + Prettier**, Conventional Commits (commitlint), GitHub Actions, GitHub Pages.
-- **Tauri 2** per l'app desktop Windows.
-
-## Struttura del progetto
-
-```
-README.md  LICENSE  CHANGELOG.md  CONTRIBUTING.md
-docs/            ARCHITECTURE.md, PHYSICS.md (formule ↔ slide), DECISIONS.md,
-                 OPEN_FACTS.md (dati da verificare), QA_REPORT.md, DESKTOP.md, media/
-content/theory/  NN-slug.md — schede di teoria (italiano)
-src/
-  core/          shell dell'app, router (hash), i18n (it.ts), tema, registro moduli
-  physics/       TypeScript puro, unità SI, nessun DOM/Three.js
-  ui/            componenti, slider, wrapper dei grafici
-  sims/<id>/     un simulatore per cartella
-  theory/        loader e renderer del Markdown
-tests/  e2e/
-.github/         workflow CI, deploy Pages, build desktop, modelli di issue e PR
-src-tauri/       app desktop Windows (Tauri 2)
-```
-
-Dettagli in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); decisioni in
-[`docs/DECISIONS.md`](docs/DECISIONS.md).
+I dettagli tecnici, i comandi e le procedure di pubblicazione sono nella [specifica tecnica e di build](docs/BUILD_SPEC.md).
 
 ## Roadmap
 
-- [x] ✅ **v0.1.0 — Fasi 1–3** (completata): shell dell'app, motore fisico, teoria (14 schede), sei
-      simulatori, modalità Interrogazione (rimossa nella v0.5.0).
-- [x] ✅ **v0.2.0 — Rifinitura** (completata): correzioni dalla revisione indipendente,
-      accessibilità, guida alla pubblicazione su GitHub Pages.
-- [x] ✅ **v0.3.x–v0.4.0 — Fase 4 (avanzata, facoltativa)** (completata):
-  1. ✅ `field-biot-savart` — linee di campo animate sulla GPU per bobine reali (Biot-Savart)
-     (v0.3.0; rimosso nella v0.5.0);
-  2. ✅ `pmsm-dq` — modello d-q della macchina sincrona a magneti permanenti, mappe
-     coppia/potenza (v0.3.0; rimosso nella v0.5.0);
-  3. ✅ `car-dynamics` (v0.3.1) — dinamica del veicolo (pneumatici Pacejka, aerodinamica, frenata combinata MGU-K + freni);
-  4. ✅ app desktop Windows (`.exe`) con Tauri 2 (v0.4.0).
+Le modifiche di ogni versione sono nel [CHANGELOG.md](CHANGELOG.md); i tag git e le pubblicazioni GitHub Release iniziano dalla v0.7.0, mentre le versioni precedenti sono documentate solo nel changelog.
 
-- [x] ✅ **v0.5.0 — Versione essenziale**: per scelta, l'app si concentra sul filo logico
-      Faraday → MGU-K → Goal 9 → Art. 32. Rimossi la modalità Interrogazione (quiz,
-      flashcard, ripasso), i riferimenti alle slide nell'interfaccia e i due moduli avanzati
-      `field-biot-savart` e `pmsm-dq`; resta `car-dynamics`, che estende la frenata KERS
-      ([D13](docs/DECISIONS.md)).
+- **v0.1.0 — Fasi 1–3:** struttura dell'app, modelli fisici, 14 schede di teoria, sei simulatori e modalità Interrogazione, poi rimossa nella v0.5.0.
+- **v0.2.0 — Rifinitura:** correzioni dopo la revisione indipendente, accessibilità e guida alla pubblicazione del sito.
+- **v0.3.x–v0.4.0 — Fase 4:** dinamica della vettura e app Windows; aggiunti anche i moduli sul campo di bobine reali e sul modello avanzato della macchina elettrica, poi rimossi nella v0.5.0.
+- **v0.5.0 — Versione essenziale:** percorso concentrato su Faraday → MGU-K → Goal 9 → Art. 32; rimossi Interrogazione e quiz, riferimenti alle slide nell'interfaccia e i due moduli avanzati; conservata la dinamica della vettura.
+- **v0.5.1 — Grafici più vicini alla scena:** disposizione di scena, grafici e comandi migliorata anche sugli schermi stretti.
+- **v0.6.0 — Grafica 3D:** scene guidate dai modelli fisici, scale dichiarate e tre livelli di qualità grafica.
+- **v0.7.0 — Guida e correzioni:** accelerazione e frenata nella stessa vettura, guida con pedali, batteria che può esaurirsi, misure in tempo reale, schermo intero e grafici migliorati.
+- **v0.7.1 — Interfaccia:** letture accanto ai componenti, spaziature più chiare e pedali da tenere premuti.
+- **v0.7.2 — Preset guida:** confronto tra l'MGU-K 2025 (120 kW) e 2026 (350 kW) nelle stesse condizioni iniziali.
+- **v0.7.3 — Indicatori macchina:** letture ferme e leggibili accanto ai componenti dell'alternatore/motore.
+- **v0.7.4 — Tipografia indicatori:** caratteri uniformi agli altri simulatori e testo più nitido.
+- **v0.8.0 — Versione 3D (2026-11-05, ultimo tag e ultima release):** tutti i 9 simulatori ricostruiti in 3D nello stile dello spaccato, con selezione dei componenti e visita guidata automatica; pubblicazione alla radice del sito e in `/3d/`.
 
-- [x] **v0.6.0 — Grafica 3D**: nuova grafica di tutti i simulatori guidata dalla fisica dei modelli: materiali realistici, ombre, linee di campo, particelle di corrente, temperature e nastri di energia con scale dichiarate, qualità grafica Alta / Bilanciata / Base.
+**Dopo la v0.8.0 (su main, non ancora in una release):**
 
-- [x] **v0.7.4 — Tipografia indicatori**: indicatori dell’alternatore/motore con lo stesso stile delle etichette degli altri simulatori e testo più nitido, posizione e letture invariate.
-- [x] **v0.8.0 — Versione 3D**: tutti i 9 simulatori ricostruiti in 3D in stile teardown, con pulsanti di focus sui componenti dell’MGU-K, tour automatico con didascalie e ottimizzazioni per il livello base; pubblicata alla radice del sito e in `/3d/`.
-- [x] **v0.7.3 — Indicatori macchina**: letture leggibili e ferme accanto ai componenti dell’alternatore/motore, senza seguire il rotore.
-- [x] **v0.7.2 — Preset guida**: confronto MGU-K 2025 (120 kW) / 2026 (350 kW), selezione evidenziata e riavvio comparabile.
-- [x] **v0.7.1 — Interfaccia**: sensori ancorati ai componenti, spaziature MGU-K, limite fisso 200 FPS e pedali a pulsante.
-- [x] **v0.7.0 — Guida e correzioni**: accelerazione/frenata reversibili, nuova guida con pedali, batteria con arresto a scarica, telemetria live, sensori fissi, schermo intero, scale dei grafici robuste e FPS automatici, analisi estesa del trasformatore.
+- **PR #41 — Integrata il 2026-11-09:** leggibilità al proiettore e nuova pagina iniziale.
+- **PR #42 e #43 — Integrate il 2026-11-12:** revisione finale della teoria allineata alla presentazione, glossario, formulazioni e adattamento agli schermi di telefono da 390 px.
 
-Le modifiche di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md). I tag git e le
-GitHub Release partono dalla v0.7.0: le versioni precedenti sono documentate solo in
-`CHANGELOG.md`.
+**Ancora in revisione:**
 
-## Come pubblicare una release
+- **PR #44 — Non ancora integrata:** indicatori su telefono, test, formulazione su macchina trifase e magneti permanenti, nuovo indirizzo della scheda 09 con reindirizzamento dal precedente.
+- **Questa revisione del README:** italiano semplice, screenshot aggiornati e dettagli tecnici raccolti nella specifica di build.
 
-1. Una sola volta: in **Settings → Pages → Build and deployment → Source** scegli
-   **GitHub Actions**; poi in **Settings → Environments → github-pages → Deployment
-   branches and tags** aggiungi una regola **Tag** con pattern `v*`, mantenendo `main`.
-   Senza questa regola i deploy avviati dai tag vengono rifiutati dalle regole di
-   protezione dell’ambiente.
-2. Aggiorna `CHANGELOG.md` (sposta le voci di `[Unreleased]` in una nuova sezione
-   `## [X.Y.Z] - AAAA-MM-GG`) e la versione in `package.json`, poi fai il merge su `main`.
-3. Crea e pubblica il tag annotato: il push del tag `v*` avvia il workflow
-   [`pages.yml`](.github/workflows/pages.yml), che compila e pubblica il sito su GitHub Pages.
+**Da fare / aperto:**
 
-   ```bash
-   git tag -a vX.Y.Z -m "KERS Lab vX.Y.Z"
-   git push origin vX.Y.Z
-   ```
-
-   Se l’esecuzione del tag fallisce o il sito non si aggiorna, avvia a mano il workflow:
-   **Actions → Deploy to GitHub Pages → Run workflow** sul branch `main`
-   (`workflow_dispatch`).
-
-   Il sito viene compilato una sola volta dal tag o branch che ha avviato il deploy
-   (`github.sha`): lo stesso build è servito sia alla radice sia in `/3d/`, così i
-   vecchi collegamenti a `/3d/` continuano a funzionare.
-
-4. Crea la **GitHub Release** dal tag (`Releases → Draft a new release`, oppure
-   `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file note.md`), copiando come note
-   il testo della sezione corrispondente di `CHANGELOG.md`.
-
-## App desktop (Windows)
-
-Lo stesso tag `v*` avvia anche [`desktop.yml`](.github/workflows/desktop.yml), che con
-[Tauri 2](https://v2.tauri.app/) produce gli installer Windows (`.exe` NSIS e `.msi`) e li
-allega alla Release del tag (se la Release non esiste ancora la crea: le note si
-aggiornano poi con `gh release edit vX.Y.Z --notes-file note.md`). L’app usa la stessa
-build del sito ed è completamente offline. Build locale su Windows: `npm run desktop:build`.
-Prerequisiti, CSP e limitazioni (binario non firmato → avviso SmartScreen, nessun
-aggiornamento automatico) in [`docs/DESKTOP.md`](docs/DESKTOP.md).
-
-## Modello semplificato
-
-KERS Lab è un **modello didattico**, non un simulatore certificato: ogni simulatore
-dichiara le proprie ipotesi in una nota "Modello semplificato: …" (campo uniforme,
-spira singola al posto della reale macchina trifase, trasformatore ideale, niente
-saturazione…). Per l’MGU-K reale, la macchina trifase è un dato del costruttore;
-che sia sincrona a magneti permanenti è una stima pubblicata, non un dato ufficiale.
-I valori regolamentari citati provengono da fonti ufficiali oppure sono marcati
-`[DA VERIFICARE]`.
-
-Il progetto **non è affiliato** a Formula 1, FIA o a qualsiasi scuderia e non usa loghi,
-marchi o immagini protetti: tutta la grafica è geometria astratta originale. Le slide
-del corso non sono incluse.
-
-## Contribuire
-
-Leggi [`CONTRIBUTING.md`](CONTRIBUTING.md): un branch per task, Conventional Commits,
-test obbligatori, fisica "pura", testi in italiano e codice in inglese.
-
-## Licenza
-
-[MIT](./LICENSE) © 2026 Chip-jpg
-
----
-
-## English summary
-
-**KERS Lab** — _from Faraday's induction to the MGU-K_ — is an educational, offline-first
-web app (Italian UI) that walks from the Faraday-Neumann-Lenz law to the Formula 1
-MGU-K (kinetic energy recovery). It bundles 15 concise theory pages and eight
-interactive 3D simulators with live plots and formulas (including an advanced module on
-braking vehicle dynamics: tyres, aerodynamics and the MGU-K on the rear axle). Since
-v0.5.0 the app is deliberately slim: no quiz mode, no slide references in the UI and no
-Biot-Savart / PMSM modules. A Windows desktop build
-(Tauri 2) is produced by CI on every release tag. The narrative links electromagnetic induction → the MGU-K → UN Agenda 2030
-Goal 9 → Article 32 of the Italian Constitution (health as a right and a collective
-interest).
-
-Built with Vite 5, TypeScript 5 (strict), Three.js, uPlot, marked + KaTeX; tested with
-Vitest and Playwright. Run it with `npm ci && npm run dev`. It is a simplified
-educational model, not a certified simulator, and is not affiliated with Formula 1,
-the FIA or any team. Licensed under MIT.
+- Pubblicare una nuova versione, con tag e release, che raccolga le modifiche successive alla v0.8.0.
+- Verificare i dati ancora segnati **[DA VERIFICARE]** in [docs/OPEN_FACTS.md](docs/OPEN_FACTS.md).
+- Esaminare gli aggiornamenti delle dipendenze proposti da Dependabot ancora aperti.
+- Affrontare la firma dell'app Windows: attualmente non è firmata e mostra l'avviso SmartScreen.
