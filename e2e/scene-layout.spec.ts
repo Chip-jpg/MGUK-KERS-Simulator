@@ -109,9 +109,12 @@ for (const vp of VIEWPORTS) {
       await page.setViewportSize(vp);
       await page.goto(`/#/sim/${sim}`);
       await expect(page.locator('.sim-scene canvas')).toHaveCount(1, { timeout: 30_000 });
+      // Lenz always shows two labels; «faccia» is hidden while the induced sign is zero.
+      // The stopped magnet therefore has a stable minimum of two visible labels.
+      const minimumLabels = sim === 'lenz' ? 2 : 3;
       await expect
         .poll(async () => (await measure(page)).labels, { timeout: 20_000 })
-        .toBeGreaterThan(2);
+        .toBeGreaterThanOrEqual(minimumLabels);
       // Labels move with the animation: every sample must be clean.
       for (let k = 0; k < 4; k++) {
         await page.waitForTimeout(400);
