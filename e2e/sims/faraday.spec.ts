@@ -81,7 +81,7 @@ test.describe('sim faraday', () => {
     await expect(page.locator('.sim-scene canvas')).toHaveCount(1);
     await expect(page.locator('.formula-row[data-key="V0"]')).toBeVisible();
     await expect(page.locator('.sim-plots figure.plot')).toHaveCount(2);
-    await expect(page.locator('.sim-note')).toContainText('trifase');
+    await expect(page.locator('.sim-note')).toContainText('trifase (dato del costruttore)');
     const d = await debug(page);
     expect(d['liveScenes']).toBe(1);
     expect(d['liveRenderers']).toBe(1);

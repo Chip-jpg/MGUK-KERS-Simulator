@@ -644,3 +644,44 @@
 .drive-presets a + a::before {
   content: ' · ';
 }
+
+/* Narrow screens retain reserved sensor widths, capped by the available space. */
+@media (max-width: 480px) {
+  .value-readout {
+    max-width: 100%;
+    grid-template-columns: minmax(0, 1fr) 5rem;
+    min-width: 0;
+  }
+
+  .text-readout {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    /* Reserve two lines even when the live value needs only one. */
+    height: max(2lh, 2rem) !important;
+  }
+
+  .sim-legend-dock__body > [data-scene-legend] {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .sim-layout .rl-bar,
+  .sim-layout .jt-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sim-layout .rl-bar__value,
+  .sim-layout .jt-bar__value {
+    justify-self: end;
+  }
+
+  .sim-layout .cd-table {
+    table-layout: fixed;
+    overflow-wrap: anywhere;
+  }
+
+  .sim-layout .cd-table td {
+    white-space: normal;
+  }
+}

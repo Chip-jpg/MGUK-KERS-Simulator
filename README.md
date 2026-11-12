@@ -16,7 +16,7 @@ runtime, font inclusi), disponibile anche come app desktop per Windows, e contie
 - **Teoria** — 15 schede sintetiche in italiano (14 del percorso principale + 1 di
   approfondimento sulla dinamica della frenata), con formule KaTeX, esempi numerici e
   collegamento con l'MGU-K.
-- **Simulatori** — 8 simulatori 3D con guida finale e un approfondimento con grafici in
+- **Simulatori** — 9 simulatori 3D con guida finale e un approfondimento con grafici in
   tempo reale e formule che si aggiornano con i valori numerici.
 
 **Versione attuale: v0.8.0** — tutte le fasi del progetto (1–4) sono completate; le
@@ -28,7 +28,7 @@ novità di ogni versione sono in [`CHANGELOG.md`](CHANGELOG.md).
 Induzione di Faraday-Neumann-Lenz
         │  una spira che ruota in un campo B genera una f.e.m.
         ▼
-Alternatore ⇄ motore (principio inverso, forza di Lorentz)
+Alternatore ⇄ motore (principio inverso, forza magnetica sui conduttori percorsi da corrente)
         │  in frenata l'MGU-K fa da generatore, in accelerazione da motore
         ▼
 MGU-K / KERS: recupero dell'energia cinetica, perdite per effetto Joule
@@ -52,14 +52,16 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 ## I simulatori
 
-| ID                  | Titolo                              | Cosa mostra                                                                                                |
-| ------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `faraday`           | Flusso e legge di Faraday-Neumann   | Spira di N spire che ruota in un campo uniforme; Φ(t) e f.e.m.(t), con scale sempre visibili.              |
-| `lenz`              | Legge di Lenz                       | Magnete che si avvicina/allontana da una bobina: campo indotto, verso della corrente, forza che si oppone. |
-| `alternator-motor`  | Alternatore ⇄ motore (MGU-K)        | La stessa macchina come generatore (frenata) e come motore (forza di Lorentz), con i flussi di energia.    |
-| `kers-drive`        | Accelerazione e frenata MGU-K       | Auto e MGU-K reversibili, batteria finita, telemetria; confronto analitico della frenata conservato.       |
-| `joule-transformer` | Trasformatore e perdite Joule       | Trasformatore ideale e perdite di linea: "10× tensione → 100× meno perdite".                               |
-| `rl-energy`         | Autoinduzione, circuito RL, energia | i(t) = I₀(1 − e^(−t/τ)), τ = L/R, energia ½LI² e bilancio energetico.                                      |
+| ID                  | Titolo                              | Cosa mostra                                                                                                                                |
+| ------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `faraday`           | Flusso e legge di Faraday-Neumann   | Spira di N spire che ruota in un campo uniforme; Φ(t) e f.e.m.(t), con scale sempre visibili.                                              |
+| `lenz`              | Legge di Lenz                       | Magnete che si avvicina/allontana da una bobina: campo indotto, verso della corrente, forza che si oppone.                                 |
+| `alternator-motor`  | Alternatore ⇄ motore (MGU-K)        | La stessa macchina come generatore (frenata) e come motore (forza magnetica sui conduttori percorsi da corrente), con i flussi di energia. |
+| `kers-drive`        | Accelerazione e frenata MGU-K       | Auto e MGU-K reversibili, batteria finita, telemetria; confronto analitico della frenata conservato.                                       |
+| `joule-transformer` | Trasformatore e perdite Joule       | Trasformatore ideale e perdite di linea: "10× tensione → 100× meno perdite".                                                               |
+| `rl-energy`         | Autoinduzione, circuito RL, energia | i(t) = I₀(1 − e^(−t/τ)), τ = L/R, energia ½LI² e bilancio energetico.                                                                      |
+
+**Spaccato 3D:** `mguk-teardown` — **MGU-K in frenata**, con statore, rotore, inverter e flussi di energia.
 
 **Approfondimento (Fase 4)**
 
@@ -69,7 +71,7 @@ Art. 32 Costituzione — la salute come diritto individuale e interesse colletti
 
 **Dimostrazione finale:** `drive-sim` — **Guida: acceleratore e freno**, con ↑/W e ↓/S a risposta graduale o pedali sullo schermo. Lo scenario 800 kg, 300 → 100 km/h mostra circa 2,47 MJ. Modello longitudinale 1D, non un simulatore di giro.
 
-Ogni simulatore include sensori con dimensioni fisse accanto ai componenti, **F** per lo schermo intero, **P** per la vista di presentazione e contatore FPS attivabile con **`**. Il limite di rendering è fisso a **200 FPS**, senza selettore: monitor, GPU e browser determinano la frequenza effettiva. La fisica conserva il passo fisso di 1/240 s. Nella guida, tieni premuti i pulsanti Acceleratore e Freno (mouse, touch, Spazio/Invio) oppure usa W/S e frecce. I preset 2025 (120 kW) e 2026 (350 kW) consentono di confrontare la MGU-K con lo stesso veicolo e la stessa carica iniziale.
+Ogni simulatore include sensori con dimensioni fisse accanto ai componenti, **F** per lo schermo intero, **P** per la vista di presentazione e contatore FPS attivabile con **`**. Il limite di rendering è fisso a **200 FPS**, senza selettore: monitor, GPU e browser determinano la frequenza effettiva. La fisica conserva il passo fisso di 1/240 s. Nella guida, tieni premuti i pulsanti Acceleratore e Freno (mouse, touch, Spazio/Invio) oppure usa W/S e frecce. I preset 2025 (120 kW) e 2026 (350 kW) consentono di confrontare l'MGU-K con lo stesso veicolo e la stessa carica iniziale.
 
 ## Avvio rapido
 

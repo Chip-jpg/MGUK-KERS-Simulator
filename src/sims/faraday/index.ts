@@ -33,7 +33,7 @@ export { params, defaultParams, FaradaySim } from './model';
 export type { FaradayParams, FaradayMode } from './model';
 
 export const MODEL_NOTE_IT =
-  'campo B uniforme, spira rigida monofase, nessuna resistenza/autoinduzione della spira; ω è imposta (la coppia/forza di Lenz non è modellata); l’MGU-K reale è una macchina trifase. Nella scena le linee di campo sono calcolate per due espansioni polari affacciate (uniformi al centro, con frange ai bordi); lampadina e particelle di corrente usano un carico resistivo illustrativo: velocità delle particelle ∝ f.e.m., luminosità ∝ f.e.m.² (solo P/Pₘₐₓ, nessun valore assoluto).';
+  'campo B uniforme, spira rigida monofase, nessuna resistenza/autoinduzione della spira; ω è imposta (la coppia/forza di Lenz non è modellata); l’MGU-K reale è trifase (dato del costruttore); qui usiamo un modello monofase a una spira. Nella scena le linee di campo sono calcolate per due espansioni polari affacciate (uniformi al centro, con frange ai bordi); lampadina e particelle di corrente usano un carico resistivo illustrativo: velocità delle particelle ∝ f.e.m., luminosità ∝ f.e.m.² (solo P/Pₘₐₓ, nessun valore assoluto).';
 
 let liveMounts = 0;
 let totalMounts = 0;
