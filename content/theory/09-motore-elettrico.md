@@ -1,5 +1,5 @@
 ---
-id: 09-motore-elettrico-lorentz
+id: 09-motore-elettrico
 titleIT: Motore elettrico (principio inverso dell’alternatore)
 order: 9
 level: approfondimento

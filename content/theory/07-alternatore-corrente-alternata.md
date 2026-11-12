@@ -31,4 +31,4 @@ Nessun alternatore numerico. L’ampiezza da leggere sul grafico è $V_0 = NBS\o
 
 ## Collegamento con KERS / MGU-K
 
-In frenata la macchina è usata come alternatore: il rotore riceve lavoro meccanico e una parte dell’energia diventa elettrica verso la batteria. Il verso motore è il [principio inverso](09-motore-elettrico-lorentz.md); i numeri del recupero sono in [KERS e MGU-K](10-kers-mguk.md).
+In frenata la macchina è usata come alternatore: il rotore riceve lavoro meccanico e una parte dell’energia diventa elettrica verso la batteria. Il verso motore è il [principio inverso](09-motore-elettrico.md); i numeri del recupero sono in [KERS e MGU-K](10-kers-mguk.md).

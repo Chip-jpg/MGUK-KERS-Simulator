@@ -16,6 +16,7 @@ describe('parseRoute', () => {
     ['#/teoria', { kind: 'teoria' }],
     ['#/teoria/', { kind: 'teoria' }],
     ['#/teoria/03-faraday-neumann', { kind: 'teoria', id: '03-faraday-neumann' }],
+    ['#/teoria/09-motore-elettrico-lorentz', { kind: 'teoria', id: '09-motore-elettrico' }],
     ['#/sim', { kind: 'sim' }],
     ['#/sim/faraday', { kind: 'sim', id: 'faraday' }],
     ['#/sim/alternator-motor', { kind: 'sim', id: 'alternator-motor' }],
@@ -59,7 +60,12 @@ describe('formatRoute', () => {
 function fakeWindow(initial: string): RouterWindow & { fire(): void; listeners: number } {
   const handlers = new Set<() => void>();
   return {
-    location: { hash: initial },
+    location: {
+      hash: initial,
+      replace: vi.fn(function (this: { hash: string }, hash: string) {
+        this.hash = hash;
+      }),
+    },
     addEventListener: (_t, cb) => void handlers.add(cb),
     removeEventListener: (_t, cb) => void handlers.delete(cb),
     fire: () => handlers.forEach((h) => h()),
@@ -70,6 +76,26 @@ function fakeWindow(initial: string): RouterWindow & { fire(): void; listeners: 
 }
 
 describe('createRouter', () => {
+  it.each(['initial', 'hashchange'])('replaces the theory alias on %s', (entry) => {
+    const legacyHash = '#/teoria/09-motore-elettrico-lorentz';
+    const win = fakeWindow(entry === 'initial' ? legacyHash : '#/teoria');
+    const onChange = vi.fn();
+    const router = createRouter(onChange, win);
+    if (entry === 'hashchange') {
+      win.location.hash = legacyHash;
+      win.fire();
+    }
+    expect(win.location.replace).toHaveBeenCalledTimes(1);
+    expect(win.location.replace).toHaveBeenCalledWith('#/teoria/09-motore-elettrico');
+    expect(win.location.hash).toBe('#/teoria/09-motore-elettrico');
+    expect(router.current()).toEqual({ kind: 'teoria', id: '09-motore-elettrico' });
+    expect(onChange).toHaveBeenLastCalledWith({ kind: 'teoria', id: '09-motore-elettrico' });
+    const calls = onChange.mock.calls.length;
+    win.fire();
+    expect(onChange).toHaveBeenCalledTimes(calls);
+    router.dispose();
+  });
+
   it('normalises an empty hash to the default and notifies immediately', () => {
     const win = fakeWindow('');
     const onChange = vi.fn();
