@@ -46,7 +46,7 @@ jobs:
         run: npm run desktop:build
 
       - name: Upload installers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kers-lab-windows
           path: |
